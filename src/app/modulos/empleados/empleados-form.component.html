@@ -1,0 +1,508 @@
+<div class="employee-form-page" *ngIf="!loading; else loadingTpl">
+  <app-loading-spinner></app-loading-spinner>
+  <div class="form-shell">
+    <div class="form-header">
+      <div>
+        <p class="kicker">Ficha de empleado</p>
+        <h3>{{ titulo }}</h3>
+        <p class="subtitle">{{ subtitulo }}</p>
+        <p class="required-legend"><span class="required-mark">*</span> Campos obligatorios</p>
+      </div>
+      <div class="header-actions">
+        <a routerLink="/admin/empleados/listado" class="btn-secondary">Volver al listado</a>
+        <button type="button" class="btn-primary" (click)="guardar()" [disabled]="saving">
+          {{ saving ? 'Guardando...' : 'Guardar empleado' }}
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="error" class="error-box">{{ error }}</div>
+
+    <form class="employee-form" [formGroup]="form" (ngSubmit)="guardar()">
+      <!-- Error modal -->
+      <div class="error-modal-overlay" *ngIf="errorModalOpen">
+        <div class="error-modal" role="dialog" aria-modal="true">
+          <h4>Error</h4>
+          <pre>{{ errorModalMessage }}</pre>
+          <div class="modal-actions">
+            <button type="button" class="btn-close" (click)="closeErrorModal()">Cerrar</button>
+          </div>
+        </div>
+      </div>
+      <section class="form-card form-card-hero">
+        <div class="hero-grid">
+          <div class="hero-main">
+            <span class="hero-badge">Datos principales</span>
+            <div class="hero-name-row">
+              <button type="button" class="avatar-preview avatar-preview-clickable" *ngIf="form.value.foto && !fotoPrincipalError; else heroAvatarFallback" (click)="openPhotoViewer()" aria-label="Ampliar foto principal">
+                <img [src]="form.value.foto" alt="Foto principal del empleado" (error)="onMainPhotoError()" />
+              </button>
+              <ng-template #heroAvatarFallback>
+                <div class="avatar-preview">
+                  <i class="bi bi-person-badge"></i>
+                </div>
+              </ng-template>
+              <div>
+                <h4>{{ form.value.apellido || 'Apellido' }}, {{ form.value.nombre || 'Nombre' }}</h4>
+                <p>{{ form.value.legajo || 'Legajo pendiente' }}</p>
+              </div>
+            </div>
+            <!--<div class="hero-session-info" *ngIf="form.value.empresa_id">
+              <span>Empresa asignada</span>
+              <strong>{{ form.value.empresa_id }}</strong>
+            </div>-->
+          </div>
+          <div class="hero-meta">
+            <div>
+              <span>Estado</span>
+              <strong>{{ form.value.estado === 1 ? 'Activo' : 'Inactivo' }}</strong>
+            </div>
+            <div>
+              <span>Habilitado</span>
+              <strong>{{ form.value.habilitado === 1 ? 'Sí' : 'No' }}</strong>
+            </div>
+            <div>
+              <span>Documento</span>
+              <strong>{{ form.value.tipo_documento || 'DNI' }} {{ form.value.numero_documento || '-' }}</strong>
+            </div>
+            <div>
+              <span>Edad</span>
+              <strong>{{ edad }}</strong>
+            </div>
+            <div>
+              <span>Sueldo básico</span>
+              <strong class="sueldo-amount">{{ sueldoBasico }}</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+
+
+      <section class="form-card">
+        <div class="section-title">
+          <h4>Datos personales</h4>
+          <p>Identificación, contacto y domicilio.</p>
+        </div>
+        <div class="grid-4">
+          <div class="field">
+            <label>Tipo documento <span class="required-mark">*</span></label>
+            <select formControlName="tipo_documento">
+              <option value="DNI">DNI</option>
+              <option value="LC">LC</option>
+              <option value="LE">LE</option>
+              <option value="PASAPORTE">Pasaporte</option>
+            </select>
+            <div class="field-error" *ngIf="getControlError('tipo_documento')">{{ getControlError('tipo_documento') }}</div>
+          </div>
+          <div class="field">
+            <label>Número documento <span class="required-mark">*</span></label>
+            <input type="text" formControlName="numero_documento" placeholder="Número" />
+            <div class="field-error" *ngIf="getControlError('numero_documento')">{{ getControlError('numero_documento') }}</div>
+          </div>
+          <div class="field">
+            <label>Nombre <span class="required-mark">*</span></label>
+            <input type="text" formControlName="nombre" placeholder="Nombre" />
+            <div class="field-error" *ngIf="getControlError('nombre')">{{ getControlError('nombre') }}</div>
+          </div>
+          <div class="field">
+            <label>Apellido <span class="required-mark">*</span></label>
+            <input type="text" formControlName="apellido" placeholder="Apellido" />
+            <div class="field-error" *ngIf="getControlError('apellido')">{{ getControlError('apellido') }}</div>
+          </div>
+          <div class="field">
+            <label>Fecha nacimiento</label>
+            <input type="date" formControlName="fecha_nacimiento" />
+          </div>
+          <div class="field">
+            <label>Sexo</label>
+            <select formControlName="sexo">
+              <option value="">Seleccione</option>
+              <option value="M">Masculino</option>
+              <option value="F">Femenino</option>
+              <option value="X">No binario</option>
+            <option value="N">No especificado</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Estado civil</label>
+            <select formControlName="estado_civil">
+              <option value="">Seleccione</option>
+              <option value="Soltero/a">Soltero/a</option>
+              <option value="Casado/a">Casado/a</option>
+              <option value="Divorciado/a">Divorciado/a</option>
+              <option value="Viudo/a">Viudo/a</option>
+              <option value="Separado/a">Separado/a</option>
+              <option value="Unión convivencial">Unión convivencial</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Nacionalidad</label>
+            <input type="text" formControlName="nacionalidad" />
+          </div>
+          <div class="field field-wide">
+            <label>Dirección</label>
+            <input type="text" formControlName="direccion" placeholder="Calle, número, piso" />
+          </div>
+          <div class="field">
+            <label>Localidad</label>
+            <input type="text" formControlName="localidad" />
+          </div>
+          <div class="field">
+            <label>Provincia</label>
+            <select formControlName="provincia">
+              <option value="">Seleccione</option>
+              <option *ngFor="let provincia of provincias; trackBy: trackByProvinciaId" [value]="provincia.nombre">
+                {{ provincia.nombre }}
+              </option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Teléfono</label>
+            <input type="text" formControlName="telefono" />
+          </div>
+          <div class="field field-wide">
+            <label>Email</label>
+            <input type="email" formControlName="email" placeholder="correo@dominio.com" />
+          </div>
+        </div>
+      </section>
+
+
+<section class="form-card">
+        <div class="section-title">
+          <h4>Convenio y categoría</h4>
+          <p>Seleccioná el convenio y la categoría correspondiente al empleado.</p>
+        </div>
+        <div class="grid-4">
+          <div class="field">
+            <label>Convenio</label>
+            <select formControlName="convenio_id">
+              <option [ngValue]="null">Seleccione</option>
+              <option *ngFor="let convenio of convenios; trackBy: trackByCatalogoId" [ngValue]="convenio.convenio_id || convenio.id">{{ convenio.nombre }}</option>
+            </select>
+            <div class="field-error" *ngIf="getControlError('convenio_id')">{{ getControlError('convenio_id') }}</div>
+          </div>
+          <div class="field">
+            <label>Categoría convenio</label>
+            <select formControlName="convenio_categoria_id" [disabled]="!(convenioCategorias && convenioCategorias.length)">
+              <option [ngValue]="null">Seleccione</option>
+              <option *ngFor="let cat of convenioCategorias" [ngValue]="cat.categoria_id || cat.id">{{ cat.nombre }}</option>
+            </select>
+            <div class="field-error" *ngIf="getControlError('convenio_categoria_id')">{{ getControlError('convenio_categoria_id') }}</div>
+          </div>
+          <div class="field" >
+            <label>Sueldo categoría</label>
+            <strong class="sueldo-amount">{{ sueldoCategoriaMin }}</strong>
+          </div>
+        </div>
+      </section>
+
+
+      <section class="form-card">
+        <div class="section-title">
+          <h4>Identificación y ubicación laboral</h4>
+          <p>Legajo, empresa, sucursal, sección y cargo.</p>
+        </div>
+        <div class="grid-4">
+          <div class="field">
+            <label>Legajo <span class="required-mark">*</span></label>
+            <input type="text" formControlName="legajo" placeholder="Ej: 1024" (blur)="validarLegajoDuplicado()" />
+            <div class="field-error" *ngIf="getControlError('legajo')">{{ getControlError('legajo') }}</div>
+            <div class="field-hint" *ngIf="legajoChecking">Validando legajo...</div>
+          </div>
+          <div class="field">
+            <label>Sucursal <span class="required-mark">*</span></label>
+            <select formControlName="sucursal_id" (change)="onSucursalChange()" (click)="onSucursalClick()">
+              <option [ngValue]="null">Seleccione</option>
+              <option *ngFor="let sucursal of sucursales; trackBy: trackByCatalogoId" [ngValue]="sucursal.sucursal_id || sucursal.id">
+                {{ sucursal.nombre }}
+              </option>
+            </select>
+            <div class="field-error" *ngIf="getControlError('sucursal_id')">{{ getControlError('sucursal_id') }}</div>
+          </div>
+          <div class="field">
+            <label>Sección <span class="required-mark">*</span></label>
+            <select formControlName="seccion_id" [disabled]="loadingSecciones || !(secciones && secciones.length)" (change)="onSeccionChange()" (click)="onSeccionClick()">
+              <option [ngValue]="null">Seleccione</option>
+              <option *ngFor="let seccion of secciones" [ngValue]="seccion.seccion_id || seccion.id">{{ seccion.nombre }}</option>
+            </select>
+            <div class="field-hint" *ngIf="loadingSecciones">Cargando secciones...</div>
+            <div class="field-hint" *ngIf="!loadingSecciones && (!secciones || secciones.length === 0)">No hay secciones disponibles</div>
+            <div class="field-error" *ngIf="seccionesError">{{ seccionesError }}</div>
+            <div class="field-error" *ngIf="getControlError('seccion_id')">{{ getControlError('seccion_id') }}</div>
+          </div>
+          <div class="field field-wide">
+            <label>Cargo <span class="required-mark">*</span></label>
+            <select formControlName="cargo_id" [disabled]="loadingCargos || !(cargos && cargos.length) || !form.get('seccion_id')?.value">
+              <option [ngValue]="null">Seleccione</option>
+              <option *ngFor="let cargo of cargos" [ngValue]="cargo.cargo_id || cargo.id">{{ cargo.nombre }}</option>
+            </select>
+            <div class="field-hint" *ngIf="loadingCargos">Cargando cargos...</div>
+            <div class="field-hint" *ngIf="!loadingCargos && (!cargos || cargos.length === 0)">No hay cargos disponibles</div>
+            <div class="field-error" *ngIf="cargosError">{{ cargosError }}</div>
+            <div class="field-error" *ngIf="getControlError('cargo_id')">{{ getControlError('cargo_id') }}</div>
+          </div>
+        </div>
+      </section>
+
+
+
+
+      <section class="form-card">
+        <div class="section-title">
+          <h4>Situación laboral</h4>
+          <p>Fechas, contratación, convenio y forma de pago.</p>
+        </div>
+        <div class="grid-4">
+          <div class="field">
+            <label>Fecha ingreso</label>
+            <input type="date" formControlName="fecha_ingreso" />
+          </div>
+          <div class="field">
+            <label>Fecha egreso</label>
+            <input type="date" formControlName="fecha_egreso" />
+          </div>
+          <div class="field">
+            <label>Tipo contratación</label>
+            <select formControlName="tipo_contratacion_id">
+              <option [ngValue]="null">Seleccione</option>
+              <option *ngFor="let item of contratacionesTipos; trackBy: trackByCatalogoId" [ngValue]="item.contrataciones_tipos_id || item.id">
+                {{ item.nombre }}
+              </option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Forma de pago</label>
+            <select formControlName="forma_pago_id">
+              <option [ngValue]="null">Seleccione</option>
+              <option *ngFor="let item of formasPago; trackBy: trackByCatalogoId" [ngValue]="item.forma_pago_id || item.id">
+                {{ item.nombre }}
+              </option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Estado empleado  </label>
+            <select formControlName="estado">
+              <option [ngValue]="null">Seleccione</option>
+              <option *ngFor="let item of estadosEmpleados; trackBy: trackByCatalogoId" [ngValue]="getEstadoOptionValue(item)">
+                {{ item.nombre }}
+              </option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Días trabajados</label>
+            <input type="text" formControlName="dias_trabajados" />
+          </div>
+          <div class="field">
+            <label>Foto URL</label>
+            <input type="text" formControlName="foto" placeholder="Ruta o URL de la foto" />
+          </div>
+          <!--<div class="field">
+            <label>Habilitado</label>
+            <select formControlName="habilitado">
+              <option [ngValue]="1">Sí</option>
+              <option [ngValue]="0">No</option>
+            </select>
+          </div>-->
+        </div>
+
+        <div *ngIf="mostrarDatosBancarios()" class="bank-box">
+          <div class="section-title section-title-small">
+            <h4>Datos bancarios</h4>
+            <p>Completar según lo que requiera la forma de pago seleccionada.</p>
+          </div>
+
+          <div class="grid-3">
+            <div class="field" *ngIf="requiereBanco">
+              <label>Banco</label>
+              <select formControlName="banco_id">
+                <option [ngValue]="null">Seleccione</option>
+                <option *ngFor="let banco of bancos; trackBy: trackByCatalogoId" [ngValue]="banco.banco_id || banco.id">
+                  {{ banco.nombre }}
+                </option>
+              </select>
+            </div>
+
+            <div class="field" *ngIf="requiereCbu">
+              <label>CBU</label>
+              <input type="text" formControlName="cbu" placeholder="CBU" />
+            </div>
+
+            <div class="field" *ngIf="requiereCuenta">
+              <label>Número de cuenta</label>
+              <input type="text" formControlName="numero_cuenta" placeholder="Nro. cuenta" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+
+         <section class="form-card" *ngIf="isEditMode">
+        <div class="collapsible-card-header">
+          <div class="section-title section-title-inline">
+            <h4>Foto</h4>
+            <p>Vista previa de la foto principal. La carga se hace desde archivos adjuntos.</p>
+          </div>
+          <button type="button" class="collapse-toggle" (click)="toggleFotoCard()" [attr.aria-expanded]="!fotoCardCollapsed" aria-label="Plegar sección foto">
+            <i class="bi" [ngClass]="fotoCardCollapsed ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
+          </button>
+        </div>
+        <div *ngIf="!fotoCardCollapsed" class="collapsible-body">
+          <div class="photo-layout">
+            <div class="photo-preview">
+              <img *ngIf="form.value.foto; else photoPlaceholder" [src]="form.value.foto" alt="Vista previa de la foto del empleado" />
+              <ng-template #photoPlaceholder>
+                <div class="photo-placeholder">
+                  <i class="bi bi-person-badge"></i>
+                  <span>Sin foto</span>
+                </div>
+              </ng-template>
+            </div>
+            <div class="photo-info-box">
+              <p>Para actualizar la foto principal, usá el bloque <strong>Archivos adjuntos</strong> y elegí el tipo <strong>Foto</strong>.</p>
+              <span>Se guardará como principal automáticamente.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+         <section class="form-card" *ngIf="isEditMode">
+          <div class="collapsible-card-header">
+            <div class="section-title section-title-inline">
+              <h4>Archivos adjuntos</h4>
+              <p>Subí documentos del empleado como DNI, CUIL, contrato o recibos.</p>
+            </div>
+            <button type="button" class="collapse-toggle" (click)="toggleArchivosCard()" [attr.aria-expanded]="!archivosCardCollapsed" aria-label="Plegar sección archivos adjuntos">
+              <i class="bi" [ngClass]="archivosCardCollapsed ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
+            </button>
+          </div>
+
+          <div *ngIf="!archivosCardCollapsed" class="collapsible-body">
+            <div class="attachment-preview-box" *ngIf="hasAdjuntoPreview">
+              <div class="attachment-preview-media" [class.is-image]="adjuntoEsImagen" [class.is-pdf]="adjuntoEsPdf">
+                <img *ngIf="adjuntoEsImagen; else attachmentPreviewIcon" [src]="adjuntoPreviewUrl" [alt]="adjuntoPreviewName" />
+                <ng-template #attachmentPreviewIcon>
+                  <i class="bi" [ngClass]="adjuntoEsPdf ? 'bi-file-earmark-pdf' : 'bi-file-earmark-text'"></i>
+                </ng-template>
+              </div>
+              <div class="attachment-preview-meta">
+                <span class="attachment-preview-kicker">{{ adjuntoPreviewLabel }}</span>
+                <strong>{{ adjuntoPreviewName }}</strong>
+                <p *ngIf="archivoForm.tipo === 'foto'">Si marcás principal, esta imagen se usa como foto del empleado.</p>
+                <p *ngIf="archivoForm.tipo !== 'foto'">Podés subirlo como documento común o marcarlo como principal.</p>
+              </div>
+            </div>
+
+            <div class="attachments-toolbar">
+              <div class="field">
+                <label>Tipo</label>
+                <select [(ngModel)]="archivoForm.tipo" [ngModelOptions]="{ standalone: true }">
+                  <option value="foto">Foto</option>
+                  <option value="dni">DNI</option>
+                  <option value="cuil">CUIL</option>
+                  <option value="contrato">Contrato</option>
+                  <option value="recibo">Recibo</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </div>
+              <div class="field" *ngIf="archivoForm.tipo === 'foto'">
+                <label>Foto común o principal</label>
+                <input type="text" [value]="'Podés subirla como foto común o marcarla como principal'" readonly />
+              </div>
+              <div class="field field-wide">
+                <label>Archivo</label>
+                <input type="file" [accept]="acceptArchivo" (change)="onArchivoSeleccionado($event)" />
+              </div>
+              <div class="field">
+                <label>Alias</label>
+                <input type="text" [(ngModel)]="archivoForm.alias" [ngModelOptions]="{ standalone: true }" [placeholder]="archivoForm.tipo === 'foto' ? 'Foto principal' : 'Nombre visible'" />
+              </div>
+              <div class="field field-wide">
+                <label>Descripción</label>
+                <input type="text" [(ngModel)]="archivoForm.descripcion" [ngModelOptions]="{ standalone: true }" placeholder="Descripción del archivo" />
+              </div>
+              <div class="field">
+                <label>Principal</label>
+                <select [(ngModel)]="archivoForm.es_principal" [ngModelOptions]="{ standalone: true }">
+                  <option [ngValue]="1">Sí</option>
+                  <option [ngValue]="0">No</option>
+                </select>
+              </div>
+              <div class="field upload-action-field">
+                <label>&nbsp;</label>
+                <button type="button" class="btn-primary" (click)="subirArchivo()" [disabled]="archivoSaving || !empleadoId">
+                  {{ archivoSaving ? 'Subiendo...' : (archivoForm.tipo === 'foto' ? 'Subir foto' : 'Subir archivo') }}
+                </button>
+              </div>
+            </div>
+
+            <div *ngIf="archivoError" class="error-box">{{ archivoError }}</div>
+
+            <div class="attachments-list" *ngIf="archivosAdjuntos.length > 0; else noAttachments">
+              <div class="attachment-row attachment-head">
+                <span>-</span>
+                <span>Nombre</span>
+                <span>Tipo</span>
+                <span>Fecha</span>
+                <span>Tamaño</span>
+                <span class="attachment-actions-head">Acciones</span>
+              </div>
+              <div class="attachment-row" *ngFor="let archivo of archivosAdjuntos" [class.is-principal]="attachmentIsPrincipal(archivo)">
+                <span class="attachment-thumb-cell">
+                  <button type="button" class="attachment-thumb" [class.is-image]="attachmentIsImage(archivo)" (click)="attachmentIsImage(archivo) ? openImageViewer(archivo) : descargarArchivo(archivo)">
+                    <img *ngIf="attachmentIsImage(archivo); else attachmentFileIcon" [src]="attachmentPreviewUrl(archivo)" [alt]="attachmentThumbLabel(archivo)" />
+                    <ng-template #attachmentFileIcon>
+                      <i class="bi" [ngClass]="(attachmentPreviewType(archivo) === 'application/pdf') ? 'bi-file-earmark-pdf' : 'bi-file-earmark-text'"></i>
+                    </ng-template>
+                  </button>
+                </span>
+                <span class="attachment-name-cell">
+                  <span class="attachment-principal-badge" *ngIf="attachmentIsPrincipal(archivo)">Principal</span>
+                  {{ attachmentThumbLabel(archivo) }}
+                </span>
+                <span>{{ archivo.tipo || '-' }}</span>
+                <span>{{ archivo.fecha_carga || '-' }}</span>
+                <span>{{ archivo.tamano_bytes ? (archivo.tamano_bytes / 1024 | number:'1.0-0') + ' KB' : '-' }}</span>
+                <span class="attachment-actions attachment-actions-cell">
+                  <button type="button" class="icon-btn" (click)="descargarArchivo(archivo)" aria-label="Descargar archivo" title="Descargar archivo">
+                    <i class="bi bi-download"></i>
+                  </button>
+                  <button type="button" class="icon-btn danger" (click)="borrarArchivo(archivo)" aria-label="Borrar archivo" title="Borrar archivo">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </span>
+              </div>
+            </div>
+
+            <ng-template #noAttachments>
+              <div class="empty-box">Todavía no hay archivos adjuntos para este empleado.</div>
+            </ng-template>
+          </div>
+      </section>
+      <div class="image-modal" *ngIf="imageViewerOpen" (click)="closeImageViewer()">
+        <div class="image-modal-content" (click)="$event.stopPropagation()">
+          <div class="image-modal-header">
+            <strong>{{ imageViewerTitle }}</strong>
+            <button type="button" class="image-modal-close" (click)="closeImageViewer()">×</button>
+          </div>
+          <div class="image-modal-body">
+            <img [src]="imageViewerUrl" [alt]="imageViewerTitle" />
+          </div>
+        </div>
+      </div>
+      <div class="form-footer">
+        <button type="button" class="btn-secondary" (click)="cancelar()">Cancelar</button>
+        <button type="submit" class="btn-primary" [disabled]="saving">
+          {{ saving ? 'Guardando...' : 'Guardar empleado' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<ng-template #loadingTpl>
+  <div class="loading-box">Cargando formulario del empleado...</div>
+</ng-template>

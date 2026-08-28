@@ -1,0 +1,18 @@
+<app-navbar [user]="user" [sitioActual]="sitioActual" [sidebarCollapsed]="collapsed" [showSidebarToggle]="false"></app-navbar>
+<app-sidebar [menu]="menu" [collapsed]="collapsed" [tituloModulo]="'Conceptos'" [esAdmin]="true" [paginasOpen]="false" [componentsOpen]="false" (collapsedChange)="collapsed = $event"></app-sidebar>
+
+<div class="conceptos-shell" [class.collapsed]="collapsed">
+  <section class="conceptos-hero">
+    <div class="module-breadcrumb">
+      <a routerLink="/modulos">Módulos</a>
+      <span>/</span>
+      <span>Conceptos</span>
+    </div>
+    <h2>Gestión de Conceptos / Grupos</h2>
+    <p>Administración y control de los conceptos/grupos del sistema.</p>
+  </section>
+
+  <section class="conceptos-page">
+    <router-outlet></router-outlet>
+  </section>
+</div>

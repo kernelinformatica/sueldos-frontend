@@ -1,0 +1,62 @@
+.asignar-concepto-card{padding:12px;border:1px solid #e6e6e6;border-radius:6px;background:#fff;position:relative}
+.asignar-concepto-card .card-header{display:flex;align-items:center;justify-content:space-between}
+.asignar-concepto-card .card-header h3{margin:0;font-size:1.1rem}
+.close-btn{position:absolute;right:10px;top:6px;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:6px;border:1px solid rgba(0,0,0,0.08);background:#fff;box-shadow:0 6px 14px rgba(16,24,40,0.06);cursor:pointer;font-size:18px;line-height:1;color:#334155}
+.close-btn:hover{background:#f8fafc;color:#0f172a;border-color:rgba(16,24,40,0.08);transform:translateY(-1px)}
+.row{display:flex;gap:12px}
+.col{flex:1}
+//.left{max-width:360px}
+.full{width:100%;margin:8px 0}
+/* Elegant larger input */
+.form-control-lg{padding:10px 12px;border-radius:10px;border:1px solid #e6eefb;background:#f8fbff;font-size:1rem}
+.elegant{box-shadow:0 4px 12px rgba(20,60,120,0.04);}
+/* search input with icon */
+.search-input{position:relative;display:flex;align-items:center}
+.search-input .search-icon{position:absolute;left:12px;color:#6b7a99;font-size:1.05rem}
+.search-input input.form-control-lg{padding-left:40px}
+.search-input input.full{width:720px;max-width:100%}
+
+/* Responsive tweaks: full width on small screens, moderate on tablets */
+@media (max-width: 1024px) {
+	.search-input input.full{width:520px}
+}
+
+@media (max-width: 768px) {
+	.search-input{width:100%}
+	.search-input input.full{width:100%;padding-right:12px}
+	.search-input .search-icon{left:10px}
+}
+/* keep padding to global .form-control styles */
+.assigned-list{list-style:none;padding:0;margin:8px 0}
+.assigned-list .item{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-bottom:1px solid #f0f0f0}
+.search-results ul{list-style:none;padding:0;margin:8px 0;max-height:220px;overflow:auto}
+.search-results li{margin-bottom:8px}
+.search-results .result-card{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;background:#fff;border:1px solid #eef3fb}
+.search-results .result-card{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;background:#fff;border:1px solid #eef3fb;transition:transform .12s ease,box-shadow .12s ease,background .12s ease}
+.search-results .no-results.searching{padding:10px;border-radius:8px;background:#f5f8ff;border:1px solid #e1ebff;color:#2563bf;font-weight:600}
+.search-results li.selected .result-card{background:#dfeeff;border-color:#bcd7ff;box-shadow:0 6px 18px rgba(37,99,255,0.08)}
+.search-results li.hovered .result-card, .search-results .result-card.hovered-card {
+	background: linear-gradient(90deg, #eaf3ff, #dbeeff);
+	border-color: #90b4ff;
+	box-shadow: 0 10px 26px rgba(37,99,255,0.12);
+	transform: translateY(-3px);
+}
+.search-results .result-main{flex:1}
+.search-results .title{font-weight:600;color:#1f2a44}
+.search-results li.already-assigned .title{text-decoration:line-through;color:#9aa3ad}
+.search-results .assigned-label{font-size:0.82rem;color:#7b8794;margin-left:8px;font-weight:700}
+.search-results li.already-assigned{opacity:0.68;cursor:not-allowed}
+.search-results li.already-assigned .desc{color:#9aa3ad}
+.search-results .result-card.disabled{opacity:0.6;cursor:not-allowed;background:#fbfbfb;border-color:#eceff2}
+.search-results .result-card.disabled .title{text-decoration:line-through;color:#9aa3ad}
+.search-results .result-card.disabled .desc{color:#9aa3ad}
+.search-results .desc{font-size:0.95rem;color:#667085;margin-top:4px}
+.search-results .meta-right{text-align:right;min-width:90px}
+.search-results .code{color:#2a7a3e;font-size:0.95rem;font-weight:700}
+.search-results .code.highlight{background:#e9f7ee;padding:3px 6px;border-radius:6px;color:#25632f}
+.search-results .importe{font-weight:700;color:#111}
+.btn{padding:6px 10px;border-radius:4px;border:0;cursor:pointer}
+.btn.primary{background:#1976d2;color:#fff}
+.btn.danger{background:#d32f2f;color:#fff}
+.btn.small{padding:4px 8px;font-size:12px}
+.empty{color:#666;font-style:italic;padding:8px}

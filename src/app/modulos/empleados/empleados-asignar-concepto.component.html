@@ -1,0 +1,47 @@
+<div class="asignar-concepto-card">
+  <div class="card-header">
+    <h3>Asignar concepto</h3>
+    <button class="close-btn" aria-label="Cerrar" (click)="onClose()">×</button>
+  </div>
+
+      <div class="row">
+    <div class="col left">
+      <label>Buscar concepto (por nombre o código)</label>
+      <div class="search-input">
+        <i class="bi bi-search search-icon" aria-hidden="true"></i>
+        <input type="text" [(ngModel)]="searchTerm" (input)="onSearchInput()" placeholder="Ingresá nombre o código" class="form-control form-control-lg full elegant" />
+      </div>
+
+      <div class="search-results">
+        <div *ngIf="searching" class="no-results searching">.. buscando...</div>
+        <ul *ngIf="!searching && showResults">
+            <li *ngFor="let s of searchResults; trackBy: trackById"
+              (click)="!s.alreadyAssigned && onSelectResult(s)"
+              (mouseenter)="onHover(s.alreadyAssigned ? null : s.id)"
+              (mouseleave)="onHover(null)"
+              [class.selected]="seleccionId === s.id"
+              [class.hovered]="hoverId === s.id"
+              [class.already-assigned]="s.alreadyAssigned"
+              [attr.aria-disabled]="s.alreadyAssigned ? 'true' : null"
+              [attr.title]="s.alreadyAssigned ? 'Ya asignado' : null">
+            <div class="result-card" [class.hovered-card]="hoverId === s.id" [class.disabled]="s.alreadyAssigned" [attr.tabindex]="s.alreadyAssigned ? -1 : 0">
+              <div class="result-main">
+                <div class="title">{{s.nombre}} <span *ngIf="s.alreadyAssigned" class="assigned-label">(YA ASIGNADO)</span></div>
+                <div class="desc">{{ s.detalle || s.descripcion || '' }}</div>
+              </div>
+              <div class="meta-right">
+                <div class="code highlight">{{s.codigo}}</div>
+                <div class="importe">{{s.importe_fijo ?? ''}}</div>
+              </div>
+            </div>
+          </li>
+          <li *ngIf="searchResults.length===0" class="no-results">No hay coincidencias.</li>
+        </ul>
+      </div>
+
+      <button class="btn primary" (click)="onAsignar()" [disabled]="!seleccionId || !empleadoId">Asignar</button>
+    </div>
+
+    <!-- right column intentionally removed to avoid duplicate 'Conceptos asignados' list; deletion remains only in 'Conceptos vigentes' -->
+  </div>
+</div>

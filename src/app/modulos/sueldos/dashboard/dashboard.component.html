@@ -1,0 +1,56 @@
+<div style="width:100%; margin: 100px 0 1.2em 0;">
+  <div style="background:#d1e7dd;border-radius:10px;box-shadow:0 2px 8px rgba(74,121,78,0.06);padding:0.7em 1.2em;display:flex;align-items:center;min-height:44px;">
+    <nav aria-label="breadcrumb" style="margin:0;width:100%;">
+      <ol class="breadcrumb" style="background:transparent;padding:0;margin:0;font-size:1.05em;color:#155724;">
+        <li class="breadcrumb-item"><a routerLink="/" style="color:#155724;">Módulos</a></li>
+        <li class="breadcrumb-item active" aria-current="page" style="color:#155724;">Sueldos</li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<h2 style="color:#155724;margin-bottom:0.5em;">xxx</h2>
+<p style="color:#555;margin-bottom:1.2em;">xxxx</p>
+
+<app-loading-spinner [visible]="isLoading" [centered]="true" text="Buscando..."></app-loading-spinner>
+
+<!-- Formulario de búsqueda -->
+<div style="background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.07);padding:1.2em 1.5em;margin-bottom:1.5em;">
+  <div style="display:flex;flex-wrap:wrap;gap:1em;align-items:flex-end;">
+
+    <div style="display:flex;flex-direction:column;min-width:140px;">
+      <label style="font-size:0.88em;font-weight:600;color:#155724;margin-bottom:0.25em;">Fecha desde</label>
+      <input type="date" [(ngModel)]="fechaDesde"
+        style="border:1px solid #ced4da;border-radius:6px;padding:0.38em 0.6em;font-size:0.95em;" />
+    </div>
+
+    <div style="display:flex;flex-direction:column;min-width:140px;">
+      <label style="font-size:0.88em;font-weight:600;color:#155724;margin-bottom:0.25em;">Fecha hasta</label>
+      <input type="date" [(ngModel)]="fechaHasta"
+        style="border:1px solid #ced4da;border-radius:6px;padding:0.38em 0.6em;font-size:0.95em;" />
+    </div>
+
+    <div style="display:flex;flex-direction:column;min-width:160px;">
+      <label style="font-size:0.88em;font-weight:600;color:#155724;margin-bottom:0.25em;">Nro. Padrón</label>
+      <input type="text" [(ngModel)]="nroPadron" placeholder="Ej: 1234"
+        style="border:1px solid #ced4da;border-radius:6px;padding:0.38em 0.6em;font-size:0.95em;" />
+    </div>
+
+    <button type="button" [disabled]="isLoading"
+      style="background:#198754;color:#fff;border:none;border-radius:6px;padding:0.45em 1.4em;font-size:0.96em;font-weight:600;cursor:pointer;height:36px;">
+      <i class="fas fa-search"></i> Buscar
+    </button>
+
+    <button type="button" [disabled]="isLoading"
+      style="background:#6c757d;color:#fff;border:none;border-radius:6px;padding:0.45em 1.1em;font-size:0.96em;cursor:pointer;height:36px;">
+      Limpiar
+    </button>
+  </div>
+</div>
+
+<!-- Error -->
+<div *ngIf="errorMsg" style="background:#f8d7da;color:#842029;border-radius:8px;padding:0.7em 1em;margin-bottom:1em;font-size:0.95em;">
+  <i class="fas fa-exclamation-circle"></i> {{ errorMsg }}
+</div>
+
+

@@ -1,0 +1,125 @@
+<div class="listado-grupos">
+  <app-loading-spinner></app-loading-spinner>
+  <div class="listado-top">
+    <div>
+      <h3>Grupos de Conceptos</h3>
+      <p>Grupos cargados <span class="badge">{{ grupos.length }}</span></p>
+    </div>
+    <div class="listado-actions">
+      <button class="btn-action btn-icon" (click)="load()" title="Recargar" [disabled]="loading">
+        <i *ngIf="!loading" class="bi bi-arrow-clockwise"></i>
+        <i *ngIf="loading" class="bi bi-arrow-repeat spin"></i>
+      </button>
+      <a routerLink="/admin/conceptos/grupos/alta" class="btn-action btn-icon" title="Nuevo Grupo" aria-label="Nuevo Grupo" *ngIf="canCreate">
+        <i class="bi bi-plus-lg"></i>
+      </a>
+    </div>
+  </div>
+
+  <div class="filtros-panel" style="margin-bottom:0.6rem">
+    <div class="filtro-item filtro-wide">
+      <label>Nombre</label>
+      <input type="text" [(ngModel)]="filtros.nombre" placeholder="Buscar por nombre o alias" />
+    </div>
+    <div class="filtro-item filtro-small">
+      <label>Código</label>
+      <input type="text" [(ngModel)]="filtros.codigo" placeholder="Código" />
+    </div>
+    <div class="filtro-actions">
+      <button class="btn-action btn-icon" (click)="filtros={nombre:'',codigo:''}" title="Limpiar filtros">
+        <i class="bi bi-eraser-fill"></i>
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-box">Cargando grupos...</div>
+
+  <div *ngIf="!loading && grupos.length > 0" class="table-wrap">
+    <table class="empleados-table">
+      <thead>
+        <tr>
+          <th style="width:3rem"></th>
+          <th>Código</th>
+          <th>Alias</th>
+          <th>Nombre</th>
+          <th>Descripción</th>
+          <th style="text-align:right">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <ng-container *ngFor="let g of gruposFiltrados">
+          <tr [class.expanded-parent]="isExpanded(g)">
+            <td class="group-icon"><i class="bi bi-tags"></i></td>
+            <td>{{ g.codigo || '-' }}</td>
+            <td>{{ g.alias || '-' }}</td>
+            <td>{{ g.nombre || '-' }}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:0.6rem">
+                <div>{{ g.descripcion || '-' }}</div>
+                  <span *ngIf="(g.conceptos || []).length > 0" class="badge-count-green" title="Conceptos asignados">{{ (g.conceptos || []).length }}</span>
+                  <span *ngIf="g.comentario" class="group-comment" aria-hidden="true">
+                    <i class="bi bi-chat-left-text"></i>
+                    <div class="group-comment-bubble">{{ g.comentario }}</div>
+                  </span>
+              </div>
+            </td>
+            <td class="actions-cell" style="text-align:right">
+              <div class="row-actions">
+                <ng-container *ngIf="g.es_default_sistema; else normalActions">
+                  <span class="badge-protegido" aria-hidden="true">
+                    <i class="bi bi-shield-lock" title="Protegido por el sistema"></i>
+
+                  </span>
+                <button class="btn-action btn-icon" (click)="toggleConceptos(g)" [title]="isExpanded(g) ? 'Ocultar conceptos' : 'Ver conceptos'" *ngIf="(g.conceptos || []).length > 0">
+                    <i [ngClass]="{'bi bi-chevron-down': !isExpanded(g), 'bi bi-chevron-up': isExpanded(g)}"></i>
+                  </button>
+
+                </ng-container>
+                <ng-template #normalActions>
+                  <button class="btn-action btn-icon" (click)="toggleConceptos(g)" [title]="isExpanded(g) ? 'Ocultar conceptos' : 'Ver conceptos'" *ngIf="(g.conceptos || []).length > 0">
+                    <i [ngClass]="{'bi bi-chevron-down': !isExpanded(g), 'bi bi-chevron-up': isExpanded(g)}"></i>
+                  </button>
+                  <button class="btn-action btn-icon" (click)="relacionar(g)" title="Relacionar conceptos" *ngIf="canRelate">
+                    <i class="bi bi-link-45deg"></i>
+                  </button>
+                  <span *ngIf="g.verificado" class="badge-verificado" title="Verificado">Verificado</span>
+                  <a (click)="edit(g)" class="btn-action btn-icon" [class.disabled]="!canEdit" title="Editar" *ngIf="canEdit">
+                    <i class="bi bi-pencil-square"></i>
+                  </a>
+                  <a (click)="confirmDelete(g)" class="btn-action btn-icon" [class.disabled]="!canDelete" title="Eliminar" *ngIf="canDelete">
+                    <i class="bi bi-trash"></i>
+                  </a>
+                </ng-template>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="isExpanded(g)" class="expanded-row">
+            <td colspan="6">
+              <div class="concept-list highlighted">
+                <table class="expanded-table">
+
+                  <tbody>
+                    <tr *ngFor="let c of (g.conceptos || [])" class="expanded-item">
+                      <td class="concept-icon"><i class="bi bi-list"></i></td>
+                      <td class="concept-code">{{ c.codigo || c.concepto_id || '-' }}</td>
+                      <td class="concept-name">{{ c.descripcion || c.nombre || '-' }}</td>
+                      <td>{{ c.tipo || c.tipo_nombre || '-' }}</td>
+                      <td>
+                        <span *ngIf="(c.topes?.length || c.tiene_topes)" class="badge-topes">Topes</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </td>
+          </tr>
+        </ng-container>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="!loading && grupos.length === 0" class="empty-box">No hay grupos creados.</div>
+
+  <app-modal-alerta [visible]="modalVisible" [titulo]="modalTitle" [mensaje]="modalMessage" [icono]="modalIcon" [mostrarSpinner]="modalSpinner" [bloquearCierre]="modalBlock" [esConfirmacion]="true" (cerrar)="onModalClose($event)"></app-modal-alerta>
+</div>

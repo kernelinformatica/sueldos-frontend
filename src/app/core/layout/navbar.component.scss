@@ -1,0 +1,137 @@
+.navbar.navbar-custom,
+.navbar.navbar-custom * {
+  margin-top: 0 !important;
+}
+// Solo estilos personalizados y aislados para el navbar del componente
+
+// Navbar se alinea a la derecha del sidebar
+
+.navbar.navbar-custom {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  z-index: 1200;
+  background: #ffffff !important;
+  box-shadow: 0 15px 50px -2px rgba(120,120,120,0.18), 0 2px 0 0 #e0e0e0;
+  border-bottom: none;
+  color: #222 !important;
+  min-height: 0 !important;
+  height: 60px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  padding-left: 220px !important;
+  z-index: 1030 !important;
+  transition: padding-left 0.2s cubic-bezier(0.4,0,0.2,1) !important;
+  font-size: 0.95rem !important;
+}
+
+.navbar.navbar-custom .d-flex.align-items-center {
+  transition: margin-left 0.2s cubic-bezier(0.4,0,0.2,1);
+  margin-left: 0;
+}
+.navbar.navbar-custom.sidebar-collapsed .d-flex.align-items-center {
+  margin-left: -160px !important;
+}
+
+.navbar.navbar-custom.sidebar-collapsed {
+  padding-left: 60px !important;
+}
+
+.navbar.navbar-custom .container-fluid {
+  padding-left: 0 !important;
+}
+
+  .navbar-brand {
+    color: #222 !important;
+    font-weight: 700;
+    font-size: 1.15rem;
+    padding-left: 18px;
+    gap: 0.5rem;
+    display: flex;
+    align-items: center;
+    line-height: 1.1;
+    
+    > span:first-of-type {
+      color: #111 !important;
+      font-weight: 700 !important;
+    }
+  }
+
+
+  .navbar-logo {
+    height: 38px !important;
+    width: auto !important;
+    max-height: 38px !important;
+    margin-right: 0.5rem !important;
+    margin-left: 0px !important; // Más margen a la izquierda
+    border-radius: 8px !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08) !important;
+    object-fit: contain;
+    display: inline-block !important;
+  }
+
+  .dominio-navbar {
+    font-size: 0.82rem;
+    color: #888 !important;
+    font-weight: 400;
+    letter-spacing: 0.2px;
+  }
+
+  .vr {
+    height: 32px;
+    width: 2px;
+    background: #09408d;
+  }
+
+  .dropdown-menu {
+    min-width: 260px;
+    right: 0;
+    left: auto;
+    transform: none !important;
+    font-size: 0.93rem;
+  }
+
+  .nav-link i,
+  .fa-fw {
+    font-size: 1.25rem !important;
+  }
+  .navbar-toggler-icon {
+    display: inline-block;
+    width: 1.5em;
+    height: 1.5em;
+    vertical-align: middle;
+    background-image: var(--bs-navbar-toggler-icon-bg);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100%;
+    color: rgb(94, 94, 94) !important;
+}
+
+  // Botón de colapso sin fondo ni borde, solo el ícono
+  .navbar.navbar-custom .sidebar-toggle {
+    background: transparent !important;
+    color: rgb(94, 94, 94) !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0.25rem 0.5rem !important;
+  }
+  .navbar.navbar-custom .sidebar-toggle .fa-bars {
+    padding-left: 5px;
+    color: rgb(94, 94, 94) !important;
+    font-size: 1.7rem !important;
+  }
+
+  @media (max-width: 991.98px) {
+    .navbar.navbar-custom {
+      min-height: 56px !important;
+      height: 56px !important;
+      padding-top: 0.25rem !important;
+      padding-bottom: 0.25rem !important;
+    }
+    .navbar-logo {
+      height: 30px !important;
+      max-height: 30px !important;
+    }
+  }
+

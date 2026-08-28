@@ -1,0 +1,141 @@
+@use '../../../styles/variables' as *;
+
+.form-shell { padding: 1rem; }
+.form-header { display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; }
+.kicker { text-transform:uppercase; color:#667085; font-weight:700 }
+h3 { margin:0; font-size:1.4rem; color:#283593 }
+.subtitle { margin:0.25rem 0 0; color:#667085 }
+
+.form-card { background:#fff; border:1px solid #e7e9f1; border-radius:14px; padding:1rem; margin-bottom:1rem }
+.section-title h4 { margin:0; color:#283593 }
+.section-title p { margin:0.25rem 0 0; color:#667085 }
+.grid-3 { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:0.75rem }
+.grid-4 { display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:0.75rem }
+.field label { font-weight:700; font-size:0.85rem; color:#344054 }
+.field input, .field select, textarea { width:100%; padding:0.6rem; border:1px solid #d6dae8; border-radius:10px }
+.field-error { color:#b42318; margin-top:0.35rem }
+.required-mark { color:#b42318 }
+
+.error-modal-overlay { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background: rgba(0,0,0,0.35) }
+.error-modal { background:#fff; padding:1rem; border-radius:10px; width:560px }
+.modal-actions { display:flex; gap:0.5rem; justify-content:flex-end; margin-top:0.5rem }
+
+.loading-box { padding:1rem }
+
+.header-actions a.btn-secondary, .header-actions button.btn-primary { display:inline-flex; align-items:center; gap:0.5rem }
+.header-actions i { font-size:1rem }
+
+.preview-btn i { margin-right:0.5rem }
+.preview-card .preview-body { padding:0.75rem; display:flex; flex-direction:column; gap:0.5rem }
+.preview-result { display:flex; flex-direction:column; gap:0.5rem }
+.preview-main { display:flex; align-items:baseline; gap:0.75rem; background: linear-gradient(90deg, rgba(99,102,241,0.06), rgba(99,102,241,0.02)); padding:0.6rem 0.9rem; border-radius:10px; border:1px solid rgba(99,102,241,0.12) }
+.preview-value { font-size:1.6rem; font-weight:700; color:#0f172a }
+.preview-source { color:#475569; font-size:0.9rem }
+.preview-breakdown { display:flex; gap:1.25rem; flex-wrap:wrap; padding:0.5rem 0.25rem }
+.preview-breakdown div { color:#334155; font-size:0.95rem }
+.preview-breakdown strong { color:#0b1220 }
+.preview-empty { color:#667085 }
+
+/* numeric inputs alignment via class (fallback) */
+.field input[type="number"], .field input[inputmode="decimal"] { text-align:left }
+
+/* Styled preview button */
+.preview-btn { display:inline-flex; align-items:center; gap:0.5rem; padding:0.5rem 0.75rem; border-radius:8px; background:#eef2ff; border:1px solid rgba(99,102,241,0.18); color:#3730a3 }
+.preview-btn:hover { background:#e0e7ff; transform:translateY(-1px); }
+.preview-btn:active { transform:translateY(0); }
+.preview-btn[disabled] { opacity:0.6; cursor:not-allowed }
+.numeric-input { text-align:left }
+
+/* Confirm reason textarea inside shared modal */
+.confirm-textarea { width:100%; padding:0.6rem; border:1px solid #d6dae8; border-radius:8px; font-size:0.95rem; resize:vertical }
+.field-error { color:#b42318; margin-top:0.35rem }
+
+/* Bottom action bar and save button styles */
+.form-actions { display:flex; gap:0.5rem }
+.bottom-actions { position:sticky; bottom:0; display:flex; justify-content:flex-end; gap:0.75rem; padding:0.75rem 0; border-top:1px solid #eef2ff; background: linear-gradient(180deg, rgba(255,255,255,0.0), rgba(250,250,255,0.6)); margin-top:0.5rem }
+.save-btn { padding:0.6rem 0.9rem; border-radius:10px; background:#4f46e5; color:#fff; border:1px solid rgba(79,70,229,0.9); display:inline-flex; align-items:center; gap:0.5rem }
+.save-btn:hover { background:#4338ca; transform:translateY(-1px) }
+.save-btn[disabled] { opacity:0.6; cursor:not-allowed; transform:none }
+
+/* Header icon buttons */
+
+/* Use same icon/button look as listado (btn-action / btn-icon) */
+.btn-action {
+	border: 0;
+	border-radius: 999px;
+	padding: 0.7rem 1rem;
+	font-weight: 600;
+	background: #e8eaf6;
+	color: #283593;
+}
+
+.btn-icon {
+	width: 2.6rem;
+	height: 2.6rem;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	font-size: 1rem;
+	line-height: 1;
+}
+
+.btn-icon i { font-size: 1.1rem }
+
+/* Group comentario badge */
+.group-comment-badge { display:inline-flex; align-items:center; gap:0.5rem; background:#ecfdf5; color:#065f46; border:1px solid #bbf7d0; padding:0.4rem 0.6rem; border-radius:999px; font-size:0.875rem }
+.group-comment-badge i { font-size:0.95rem }
+
+/* Crear tope button */
+.btn-primary {
+	display:inline-flex;
+	align-items:center;
+	gap:0.5rem;
+	padding:0.5rem 0.85rem;
+	border-radius:8px;
+	background:#0b76d1;
+	color:#ffffff;
+	border:1px solid rgba(11,118,209,0.9);
+	cursor:pointer;
+}
+.topes-list { display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem }
+.tope-box { display:flex; align-items:center; gap:0.75rem; padding:0.6rem 0.75rem; border-radius:10px; border:1px solid #e6edf8; background:#fbfdff; min-width:180px }
+.tope-info { display:flex; flex-direction:column }
+.tope-title { font-weight:700; color:#0f172a; font-size:0.95rem }
+.tope-value { color:#0b1220; font-size:0.95rem; margin-top:0.15rem }
+.tope-meta { display:flex; gap:0.4rem; margin-top:0.25rem }
+.badge { font-size:0.75rem; padding:0.18rem 0.45rem; border-radius:999px; background:#eef2ff; color:#1e40af }
+.badge.override { background:#fff7ed; color:#92400e }
+.badge.scope { background:#f1f5f9; color:#475569 }
+.tope-actions { margin-left:auto }
+.btn-delete { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:8px; border:1px solid transparent; background:transparent; color:#ef4444; cursor:pointer }
+.btn-delete:hover { background:rgba(239,68,68,0.06); border-color:rgba(239,68,68,0.12); transform:translateY(-1px) }
+.tope-reject { border-left:4px solid #ef4444; box-shadow:0 1px 0 rgba(0,0,0,0.02) }
+.tope-clamp { border-left:4px solid #f59e0b }
+.tope-warn { border-left:4px solid #facc15 }
+
+.loading-topes { display:flex; align-items:center; gap:0.5rem; color:#475569 }
+.loading-topes app-loading-spinner { width:20px; height:20px }
+
+/* Legend explaining override behavior */
+.tope-legend {
+	flex-basis: 100%;
+	margin-top: 0.35rem;
+	color: #475569;
+	background: linear-gradient(90deg, rgba(99,102,241,0.03), rgba(15,23,42,0.00));
+	border-left: 4px solid rgba(99,102,241,0.18);
+	padding: 0.45rem 0.6rem;
+	border-radius: 8px;
+	font-size: 0.92rem;
+	line-height: 1.25rem;
+	box-shadow: 0 1px 0 rgba(2,6,23,0.02);
+}
+
+/* small spinner used inline */
+.spinner-sm { display:inline-block; width:16px; height:16px; border-radius:50%; border:2px solid #e6edf8; border-top-color:#0b76d1; animation:spin .9s linear infinite }
+@keyframes spin { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }
+.loading-topes { display:flex; align-items:center; gap:0.5rem; color:#475569 }
+
+.btn-primary:hover { background:#095fae; transform:translateY(-1px); }
+.btn-primary:active { transform:translateY(0); }
+.btn-primary[disabled] { opacity:0.6; cursor:not-allowed }

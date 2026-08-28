@@ -1,0 +1,19 @@
+
+html {
+	/* Reducir tamaño base ligeramente para toda la app */
+	font-size: 13px; /* antes 14px */
+}
+
+body {
+	font-size: 0.9rem; /* antes 0.95rem */
+}
+
+/* Clase utilitaria para textos más pequeños en listados o controles */
+.text-sm {
+	font-size: 0.85rem;
+}
+
+/* Aplicar tamaño más pequeño a listas y tablas por defecto */
+ul, ol, li, table, td, th {
+	font-size: 0.9rem;
+}

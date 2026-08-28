@@ -1,0 +1,230 @@
+@use '../../styles/variables' as *;
+
+
+
+.login-split {
+  display: flex;
+  min-height: 100vh;
+}
+
+.login-left {
+  flex: 1.5;
+  background: url('../../assets/backgrounds/1.png') center center/cover no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  position: relative;
+  min-width: 0;
+  .slogan-container {
+    background: whitesmoke;
+opacity: 0.8;
+    padding: 2.5rem 2rem;
+    border-radius: 1.5rem;
+    text-align: center;
+    max-width: 600px;
+  }
+  .slogan {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    line-height: 1.1;
+    color:#283593
+  }
+  .slogan-desc {
+    font-size: 1.2rem;
+    font-weight: 400;
+    color: #283593;
+  }
+}
+
+.login-right {
+  flex: 1;
+  
+  background:
+    linear-gradient(135deg, #e8eaf6 0%, #283593 100%),
+    url('data:image/svg+xml;utf8,\
+<svg width="100%25" height="100%25" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg">\
+<path d="M0 800 Q480 900 960 800 T1920 800 V1080 H0 Z" fill="%231a237e" fill-opacity="0.16"/>\
+<path d="M0 600 Q480 700 960 600 T1920 600 V1080 H0 Z" fill="%233947ab" fill-opacity="0.12"/>\
+<path d="M0 400 Q480 500 960 400 T1920 400 V1080 H0 Z" fill="%23c5a047" fill-opacity="0.10"/>\
+</svg>');
+  background-size: cover, cover;
+  background-repeat: no-repeat, no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  .login-form-container {
+    background: transparent;
+    padding: 2.5rem 2rem;
+    border-radius: 0;
+    box-shadow: none;
+    min-width: 320px;
+    max-width: 400px;
+    width: 100%;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .login-split {
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .login-left {
+    flex: 0 0 auto;
+    min-height: 220px;
+    padding: 1.5rem 1rem;
+
+    .slogan-container {
+      max-width: 100%;
+      width: 100%;
+      padding: 1.5rem 1rem;
+      border-radius: 1rem;
+    }
+
+    .slogan {
+      font-size: 2rem;
+    }
+
+    .slogan-desc {
+      font-size: 1rem;
+    }
+  }
+
+  .login-right {
+    flex: 1 1 auto;
+    align-items: flex-start;
+    padding: 1.25rem 1rem 2rem;
+
+    .login-form-container {
+      min-width: 0;
+      max-width: 100%;
+      width: min(100%, 460px);
+      padding: 1.5rem 1rem;
+      margin: 0 auto;
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .login-left {
+    display: none;
+  }
+
+  .login-right {
+    min-height: 100vh;
+    padding: 1rem 0.75rem;
+    background:
+      linear-gradient(180deg, #eef2ff 0%, #dbe4ff 45%, #283593 100%),
+      url('data:image/svg+xml;utf8,\
+<svg width="100%25" height="100%25" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg">\
+<path d="M0 800 Q480 900 960 800 T1920 800 V1080 H0 Z" fill="%231a237e" fill-opacity="0.16"/>\
+<path d="M0 600 Q480 700 960 600 T1920 600 V1080 H0 Z" fill="%233947ab" fill-opacity="0.12"/>\
+<path d="M0 400 Q480 500 960 400 T1920 400 V1080 H0 Z" fill="%23c5a047" fill-opacity="0.10"/>\
+</svg>');
+    background-size: cover, cover;
+    background-repeat: no-repeat, no-repeat;
+    align-items: center;
+  }
+
+  .login-right .login-form-container {
+    width: 100%;
+    max-width: 420px;
+    padding: 1.25rem 1rem;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+  }
+
+  .login-right .login-form-container input.form-control.form-control-sm {
+    min-height: 3rem;
+    font-size: 1rem;
+  }
+
+  .login-right .login-form-container .btn {
+    min-height: 3rem;
+    font-size: 1rem;
+  }
+}
+
+
+.login-container {
+  max-width: 350px;
+  margin: 60px auto;
+  padding: 2rem;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  h2 { text-align: center; }
+  input, button {
+    width: 100%;
+    margin: 0.5rem 0;
+    padding: 1.1rem; /* Aumenta la altura */
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    font-size: 1.1rem;
+  }
+  button {
+    background: #1976d2;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+    &:hover { background: #1565c0; }
+  }
+  .error {
+    color: #d32f2f;
+    margin-top: 0.5rem;
+    text-align: center;
+  }
+}
+
+// Inputs del login más altos y grandes
+.login-form-container input.form-control.form-control-sm {
+  min-height: 2.8rem;
+  font-size: 1.1rem;
+  padding-top: 0.7rem;
+  padding-bottom: 0.7rem;
+}
+
+.form-label i.fa {
+  color: $color-primario;
+}
+
+.login-bg-svg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(135deg, #4caf50 0%, #a8e063 100%);
+  overflow: hidden;
+}
+.login-bg-svg::before {
+  content: '';
+  position: absolute;
+  width: 100vw;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  background: url('data:image/svg+xml;utf8,<svg width="100%25" height="100%25" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 800 Q480 900 960 800 T1920 800 V1080 H0 Z" fill="%2339b54a" fill-opacity="0.18"/><path d="M0 600 Q480 700 960 600 T1920 600 V1080 H0 Z" fill="%2300c853" fill-opacity="0.13"/><path d="M0 400 Q480 500 960 400 T1920 400 V1080 H0 Z" fill="%2300e676" fill-opacity="0.10"/></svg>');
+  background-size: cover;
+  background-repeat: no-repeat;
+  z-index: 1;
+  opacity: 0.9;
+  animation: moveBg 12s linear infinite alternate;
+}
+@keyframes moveBg {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 40px; }
+}
+
+.container, .card, form, .min-vh-100 {
+  position: relative;
+  z-index: 2;
+}

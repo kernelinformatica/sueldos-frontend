@@ -1,0 +1,102 @@
+.ficha-card {
+  border: 1px solid #e6e6e6;
+  border-radius: 6px;
+  background: #fff;
+  position: relative;
+}
+.ficha-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.toolbar-icons { display:flex; gap:8px; align-items:center; }
+.icon-btn { background:transparent; border:0; padding:6px; border-radius:6px; cursor:pointer; color: #0b5ed7; display:inline-flex; align-items:center; justify-content:center; }
+.icon-btn[disabled] { opacity:0.35; cursor:not-allowed; }
+.icon-btn.assign-btn { background: linear-gradient(180deg, #e6f0ff, #dbe8ff); color:#0b5ed7; }
+.icon-btn.delete-btn { background: linear-gradient(180deg, #fff1f0, #ffecec); color:#b91c1c; }
+.ficha-body {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+}
+.left-col { flex: 1 1 75%; min-width: 560px; }
+.right-col { flex: 0 0 25%; max-width: 520px; }
+
+/* Asegurar que los paneles ocupen el 100% de su columna */
+.left-col .panel, .right-col .panel { width: 100%; }
+.panel { background: #fafafa; padding: 12px; border-radius: 4px; }
+.panel-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.concept-row { padding: 6px 0; border-bottom: 1px dashed #eee; }
+.concept-row label.selected { font-weight: 700; color: #0b5ed7; }
+.concept-params { display: flex; gap: 8px; margin-top: 6px; }
+.concept-badge { display: inline-block; margin-left: 8px; background:#eef; color:#084; border-radius:12px; padding:2px 8px; font-weight:600; font-size:0.8rem; }
+.concept-type-badge { display:inline-block; margin-left:6px; background:#f0f4ff; color:#0b5ed7; border-radius:10px; padding:2px 6px; font-weight:600; font-size:0.75rem; }
+.small-input { width:110px; padding:6px 8px; border-radius:6px; border:1px solid #d0d7de; background:#fff; }
+.concept-params label { display:flex; flex-direction:column; font-size:0.85rem; }
+
+.summary-list { display:flex; flex-direction:column; gap:12px; }
+.summary-employee { border:1px solid #eee; padding:8px; border-radius:6px; background:#fff; }
+.emp-header { display:flex; gap:8px; align-items:center; margin-bottom:6px; }
+.emp-name { font-weight:700; }
+.employee-concepts-count { display:inline-block; margin-left:8px; background:#d1fae5; color:#065f46; border-radius:12px; padding:2px 8px; font-weight:700; font-size:0.78rem; vertical-align:middle; }
+.emp-concepts { list-style:none; padding-left:0; margin:0; }
+.emp-concepts li { padding:6px 0; border-top:1px dashed #f0f0f0; }
+.concept-details { font-size:0.9rem; color:#444; margin-top:4px; }
+
+/* Employee concepts expand row */
+.chevron-btn { background:transparent; border:0; cursor:pointer; padding:6px 8px; font-size:14px; }
+.chevron { display:inline-block; transition: transform .18s ease; }
+.chevron.expanded { transform: rotate(180deg); }
+.employee-concepts-row td { background: transparent; padding:0; }
+.employee-concepts-panel { background:#fbfbfd; border-top:1px solid #eef2f7; padding:10px 0; }
+.employee-concepts-inner { padding:8px 16px; padding-left:72px; }
+.employee-concepts-inner > strong { display:block; margin-bottom:6px; color:#0b5ed7; }
+.employee-concepts-inner ul { margin:0; padding-left:18px; }
+.employee-concepts-inner li { display:flex; gap:10px; align-items:center; padding:6px 0; border-bottom:1px dashed #eef2f7; line-height:1.1; }
+.employee-concepts-inner .concept-code { background:#e6f0ff; color:#0b5ed7; width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; font-weight:700; font-size:0.8rem; flex:0 0 auto; }
+.employee-concepts-inner .concept-main { display:flex; flex-direction:row; gap:6px; align-items:center; flex:1 1 auto; min-width:0; flex-wrap:nowrap; }
+.employee-concepts-inner .concept-name { color:#111827; font-size:0.92rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.employee-concepts-inner .concept-meta { display:flex; align-items:center; gap:8px; }
+.employee-concepts-inner .concept-type-badge { margin-left:6px; background:#f0f4ff; color:#0b5ed7; padding:2px 6px; border-radius:10px; font-weight:600; font-size:0.72rem; vertical-align:middle; display:inline-block; }
+.employee-concepts-inner .no-concepts { color:#666; font-style:italic; padding:8px 0; }
+.employee-concepts-inner .concept-right { margin-left:auto; text-align:right; min-width:72px; color:#111827; font-weight:600; }
+/* removed right-alignment so badge stays next to the name */
+
+/* Overlay spinner for processing */
+.overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.75); display:flex; align-items:center; justify-content:center; z-index:10040; border-radius:6px; }
+.overlay-content { display:flex; gap:12px; align-items:center; background:transparent; padding:12px 16px; border-radius:6px; }
+.overlay-text { font-weight:700; color:#0b5ed7; }
+.spinner { width:28px; height:28px; border-radius:50%; border:4px solid rgba(11,94,215,0.15); border-top-color: #0b5ed7; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Modal styles */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; z-index:10050; pointer-events: auto; }
+.modal-dialog { position: relative; z-index:10060; background:#fff; padding:16px; border-radius:8px; width:560px; max-width:95%; box-shadow:0 8px 24px rgba(0,0,0,0.2); transform-origin:center center; animation: modalIn .28s cubic-bezier(.22,.9,.26,1); pointer-events: auto; }
+.modal-dialog .close-btn { position:absolute; right:12px; top:12px; border:0; background:transparent; font-size:20px; cursor:pointer; z-index:10070; }
+
+@keyframes modalIn {
+  0% { opacity: 0; transform: translateY(8px) scale(0.98); }
+  60% { opacity: 1; transform: translateY(-4px) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes modalOut {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(8px) scale(0.98); }
+}
+
+.modal-dialog.closing { animation: modalOut .2s ease-in forwards; }
+
+/* subtle overlay fade */
+.overlay { animation: overlayIn .18s ease; }
+@keyframes overlayIn { from { background: rgba(255,255,255,0); } to { background: rgba(255,255,255,0.75); } }
+.modal-title { margin:0 0 8px 0; color:#0b5ed7; }
+.modal-body { max-height:50vh; overflow:auto; }
+.modal-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:12px; }
+.modal-actions .btn { padding:8px 12px; border-radius:6px; border:1px solid #dfe6f3; background:#fff; cursor:pointer; }
+.ficha-footer { padding: 12px 16px; border-top: 1px solid #f0f0f0; }
+
+/* Reusar estilos del listado para consistencia visual */
+@import './empleados-listado.component.scss';

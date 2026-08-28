@@ -1,0 +1,48 @@
+<app-loading-spinner [visible]="isLoading" [centered]="true" text="Aguarde un momento..."></app-loading-spinner>
+<div class="login-split">
+  <div class="login-left">
+    <div class="slogan-container">
+      <h1 class="slogan">{{app.titulo}} </h1>
+      <p class="slogan-desc">{{app.description}} </p>
+        <p class="slogan-desc" style="font-size: 12px;">Versión: {{app.version}} </p>
+    </div>
+  </div>
+  <div class="login-right">
+    <div class="login-form-container">
+      <div class="text-center mb-3">
+        <img src="assets/logos/app.png" alt="Logo" style="max-width: 90px; max-height: 90px;" />
+      </div>
+      <p class="text-center mb-4"> {{app.name}}</p>
+      <form (ngSubmit)="login()" autocomplete="on">
+        <div *ngIf="!backendOnline" class="alert alert-danger text-center mb-3">
+          <i class="fa fa-wifi" aria-hidden="true" style="font-size:1.5em;vertical-align:middle;margin-right:0.5em;"></i>
+         <p> <strong>Servicio no disponible temporalmente</strong>
+          <br>Estamos trabajando para restablecer el servicio lo antes posible. Por favor, intentá nuevamente más tarde.</p>   
+        </div>
+        <ng-container *ngIf="backendOnline">
+          <div class="mb-3">
+            <label for="email" class="form-label"><i class="fa fa-envelope"></i> Email</label>
+            <input type="email" [(ngModel)]="email" name="email" id="email" class="form-control form-control-sm" style="font-size: 0.9rem;" placeholder="Email" required autocomplete="email" />
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label"><i class="fa fa-lock"></i> Contraseña</label>
+            <input type="password" [(ngModel)]="password" name="password" id="password" class="form-control form-control-sm" style="font-size: 0.9rem;" placeholder="Contraseña" required autocomplete="current-password" />
+          </div>
+          <div class="mb-3">
+            <label for="codigoCliente" class="form-label"><i class="fa fa-id-card"></i> CUIT de la empresa</label>
+            <input type="text" [(ngModel)]="codigoCliente" name="codigoCliente" id="codigoCliente" class="form-control form-control-sm" style="font-size: 0.9rem;" placeholder="Ingrese el CUIT" required maxlength="11" inputmode="numeric" pattern="[0-9]{11}" title="11 dígitos numéricos" />
+          </div>
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-3 gap-2">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="rememberMe" [(ngModel)]="rememberMe" name="rememberMe">
+              <label class="form-check-label" for="rememberMe">Recordarme</label>
+            </div>
+            <a href="#" class="small text-decoration-none" (click)="forgotPassword($event)">¿Olvidaste tu contraseña?</a>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Entrar</button>
+          <div *ngIf="error && backendOnline" class="alert alert-danger mt-3 text-center">{{ error }}</div>
+        </ng-container>
+      </form>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,119 @@
+@use '../../../styles/variables' as *;
+
+.listado-grupos { color: #1f2a44; }
+
+.listado-top { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem }
+
+.table-wrap { overflow-x:auto }
+
+.empleados-table { width:100%; border-collapse:collapse; font-size:0.95rem }
+
+.empleados-table thead th { text-align:left; background:#f8f9fc; color:#283593; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; padding:0.9rem 0.85rem; border-bottom:1px solid #e7e9f1 }
+
+.empleados-table tbody td { padding:0.9rem 0.85rem; border-bottom:1px solid #eef2f6 }
+
+.badge-tope-small { display:inline-block; padding:0.25rem 0.5rem; border-radius:999px; background:#fff7ed; color:#92400e; border:1px solid #ffedd5; font-weight:700 }
+
+/* Buttons shared with Conceptos list */
+.btn-action { border: 0; border-radius: 999px; padding: 0.7rem 1rem; font-weight: 600; background: #e8eaf6; color: #283593; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; }
+.btn-icon { width: 2.6rem; height: 2.6rem; display: inline-flex; align-items: center; justify-content: center; padding: 0; font-size: 1rem; border-radius: 999px; }
+.btn-icon i { font-size: 1.1rem; }
+
+.listado-top .listado-actions { display:flex; gap:0.75rem; align-items:center }
+
+.spin { display:inline-block; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Filtros panel - same look as Conceptos list */
+.filtros-panel {
+	display: grid;
+	grid-template-columns: 1.3fr 0.7fr 0.7fr auto;
+	gap: 0.75rem;
+	align-items: end;
+	background: #f8f9fc;
+	border: 1px solid #e7e9f1;
+	border-radius: 18px;
+	padding: 1rem;
+	margin-bottom: 1rem;
+}
+
+.filtro-item {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+}
+
+.filtro-item label {
+	font-size: 0.78rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: #667085;
+}
+
+.filtro-item input, .filtro-item select {
+	border: 1px solid #d6dae8;
+	border-radius: 12px;
+	padding: 0.6rem 0.8rem;
+	background: #fff;
+	color: #1f2a44;
+	outline: none;
+}
+
+.filtro-actions { display:flex; justify-content:flex-end; align-items:center }
+
+.filtro-actions .btn-action { margin-left: 0.5rem }
+
+.filtro-wide { width: 100%; }
+.filtro-small { width: 100%; }
+
+.filtro-item input:focus, .filtro-item select:focus {
+  border-color: #5c6bc0;
+  box-shadow: 0 0 0 3px rgba(92, 107, 192, 0.12);
+}
+
+@media (max-width: 768px) {
+  .filtros-panel { grid-template-columns: 1fr; }
+}
+
+.badge-count-green { display:inline-flex; align-items:center; justify-content:center; min-width:26px; height:20px; padding:0 6px; border-radius:999px; background:#dcfce7; color:#065f46; border:1px solid #bbf7d0; font-weight:700; font-size:0.85rem }
+
+.concept-list { padding:6.0rem 0; }
+.inner-table { width:100%; border-collapse:collapse }
+.inner-table thead th { text-align:left; font-size:0.85rem; color:#475569; padding:0.4rem 0.6rem }
+.inner-table tbody td { padding:0.45rem 0.6rem; border-top:1px solid #eef2f6 }
+
+/* Expanded concepts table styling and highlight */
+.expanded-row td { background: transparent; padding: 0.18rem 0; }
+.concept-list.highlighted { background: linear-gradient(90deg, rgba(99,102,241,0.03), rgba(15,23,42,0.00)); border-radius:10px; padding:0.45rem 0.35rem; border:1px solid rgba(99,102,241,0.08) }
+.expanded-table { width:100%; border-collapse:collapse }
+.expanded-table thead th { text-align:left; font-size:0.85rem; color:#475569; padding:0.35rem 0.5rem; border-bottom:1px solid #e7e9f1 }
+.expanded-table tbody td { padding:0.28rem 0.5rem; border-top:1px solid #eef2f6; vertical-align:middle }
+.expanded-item:hover { background: rgba(79,70,229,0.03) }
+.expanded-parent { background: rgba(99,102,241,0.04); border-left: 4px solid rgba(99,102,241,0.2); }
+/* Paint entire parent row cells so highlight covers full width */
+.expanded-parent td { background: rgba(99,102,241,0.06); transition: background .18s ease; }
+/* Also paint associated (expanded) concept rows to match parent highlight */
+tr.expanded-parent + tr.expanded-row .expanded-item td,
+.expanded-row .expanded-item td {
+	background: rgba(99,102,241,0.06);
+}
+.badge-topes { display:inline-flex; align-items:center; justify-content:center; min-width:40px; height:22px; padding:0 8px; border-radius:999px; background:#fff7ed; color:#92400e; border:1px solid #ffedd5; font-weight:700 }
+
+.concept-code { color:#0f172a; font-weight:400 }
+.concept-name { color:#0b1220; font-weight:400 }
+
+.badge-verificado { display:inline-flex; align-items:center; gap:0.4rem; padding:0.28rem 0.6rem; border-radius:999px; background:#ecfdf5; color:#065f46; border:1px solid #bbf7d0; font-weight:700; font-size:0.8rem }
+
+.badge-protegido { display:inline-flex; align-items:center; gap:0.35rem; padding:0.28rem 0.6rem; border-radius:999px; background:#eef2ff; color:#0f172a; border:1px solid #dbeafe; font-weight:700; font-size:0.85rem }
+
+/* Group comment icon + tooltip */
+.group-comment { position: relative; display:inline-flex; align-items:center; margin-left:0.5rem; color:#64748b; cursor:default }
+.group-comment i { font-size:0.95rem; }
+.group-comment-bubble { display:none; position:absolute; left:50%; transform:translateX(-50%); bottom:calc(100% + 8px); background:#0b1220; color:#fff; padding:0.5rem 0.6rem; border-radius:8px; font-size:0.85rem; min-width:180px; max-width:340px; box-shadow:0 6px 18px rgba(2,6,23,0.12); z-index:40; white-space:normal }
+.group-comment:hover .group-comment-bubble { display:block }
+.group-comment-bubble::after { content:''; position:absolute; left:50%; transform:translateX(-50%); top:100%; width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent; border-top:6px solid #0b1220 }
+
+/* Group icon cell */
+.group-icon { text-align:center; color:#475569; opacity:0.95 }
+.group-icon i { font-size:1.05rem }

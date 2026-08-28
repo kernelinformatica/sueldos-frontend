@@ -1,0 +1,82 @@
+@use '../../../styles/variables' as *;
+
+.empleados-shell {
+  margin-left: 220px;
+  min-height: 100vh;
+  background: #f4f7fb;
+  padding: 4.75rem 1.25rem 1.25rem;
+}
+
+.empleados-shell.collapsed {
+  margin-left: 60px;
+}
+
+.empleados-hero {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto 1rem auto;
+  background: #fff;
+  color: #1f2a44;
+  border-radius: 20px;
+  padding: 1.5rem 2rem;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+
+  .module-breadcrumb {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    color: #283593;
+
+    a {
+      color: #283593;
+      text-decoration: none;
+      font-weight: 600;
+    }
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 0.35rem 0 0;
+    color: #667085;
+  }
+}
+
+.empleados-page {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+  padding: 1.1rem 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .empleados-shell,
+  .empleados-shell.collapsed {
+    margin-left: 0;
+    padding: 4rem 0.75rem 0.9rem;
+  }
+
+  .empleados-hero {
+    padding: 1rem 0.9rem;
+    border-radius: 16px;
+  }
+
+  .empleados-page {
+    padding: 0.9rem;
+    border-radius: 16px;
+  }
+
+  .empleados-hero h2 {
+    font-size: 1.5rem;
+  }
+
+}

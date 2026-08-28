@@ -1,0 +1,151 @@
+<div class="listado-empleados text-sm">
+  <app-loading-spinner></app-loading-spinner>
+  <div class="listado-top">
+    <div>
+      <h3>Listado de empleados</h3>
+      <p>Empleados cargados <span class="badge">{{ empleados.length }}</span></p>
+    </div>
+    <div class="listado-actions">
+      <button type="button" class="btn-action btn-icon" (click)="cargarEmpleados()" aria-label="Recargar listado" title="Recargar listado">
+        <i class="bi bi-arrow-clockwise"></i>
+      </button>
+      <a routerLink="/admin/empleados/alta" class="btn-action btn-icon" aria-label="Nuevo empleado" title="Nuevo empleado">
+        <i class="bi bi-person-plus-fill"></i>
+      </a>
+    </div>
+  </div>
+
+  <div class="filtros-panel">
+    <div class="filtro-item filtro-wide">
+      <label>Nombre</label>
+      <input type="text" [(ngModel)]="filtros.nombre" placeholder="Buscar por apellido o nombre" />
+    </div>
+    <div class="filtro-item filtro-small filtro-legajo">
+      <label>Legajo desde</label>
+      <input type="number" [(ngModel)]="filtros.legajoDesde" placeholder="Desde" />
+    </div>
+    <div class="filtro-item filtro-small filtro-legajo">
+      <label>Legajo hasta</label>
+      <input type="number" [(ngModel)]="filtros.legajoHasta" placeholder="Hasta" />
+    </div>
+    <div class="filtro-item">
+      <label>Sección</label>
+      <select [(ngModel)]="filtros.seccion">
+        <option value="">Todas</option>
+        <option *ngFor="let seccion of secciones; trackBy: trackByCatalogoId" [value]="seccion.seccion_id || seccion.id">
+          {{ seccion.nombre }}
+        </option>
+      </select>
+    </div>
+    <div class="filtro-item">
+      <label>Cargo</label>
+      <select [(ngModel)]="filtros.cargo">
+        <option value="">Todos</option>
+        <option *ngFor="let cargo of cargos; trackBy: trackByCatalogoId" [value]="cargo.cargo_id || cargo.id">
+          {{ cargo.nombre }}
+        </option>
+      </select>
+    </div>
+    <div class="filtro-item">
+      <label>Estado</label>
+      <select [(ngModel)]="filtros.estado">
+        <option value="">Todos</option>
+        <option *ngFor="let estado of estadosEmpleados; trackBy: trackByCatalogoId" [value]="getEstadoCatalogoNombre(estado)">
+          {{ getEstadoCatalogoNombre(estado) }}
+        </option>
+      </select>
+    </div>
+    <div class="filtro-actions">
+      <button type="button" class="btn-action btn-icon" (click)="limpiarFiltros()" aria-label="Limpiar filtros" title="Limpiar filtros">
+        <i class="bi bi-eraser-fill"></i>
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-box">
+    Cargando empleados...
+  </div>
+
+  <div *ngIf="!loading && error" class="error-box">
+    {{ error }}
+  </div>
+
+  <div *ngIf="!loading && !error && empleados.length === 0" class="empty-box">
+    No hay empleados para mostrar.
+  </div>
+
+  <div *ngIf="!loading && !error && loadingCatalogos" class="loading-box">
+    Cargando catálogos de secciones y cargos...
+  </div>
+
+  <div *ngIf="!loading && !error && empleadosFiltrados.length > 0" class="table-wrap">
+    <table class="empleados-table">
+      <thead>
+        <tr>
+          <th>Empleado</th>
+          <th>Documento</th>
+          <th>Legajo</th>
+
+          <th>Sucursal</th>
+          <th>Sector</th>
+          <th>Cargo</th>
+          <th>Email</th>
+          <th>Teléfono</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let empleado of empleadosFiltrados" [class.is-inactive]="esEmpleadoInactivo(empleado)" [class.is-disabled]="isUsuarioNoHabilitado(empleado)">
+          <td>
+            <div class="employee-cell">
+              <div class="employee-avatar" [title]="nombreCompleto(empleado)">
+                <img *ngIf="tieneFoto(empleado); else employeeAvatarIcon" [src]="fotoUrl(empleado)" [alt]="nombreCompleto(empleado)" (error)="avatarError(empleado)" />
+                <ng-template #employeeAvatarIcon>
+                  <i class="bi bi-person-fill"></i>
+                </ng-template>
+              </div>
+              <div>
+                <div class="employee-name">{{ nombreCompleto(empleado) }}</div>
+                <div class="employee-meta">{{ empleado.email || 'Sin email' }}</div>
+                <div class="employee-status-note" *ngIf="isUsuarioNoHabilitado(empleado)">Usuario no habilitado</div>
+              </div>
+            </div>
+          </td>
+          <td>{{ documentoLabel(empleado) }}</td>
+          <td>{{ empleado.legajo || '-' }}</td>
+          <td>{{ sucursalLabel(empleado) }}</td>
+          <td>{{ sectorLabel(empleado) }}</td>
+          <td>{{ cargoLabel(empleado) }}</td>
+          <td>{{ empleado.email || '-' }}</td>
+          <td>{{ empleado.telefono || '-' }}</td>
+            <td>
+              <span class="badge-state">{{ estadoNombre(empleado.estado) || estadoLabel(empleado.estado) }}</span>
+            </td>
+          <td>
+            <div class="row-actions">
+              <a *ngIf="getEmpleadoId(empleado) as empleadoId"
+                 [routerLink]="['/admin/empleados/editar', empleadoId]"
+                 class="btn-action btn-icon"
+                 aria-label="Editar empleado"
+                 title="Editar empleado">
+                <i class="bi bi-pencil-square"></i>
+              </a>
+                <a *ngIf="getEmpleadoId(empleado) as empleadoId"
+                  [routerLink]="['/admin/empleados/conceptos', empleadoId]"
+                 class="btn-action btn-icon"
+                 aria-label="Ficha del empleado"
+                 title="Ficha del empleado">
+                <i class="bi bi-person-lines-fill"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="!loading && !error && empleados.length > 0 && empleadosFiltrados.length === 0" class="empty-box">
+    No hay empleados que coincidan con los filtros.
+  </div>
+

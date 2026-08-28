@@ -1,0 +1,100 @@
+Prompt para IA (migración Angular 17 → 22 con Node 24)
+
+Eres un asistente técnico experto en migraciones de Angular. Tienes acceso al árbol del proyecto y a la terminal. Tu objetivo: realizar la migración completa de un proyecto Angular 17 a Angular 22 usando Node 24, aplicar migraciones automáticas, resolver conflictos y dejar la app lista para build de producción. Sigue estas instrucciones paso a paso y devuelve un informe con cambios realizados, comandos ejecutados, errores encontrados y archivos modificados.
+
+Contexto y supuestos
+
+Trabajo en la raíz del repo del proyecto Angular.
+node (24.x) y npm están disponibles en el entorno.
+Git está disponible; crearás una rama para la migración.
+Entregarás cambios mínimos y revertibles (commits claros).
+Pasos (ordenados y detallados)
+
+Preparación
+Crea y usa una rama nueva: git checkout -b migrate/angular-17-to-22.
+Haz un commit limpio o tag de la rama actual para rollback.
+Lee y list a los archivos clave: package.json, angular.json, tsconfig.json, app routes y módulos.
+Backup & análisis
+Ejecuta:
+git status
+git rev-parse --abbrev-ref HEAD
+Mostrar package.json y angular.json (lee su contenido).
+Genera un breve informe inicial sobre versiones actuales y problemas esperables (peer deps, TypeScript).
+Actualizar package.json
+Agrega/ajusta:
+"engines": { "node": ">=24" }
+Actualiza @angular/* a ^22.0.0 (dependencies y devDependencies): @angular/core, @angular/cli, @angular/compiler-cli, @angular-devkit/build-angular, @angular/build.
+Actualiza typescript a ^6.0.0.
+Elimina entradas erróneas o sueltas.
+Commit: git add package.json package-lock.json || yarn.lock y git commit -m "chore: bump angular -> 22, typescript -> 6, set node >=24"
+Instalar dependencias (estrategia escalonada)
+Intento normal:
+npm install
+Si falla por peer deps:
+npm install --legacy-peer-deps
+Si sigue fallando y tras revisar advertencias:
+npm install --force (documentar riesgo).
+Si usas CI, preferir npm ci en workflows después de estabilizar package-lock.json.
+Ejecutar migraciones Angular
+Ejecuta migraciones en dos pasos (migrate-only por paquete si aplica):
+npx ng update @angular/cli --migrate-only
+npx ng update @angular/core --migrate-only
+Luego la actualización completa:
+npx ng update @angular/core @angular/cli
+Aplica otras actualizaciones necesarias: npx ng update @angular/material (si se usa).
+Commit cambios generados por migraciones.
+Ajustes por breaking changes (revisión automática)
+Ejecuta build y tests:
+npm run build y npm test
+Corregir alertas comunes:
+Remover DatePipe de imports si aparece como advertencia (ejemplo concreto).
+Revisar angular.json budgets; aumenta o optimiza.
+Ver conflictos de versiones de librerías de terceros (@kolkov/angular-editor, etc.) y proponer actualización o reemplazo.
+Para cada corrección, crea commits pequeños y descriptivos.
+Optimización de bundle
+Revisa angular.json styles: si hay bootstrap importado globalmente, recomienda mover a CDN (editar index.html) para reducir bundle.
+Implementa/propone lazy-loading para módulos pesados (si no está): convertir rutas a loadChildren o loadComponent con import() dinámico.
+Ejecuta npx ng build --configuration production y mide tamaños.
+Validación final
+Ejecuta:
+npx ng build --configuration production
+Revisar dist generado.
+Ejecuta pruebas manuales (login, rutas protegidas, funciones críticas).
+Revisa consola navegador para errores de runtime.
+Documentación y CI/CD
+Crea MIGRATION_AND_DEPLOY.md con:
+Cambios realizados (archivos y commits).
+Comandos para reproducir localmente.
+Notas de peer deps y compatibilidades.
+Genera ejemplo de workflow (GitHub Actions) para build y upload artifact.
+Rollback y PR
+Empaqueta cambios en una rama y abre PR con:
+Resumen de cambios.
+Lista de comandos ejecutados.
+Checklist de verificación.
+Indica cómo revertir: git checkout main && git reset --hard <commit> o cerrar PR.
+Errores comunes y cómo resolverlos (incluir en el instructivo)
+
+ERESOLVE / peer dependency: intentar --legacy-peer-deps o actualizar paquetes conflictivos.
+TypeScript mismatch: instalar versión requerida por @angular-devkit/build-angular (p.ej. ^6.0.0).
+Migraciones que fallan: revisar archivos generados por ng update y aplicar manualmente.
+Build excede budgets: mover dependencias grandes a CDN o aumentar budgets en angular.json.
+Salida esperada del agente IA (al final de la ejecución)
+
+Un log con cada comando ejecutado y su salida (o resumen).
+Lista de archivos modificados y diffs (o commits).
+Errores encontrados y cómo se resolvieron.
+Artefacto final listo (dist/...) o instrucciones claras si quedaron errores pendientes.
+Pull request/commit messages propuestos.
+Formato de respuestas solicitado
+
+Resumen en 5 líneas del estado final.
+Checklist con pasos completados.
+Archivos cambiados con rutas y líneas clave.
+Comandos reproducibles para ejecutar localmente.
+Instrucciones de seguridad y precauciones
+
+No uses --force sin avisar y documentar.
+Siempre crear branch y commits antes de cambios automáticos.
+Pregunta antes de modificar código que pueda afectar lógica crítica (autenticación, pagos).
+Fin del prompt.

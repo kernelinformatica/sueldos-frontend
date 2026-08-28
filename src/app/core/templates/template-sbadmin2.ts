@@ -1,0 +1,55 @@
+// Template de estilos y variables para SB Admin 2
+export const SBADMIN2_TEMPLATE = {
+  colors: {
+    gray: '#69707a',
+    grayDark: '#363d47',
+    gray100: '#f2f6fc',
+    gray200: '#e0e5ec',
+    gray300: '#d4dae3',
+    gray400: '#c5ccd6',
+    gray500: '#a7aeb8',
+    gray600: '#69707a',
+    gray700: '#4a515b',
+    gray800: '#363d47',
+    gray900: '#212832',
+    primary: '#dc392d',
+    secondary: '#e0e5ec',
+    success: '#00ac69',
+    info: '#00cfd5',
+    warning: '#f4a100',
+    danger: '#e81500',
+    light: '#f2f6fc',
+    dark: '#212832',
+    black: '#000',
+    white: '#fff',
+    red: '#dc392d',
+    orange: '#f76400',
+    yellow: '#f4a100',
+    green: '#00ac69',
+    teal: '#00ba94',
+    cyan: '#00cfd5',
+    blue: '#0061f2',
+    indigo: '#5800e8',
+    purple: '#6900c7',
+    pink: '#e30059',
+    // ...soft y rgb si se requiere
+  },
+  font: {
+    family: 'Metropolis, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+    size: '1rem',
+    weight: 400,
+    lineHeight: 1.5,
+    color: '#69707a',
+    bg: '#fff',
+  },
+  border: {
+    width: '1px',
+    style: 'solid',
+    color: '#e0e5ec',
+    radius: '.35rem',
+  },
+  shadow: {
+    navbar: '0 2px 12px 0 rgba(0,0,0,0.07), 0 1.5px 0 0 #fff inset',
+    sidebar: '2px 0 8px rgba(0,0,0,0.04)'
+  }
+};

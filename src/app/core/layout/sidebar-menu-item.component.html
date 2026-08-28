@@ -1,0 +1,22 @@
+<li class="nav-item" [ngClass]="{'active': item.active, 'has-children': item.children && item.children.length > 0}">
+    <a class="nav-link d-flex align-items-center"
+      href="#"
+      (click)="onMenuClick($event)"
+      [attr.aria-expanded]="expanded"
+      [routerLink]="item.children && item.children.length > 0 ? null : item.route"
+      routerLinkActive="active">
+    <!-- ...existing code... -->
+    <i *ngIf="item.icon && item.icon !== ''" class="me-2" [ngClass]="item.icon"></i>
+    <span *ngIf="!collapsed">{{ item.label }}</span>
+    <span *ngIf="item.children && item.children.length > 0 && !collapsed" class="ms-auto">
+      <i class="fas" [ngClass]="expanded ? 'fa-angle-down' : 'fa-angle-right'"></i>
+    </span>
+  </a>
+  <ul
+    *ngIf="item.children && item.children.length > 0 && expanded && !collapsed"
+    class="nav flex-column ms-3 submenu-anim"
+    [attr.aria-expanded]="expanded"
+  >
+    <app-sidebar-menu-item *ngFor="let child of item.children" [item]="child" [collapsed]="collapsed" [depth]="depth + 1"></app-sidebar-menu-item>
+  </ul>
+</li>

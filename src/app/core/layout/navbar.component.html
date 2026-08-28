@@ -1,0 +1,60 @@
+<!-- Font Awesome CDN para iconos visibles -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" crossorigin="anonymous" />
+<nav class="navbar navbar-expand-lg navbar-dark navbar-custom" [style.paddingLeft]="showSidebarToggle ? (sidebarCollapsed ? '100px' : '260px') : '0'">
+  <div class="container-fluid p-0">
+    <div class="d-flex align-items-center gap-2 w-100" style="justify-content: flex-start;">
+      <!-- Selector de módulos a la izquierda (si aplica) -->
+      <ng-container *ngIf="showSidebarToggle">
+        <button class="sidebar-toggle btn btn-link p-0 me-2" (click)="toggleSidebar()" style="margin-left: 0;">
+          <i class="fas fa-bars"></i>
+        </button>
+      </ng-container>
+      <img src="assets/app.png" alt="Logo App" class="navbar-logo me-2" style="height:38px;max-height:38px;width:auto;object-fit:contain;margin-left:0;" />
+      <span class="fw-bold" style="font-size:1.15rem;">{{ app.name }}</span>
+      <span *ngIf="sitioActual?.dominio" class="dominio-navbar ms-3 d-flex align-items-center">
+        <i class="fas fa-globe-americas me-1" style="font-size:0.85em;"></i>
+        <span style="font-size: 0.95em;">{{ sitioActual.dominio }}</span>
+      </span>
+      <div class="d-flex align-items-center ms-auto gap-3">
+      <!-- Notificaciones -->
+      <span *ngIf="notificationsCount === 0" class="nav-link mx-1 d-flex align-items-center" style="opacity:0.5;cursor:not-allowed;">
+        <i class="fas fa-bell fa-fw text-secondary" style="font-size: 1.5rem;"></i>
+      </span>
+      <div *ngIf="notificationsCount > 0" class="nav-item dropdown no-arrow mx-1" [class.show]="showAlerts" (click)="showAlerts = !showAlerts">
+        <a class="nav-link dropdown-toggle text-dark" href="#" id="alertsDropdown" role="button">
+          <i class="fas fa-bell fa-fw text-warning" style="font-size: 1.5rem;"></i>
+          <span class="badge badge-danger badge-counter">{{ notificationsCount }}</span>
+          <i class="fas fa-caret-down ms-1"></i>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end shadow animated--grow-in" [class.show]="showAlerts" aria-labelledby="alertsDropdown">
+          <li><span class="dropdown-item">Sin notificaciones nuevas</span></li>
+        </ul>
+      </div>
+      <!-- Mensajes -->
+      <span *ngIf="messagesCount === 0" class="nav-link mx-1 d-flex align-items-center" style="opacity:0.5;cursor:not-allowed;">
+        <i class="fas fa-envelope fa-fw text-secondary" style="font-size: 1.5rem;"></i>
+      </span>
+      <!-- Usuario -->
+      <div class="vr mx-2" style="height: 32px; width: 2px; background: #e0e5ec;"></div>
+      <div class="dropdown">
+        <button class="btn btn-link d-flex align-items-center text-dark dropdown-toggle" type="button" (click)="toggleUserMenu()" style="text-decoration: none;">
+          <span style="display: flex; flex-direction: column; align-items: flex-end; line-height: 1; font-size: 0.95rem; font-weight: normal;">
+            <span style="font-size: 0.85rem; font-weight: normal;">{{ userDisplayName }}</span>
+          </span>
+          <img src="assets/avatar-hombre.png" alt="Avatar" class="rounded-circle ms-2" style="width: 36px; height: 36px; object-fit: cover; border: 2px solid #e0e5ec;" />
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm" [class.show]="showUserMenu" style="font-size: 0.93rem;">
+          <li class="px-3 pt-2 pb-1">
+            <div style="font-size: 1rem; font-weight: 500;">{{ userDisplayName }}</div>
+            <div *ngIf="userRoleName" style="font-size: 0.82rem; color: #888; margin-top: 2px;">Rol: {{ userRoleName }}</div>
+          </li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="#">Mi cuenta</a></li>
+          <li><a class="dropdown-item text-danger" href="#" (click)="logout()">Salir</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  </div>
+</nav>
+

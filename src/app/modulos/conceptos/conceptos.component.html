@@ -1,0 +1,154 @@
+<div class="listado-empleados text-sm">
+  <app-loading-spinner></app-loading-spinner>
+  <div class="listado-top">
+    <div>
+      <h3>Conceptos</h3>
+      <p>Conceptos cargados <span class="badge">{{ conceptos.length }}</span></p>
+    </div>
+    <div class="listado-actions">
+      <button type="button" class="btn-action btn-icon" (click)="loadConceptos()" aria-label="Recargar listado" title="Recargar listado" [disabled]="loading">
+        <i *ngIf="!loading" class="bi bi-arrow-clockwise"></i>
+        <i *ngIf="loading" class="bi bi-arrow-repeat spin"></i>
+      </button>
+      <a routerLink="/admin/conceptos/alta" class="btn-action btn-icon" aria-label="Nuevo concepto" title="Nuevo concepto">
+        <i class="bi bi-plus-lg"></i>
+      </a>
+      <a routerLink="/admin/conceptos/grupos" class="btn-action" aria-label="Grupos" title="Grupos de conceptos">
+        Grupos
+      </a>
+    </div>
+  </div>
+  <section class="form-card form-card-hero" style="margin-bottom:1rem">
+    <div class="hero-grid">
+      <div class="hero-main">
+        <span class="hero-badge">Gestión</span>
+        <div class="hero-name-row">
+          <div>
+            <h4>Listado de conceptos</h4>
+            <p>Administra los conceptos que se pueden asignar a empleados.</p>
+          </div>
+        </div>
+      </div>
+      <div class="hero-meta">
+        <div>
+          <span>Total</span>
+          <strong>{{ conceptos.length }}</strong>
+        </div>
+        <div>
+          <span>Tipos</span>
+          <strong>{{ conceptTipos.length }}</strong>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="filtros-panel">
+    <div class="filtro-item filtro-wide">
+      <label>Nombre</label>
+      <input type="text" [(ngModel)]="filtros.nombre" placeholder="Buscar por nombre o código" />
+    </div>
+    <div class="filtro-item filtro-small">
+      <label>Tipo</label>
+      <select [(ngModel)]="filtros.tipo">
+        <option value="">Todos</option>
+        <option *ngFor="let t of conceptTipos" [value]="t.id">{{ t.nombre }}</option>
+      </select>
+    </div>
+    <div class="filtro-actions">
+      <button type="button" class="btn-action btn-icon" (click)="filtros={nombre:'',tipo:''}" aria-label="Limpiar filtros" title="Limpiar filtros">
+        <i class="bi bi-eraser-fill"></i>
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-box">Cargando conceptos...</div>
+
+  <div *ngIf="!loading && conceptosFiltrados.length > 0" class="table-wrap">
+    <table class="empleados-table">
+      <thead>
+        <tr>
+          <th [width]="15">Código</th>
+          <th>Nombre</th>
+          <th>Tipo</th>
+          <th>Grupo</th>
+          <th  style="text-align: right;">Importe fijo</th>
+          <th  style="text-align: right;">Operación</th>
+          <th style="text-align: right;"></th>
+          <th>topes</th>
+          <th  style="text-align: right;">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let c of conceptosFiltrados" [class.basico]="(c.es_sueldo_basico == 1 || c.es_sueldo_basico === true) && (c.sueldo_basico_key == 1 || c.sueldo_basico_key === true)">
+          <td>{{ c.codigo || c.concepto_codigo || '-' }} </td>
+          <td>
+            <div class="employee-cell">
+              <div>
+                <div class="employee-name" [title]="c.detalle || c.descripcion || ''">{{ c.nombre || c.descripcion || '-' }}
+                  <span *ngIf="(c.es_sueldo_basico == 1 || c.es_sueldo_basico === true) && (c.sueldo_basico_key == 1 || c.sueldo_basico_key === true)" class="badge-basico" title="Concepto principal (sueldo básico)">
+                    <i class="bi bi-star-fill" style="margin-right:0.35rem;color:#ffc107"></i>Principal
+                  </span>
+                </div>
+                <div class="employee-meta">{{ c.descripcion ? (c.descripcion | slice:0:60) : '' }}</div>
+              </div>
+            </div>
+          </td>
+          <td>{{ c.tipo_concepto?.nombre || c.tipo_concepto?.codigo || '-' }}</td>
+          <td>
+            <div class="group-cell" [title]="c.grupo?.descripcion || c.grupo?.descripcion || ''">
+            {{ c.grupo?.nombre || '-' }}
+            </div>
+          </td>
+          <td  style="text-align: right;">
+            <ng-container *ngIf="(c.importe_fijo ?? 0) > 0">
+              <span class="badge-importe">$ {{ c.importe_fijo | number:'1.2-2' }}</span>
+            </ng-container>
+            <ng-container *ngIf="(c.importe_fijo ?? 0) <= 0">
+              -
+            </ng-container>
+          </td>
+          <td  style="text-align: right;">
+            <ng-container *ngIf="(((c.multiplicador ?? 0) / (c.divisor ?? 1) * 100) >= 0.1)">
+              <span class="badge-op">{{ ((c.multiplicador ?? 0) / (c.divisor ?? 1) * 100) | number:'1.0-2' }}%</span>
+            </ng-container>
+            <ng-container *ngIf="(((c.multiplicador ?? 0) / (c.divisor ?? 1) * 100) < 0.1)">
+              {{ c.suma_resta || '-' }}
+            </ng-container>
+          </td>
+          <td  style="text-align: left;">
+            <ng-container style="margin-left:0.6rem">
+              <span class="badge-sr" *ngIf="(c.suma_resta ?? '') === 'S'">Suma</span>
+              <span class="badge-sr badge-sr--neg" *ngIf="(c.suma_resta ?? '') === 'R'">Resta</span>
+            </ng-container>
+          </td>
+          <td class="tope-cell">
+            <ng-container *ngIf="(c.topes || []).length > 0">
+              <span [title]="c.topeTooltip || c.topeSummary?.display">
+                <i class="bi bi-shield-fill-exclamation tope-icon" [ngClass]="{
+                  'tope--reject': c.topeSummary?.action === 'reject',
+                  'tope--clamp': c.topeSummary?.action === 'clamp',
+                  'tope--warn': c.topeSummary?.action === 'warn'
+                }"></i>
+              </span>
+            </ng-container>
+          </td>
+          <td class="actions-cell">
+            <div class="row-actions">
+              <a (click)="editConcepto(c)" class="btn-action btn-icon" [class.disabled]="!canEdit" title="Editar" *ngIf="canEdit">
+                <i class="bi bi-pencil-square"></i>
+              </a>
+              <a (click)="deleteConcepto(c)" class="btn-action btn-icon" [class.disabled]="!canDelete" title="Eliminar" *ngIf="canDelete">
+                <i class="bi bi-trash"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="!loading && conceptos.length > 0 && conceptosFiltrados.length === 0" class="empty-box">No hay conceptos que coincidan con los filtros.</div>
+
+</div>
+
+  <app-modal-alerta [visible]="modalVisible" [titulo]="modalTitle" [mensaje]="modalMessage" [icono]="modalIcon" [mostrarSpinner]="modalSpinner" [bloquearCierre]="modalBlock" [esConfirmacion]="true" (cerrar)="onModalClose($event)"></app-modal-alerta>

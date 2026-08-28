@@ -1,0 +1,165 @@
+// Icono selector de módulos más grande
+.sidebar .sidebar-icons .fa-th-large {
+  font-size: 1.5em !important;
+  min-width: 1.5em;
+  vertical-align: middle;
+}
+// Íconos de módulos más grandes en el sidebar
+.sidebar .menu-dropdown-root .nav-item .nav-link i {
+  font-size: 2em !important;
+  min-width: 2em;
+  line-height: 1;
+  vertical-align: middle;
+}
+.nav-link {
+   
+    color:rgb(54, 54, 54);
+    }
+// Sobre
+// Sidebar fondo primario y texto blanco
+.sidebar-toggle {
+  padding: 2px 6px;
+  border-radius: 50%;
+  border: none;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  font-size: 1rem;
+  line-height: 1;
+  margin-right: 0.5rem;
+}
+
+// Sidebar: columna izquierda fija, delante del navbar
+.sidebar {
+  flex: 1;
+  background:
+    linear-gradient(135deg, #e8eaf6 0%, #283593 100%),
+    url('data:image/svg+xml;utf8,\
+<svg width="100%25" height="100%25" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg">\
+<path d="M0 800 Q480 900 960 800 T1920 800 V1080 H0 Z" fill="%231a237e" fill-opacity="0.16"/>\
+<path d="M0 600 Q480 700 960 600 T1920 600 V1080 H0 Z" fill="%233947ab" fill-opacity="0.12"/>\
+<path d="M0 400 Q480 500 960 400 T1920 400 V1080 H0 Z" fill="%23c5a047" fill-opacity="0.10"/>\
+</svg>');
+  min-width: 220px;
+  width: 220px;
+  height: 100vh;
+  min-height: 100vh;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.04);
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1100; // Asegura que el sidebar esté delante del navbar
+}
+.sidebar.collapsed {
+  min-width: 60px !important;
+  max-width: 60px !important;
+  width: 60px !important;
+  overflow-x: hidden !important;
+}
+
+.sidebar .sidebar-brand,
+.sidebar .sidebar-heading,
+.sidebar .sidebar-divider,
+.sidebar .nav-link,
+.sidebar .nav-item,
+.sidebar .sidebar-logo {
+  color: #fff !important;
+}
+
+
+
+.sidebar .nav-link.active,
+.sidebar .nav-link:hover {
+  background: rgba(255,255,255,0.08);
+  color: #fff !important;
+}
+
+// Estilo para el contenedor del menú
+
+.menu-dropdown-root {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+  padding: 4px 0 4px 0;
+  margin: 0 12px 18px 12px;
+  transition: box-shadow 0.2s;
+  font-size: 0.92em;
+
+}
+
+
+.sidebar .menu-dropdown-root > .nav-item > .nav-link {
+  color: #000 !important; /* negro puro para nivel superior */
+  background: transparent;
+  border-radius: 8px;
+  margin: 2px 8px;
+  font-size: 0.93em;
+  transition: background 0.2s, color 0.2s;
+}
+
+.sidebar .menu-dropdown-root .nav-item .nav-link {
+  background: transparent;
+  border-radius: 8px;
+  margin: 2px 8px;
+  font-size: 0.93em;
+  transition: background 0.2s, color 0.2s;
+}
+
+.sidebar .menu-dropdown-root .nav-item .nav-link:not(.active):not(:hover) {
+  color: #232323 !important; /* gris oscuro para hijos */
+}
+
+// Forzar color negro puro solo para el primer nivel aunque haya herencia previa
+.sidebar .menu-dropdown-root > .nav-item > .nav-link:not(.active):not(:hover) {
+  color: #000 !important;
+}
+// Título SUS OPCIONES más chico y alineado a la izquierda
+.sidebar .sidebar-section-title {
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 1px;
+  font-size: 0.85em;
+  margin-bottom: 0.5em;
+  text-align: left;
+  padding-left: 18px;
+}
+
+.sidebar .menu-dropdown-root .nav-item .nav-link.active,
+.sidebar .menu-dropdown-root .nav-item .nav-link:hover {
+  background: #f5ede6;
+  color: #111 !important;
+}
+
+
+// Animación profesional para apertura de submenús
+
+.sidebar .menu-dropdown-root ul,
+.sidebar .menu-dropdown-root .submenu-anim {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-10px) scaleY(0.98);
+  transition:
+    max-height 0.45s cubic-bezier(0.23, 1, 0.32, 1),
+    opacity 0.32s cubic-bezier(0.23, 1, 0.32, 1),
+    transform 0.32s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.sidebar .menu-dropdown-root ul.open,
+.sidebar .menu-dropdown-root .submenu-anim.open {
+  max-height: 1000px;
+  opacity: 1;
+  transform: translateY(0) scaleY(1);
+}
+
+.sidebar .sidebar-logo img {
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  max-width: 200px;
+  max-height: 180px;
+  margin: 0 auto 1rem auto;
+  display: block;
+}
+

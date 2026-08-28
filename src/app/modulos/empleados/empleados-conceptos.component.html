@@ -1,0 +1,143 @@
+<ng-template #loadingTpl>
+  <div class="concepts-card empty-state" *ngIf="error; else loadingState">
+    <h4>Error</h4>
+    <p>{{ error }}</p>
+    <a routerLink="/admin/empleados/listado" class="btn-back">Volver al listado</a>
+  </div>
+
+  <ng-template #loadingState>
+    <div class="concepts-card empty-state">
+      <h4>Cargando ficha...</h4>
+      <p>Obteniendo datos reales del empleado.</p>
+    </div>
+  </ng-template>
+</ng-template>
+
+<div class="concepts-page" *ngIf="!loading; else loadingTpl">
+
+  <div class="page-top">
+    <div>
+      <p class="page-kicker">Ficha personal</p>
+      <h3>{{ nombreCompleto }}</h3>
+      <p class="page-subtitle">Legajo {{ empleado?.legajo || '-' }} · {{ documentoLabel }}</p>
+    </div>
+    <a routerLink="/admin/empleados/listado" class="btn-back">Volver al listado</a>
+  </div>
+
+ <!-- <div class="tabs-bar">
+    <button *ngFor="let tab of tabs" type="button" class="tab-btn" [class.active]="activeTab === tab" (click)="cambiarTab(tab)">
+      {{ tab }}
+    </button>
+  </div>-->
+
+  <div class="concepts-layout">
+    <aside class="concepts-sidebar">
+      <div class="employee-card">
+        <div class="avatar-circle">{{ iniciales }}</div>
+        <div>
+          <h4>{{ nombreCompleto }}</h4>
+          <p>Legajo {{ empleado?.legajo || '-' }} · {{ documentoLabel }}</p>
+        </div>
+      </div>
+
+      <div class="side-section">
+        <span class="side-label">Datos rápidos</span>
+        <ul>
+          <li><strong>Empresa:</strong> {{ empresaLabel }}</li>
+          <li><strong>Sucursal:</strong> {{ sucursalLabel }}</li>
+          <li><strong>Sector:</strong> {{ sectorLabel }}</li>
+          <li><strong>Cargo:</strong> {{ cargoLabel }}</li>
+          <li>
+            <strong>Estado:</strong>
+            <span class="status-dot" [class.active]="isActivo" [class.inactive]="!isActivo" aria-hidden="true"></span>
+            {{ estadoNombre }}
+          </li>
+          <li><strong>Ingreso:</strong> {{ empleado?.fecha_ingreso || '-' }}</li>
+        </ul>
+      </div>
+
+      <div class="side-section">
+        <span class="side-label">Acciones</span>
+        <button type="button" (click)="abrirAsignar()">Asignar concepto</button>
+        <button type="button">Editar vigencias</button>
+        <button type="button">Ver liquidaciones</button>
+      </div>
+    </aside>
+
+    <section class="concepts-main">
+      <app-modal-alerta [visible]="modalVisible" [titulo]="modalTitle" [mensaje]="modalMessage" [icono]="modalIcon" [mostrarSpinner]="modalSpinner" [bloquearCierre]="modalBlock" [textoSpinner]="modalTextoSpinner" (cerrar)="onModalClose()"></app-modal-alerta>
+      <div *ngIf="showAsignar" class="concepts-card">
+        <app-empleados-asignar-concepto [empleadoId]="empleadoId" [conceptosDisponibles]="conceptosDisponibles" [conceptosAsignados]="conceptosAsignadosBackend" (asignar)="onAsignar($event)" (quitar)="onQuitar($event)" (cerrar)="cerrarAsignar()"></app-empleados-asignar-concepto>
+
+      </div>
+<br>
+      <div *ngIf="activeTab === 'Asignados' && conceptosAsignadosBackend.length > 0" class="concepts-card">
+        <div class="card-head">
+          <h4>Conceptos vigentes</h4>
+          <span>{{ conceptosAsignadosBackend.length }} registros</span>
+          <div class="card-actions" *ngIf="conceptosAsignadosBackend.length > 0">
+            <button class="btn icon-btn" (click)="quitarSeleccionados()" [disabled]="selectedConceptos.size === 0" title="Quitar seleccionados">
+              <i class="bi bi-trash" aria-hidden="true"></i>
+              <span class="btn-label">Quitar</span>
+            </button>
+            <button class="btn icon-btn danger" (click)="vaciarFicha()" [disabled]="conceptosAsignadosBackend.length === 0" title="Vaciar ficha">
+              <i class="bi bi-bucket" aria-hidden="true"></i>
+              <span class="btn-label">Vaciar</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="concept-row concept-head" *ngIf="conceptosAsignadosBackend.length > 0">
+          <div style="width:38px;text-align:center"><input type="checkbox" [checked]="selectAll" (change)="toggleSelectAll($event.target.checked)" /></div>
+          <div>Concepto</div>
+          <div>Código</div>
+          <div>Tipo</div>
+          <div class="col-numeric">Unidades</div>
+           <div class="col-numeric">Importe</div>
+          <div></div>
+        </div>
+
+        <ng-container *ngFor="let c of conceptosAsignadosBackend; let i = index">
+          <div class="concept-row assigned-row">
+          <div style="width:38px;text-align:center">
+            <input type="checkbox" [checked]="selectedConceptos.has(c.id)" (change)="toggleSelect(c.id, $event.target.checked)" />
+          </div>
+          <div>
+            <div class="name">{{ c.nombre }}</div>
+            <div class="group">{{ c.grupo?.nombre || '' }}</div>
+          </div>
+          <div>{{ c.codigo }}</div>
+          <div>
+            <span class="type-badge" [ngClass]="badgeClass(c.tipo_concepto?.codigo)">
+              {{ badgeLabel(c.tipo_concepto) }}
+            </span>
+          </div>
+          <div class="col-numeric">
+            <div class="value">{{ c.unidades ?? 1 }}</div>
+          </div>
+          <div class="col-numeric">
+            <div class="value">{{ formatCurrency(c.importe_fijo) }}</div>
+          </div>
+
+          <div class="action-cell">
+
+           <!--
+           <button class="icon-btn small primary" title="Subir" (click)="moveUp(c)">
+              <i class="bi bi-arrow-up"></i>
+            </button>
+           <button class="icon-btn small primary" title="Bajar" (click)="moveDown(c)">
+              <i class="bi bi-arrow-down"></i>
+            </button>
+         -->
+               <button class="icon-btn danger" title="Quitar concepto" (click)="onQuitar({ empleadoId: empleadoId!, conceptoId: c.id })">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+          </div>
+        </ng-container>
+      </div>
+
+
+    </section>
+  </div>
+</div>

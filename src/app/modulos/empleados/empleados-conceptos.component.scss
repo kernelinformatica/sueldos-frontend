@@ -1,0 +1,326 @@
+@use '../../../styles/variables' as *;
+
+.concepts-page {
+  color: #1f2a44;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.page-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 0 1rem;
+  padding: 0.75rem 0 0.25rem;
+  border-bottom: 1px solid rgba(40, 53, 147, 0.12);
+}
+
+.page-kicker {
+  margin: 0 0 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #5c6bc0;
+}
+
+.page-top h3 {
+  margin: 0;
+
+/* Force actions to the far right even when space is tight */
+.card-head { position: relative; padding-right: 56px; }
+.card-head .card-actions { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); }
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.page-subtitle {
+  margin: 0.35rem 0 0;
+  max-width: 760px;
+  color: #667085;
+}
+
+.btn-back {
+  background: rgba(92, 107, 192, 0.08);
+  color: #283593;
+  text-decoration: none;
+  border: 1px solid rgba(92, 107, 192, 0.18);
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  transition: 0.2s ease;
+}
+
+.btn-back:hover {
+  background: rgba(92, 107, 192, 0.14);
+}
+
+.tabs-bar {
+  display: flex;
+  gap: 0.75rem;
+  margin: 1.25rem 0;
+  flex-wrap: wrap;
+}
+.icon-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 600;
+  color: #1976d2;
+  margin-right: 6px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  padding: 0.65rem 1rem;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.icon-btn.danger i {
+  color: #f44336;
+}
+
+.tab-btn.active {
+  background: #fff;
+  color: #283593;
+}
+
+.concepts-layout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.concepts-sidebar,
+.concepts-card {
+  background: rgba(255, 255, 255, 0.94);
+  color: #1f2a44;
+  border-radius: 18px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+}
+
+.concepts-sidebar {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.employee-card {
+  display: flex;
+  gap: 0.85rem;
+  align-items: center;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e7e9f1;
+
+  h4 {
+    margin: 0;
+    color: #111827;
+  }
+
+  p {
+    margin: 0.2rem 0 0;
+    color: #667085;
+    font-size: 0.9rem;
+  }
+}
+
+.avatar-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #283593, #5c6bc0);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+
+.side-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+
+  .side-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #283593;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.55rem;
+    color: #344054;
+  }
+
+  button {
+    width: 100%;
+    border: 0;
+    border-radius: 12px;
+    padding: 0.8rem 1rem;
+    background: #e8eaf6;
+    color: #283593;
+    font-weight: 600;
+    text-align: left;
+  }
+}
+
+.status-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 8px 0 6px;vertical-align:middle;border:1px solid rgba(0,0,0,0.06)}
+.status-dot.active{background:#16a34a;box-shadow:0 4px 10px rgba(22,163,74,0.12)}
+.status-dot.inactive{background:#ef4444;box-shadow:0 4px 10px rgba(239,68,68,0.12)}
+
+.concepts-main {
+  min-width: 0;
+}
+
+.concepts-card {
+  padding: 1rem;
+}
+
+.card-head,
+.concept-row {
+  display: grid;
+  grid-template-columns: 38px 2fr 1fr 1fr 1fr 0.9fr 0.8fr;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.card-head {
+  margin-bottom: 0.75rem;
+  font-weight: 700;
+  color: #283593;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: nowrap;
+
+  h4, span { white-space: nowrap; }
+
+  h4 { margin: 0; }
+
+  span {
+    font-size: 0.88rem;
+    color: #667085;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 0.9rem;
+    align-items: center;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+}
+
+.concept-head {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #667085;
+  border-bottom: 1px solid #e7e9f1;
+  padding-bottom: 0.7rem;
+}
+
+/* Numeric columns: align header and cell content to the right */
+.col-numeric { text-align: right; }
+.concept-row .col-numeric .value { text-align: right; }
+
+.concept-row {
+  padding: 0.65rem 0;
+  border-bottom: 1px solid #eef2f6;
+  color: #344054;
+  align-items: center;
+}
+
+.status-pill {
+  display: inline-flex;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  background: #e8eaf6;
+  color: #283593;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.type-badge{display:inline-block;padding:4px 8px;border-radius:12px;font-size:12px}
+.type-badge.haber_con_desc{background:#e8f6ee;color:#0b6b3a}
+.type-badge.descuentos{background:#fff0f0;color:#b71c1c}
+.type-badge.aporte{background:#eef4ff;color:#0b4ea6}
+.concept-row .name{font-weight:600}
+.concept-row .group{font-size:0.85rem;color:#666}
+.concept-row .value{padding:6px 8px;color:#111;font-weight:600}
+.action-cell{justify-self:end;width:48px}
+.action-cell .icon-btn{background:none;border:0;padding:0}
+.action-cell .icon-btn i{color:#f44336;font-size:18px}
+
+.card-actions .btn { padding: 0.45rem 0.7rem; border-radius:8px }
+.card-actions .btn.danger { background: #fcecec; color: #b71c1c }
+.card-actions .icon-btn { display:flex; align-items:center; gap:0.6rem; font-weight:600 }
+.card-actions .icon-btn i { font-size:1.05rem }
+.card-actions .btn-label { display:inline-block }
+@media (max-width:520px) {
+  .card-actions .btn-label { display:none }
+}
+/* Ensure action buttons don't stack vertically */
+.card-actions { flex-direction: row; white-space: nowrap; }
+.card-actions .btn, .card-actions .icon-btn { display: inline-flex !important; width: auto !important; font-size:0.95rem }
+.card-actions .btn { padding: 0.28rem 0.5rem; }
+.card-actions .icon-btn i { font-size:1rem }
+/* ensure spacing if gap fails in some browsers */
+.card-actions .btn + .btn { margin-left: 0.6rem }
+
+.empty-state {
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 2rem;
+
+  h4 {
+    margin: 0 0 0.35rem;
+    color: #283593;
+  }
+
+  p {
+    margin: 0;
+    color: #667085;
+  }
+}
+
+@media (max-width: 992px) {
+  .concepts-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-top {
+    flex-direction: column;
+  }
+
+  .card-head,
+  .concept-row {
+    grid-template-columns: 38px 1.2fr 1fr 1fr;
+  }
+
+  .concept-head {
+    display: none;
+  }
+
+  .concept-row {
+    grid-template-areas:
+      'chk a a'
+      'c d e';
+  }
+
+  .concept-row > div:nth-child(1) { grid-area: chk; }
+  .concept-row > div:nth-child(2) { grid-area: a; font-weight: 700; }
+  .concept-row > div:nth-child(3) { grid-area: c; }
+  .concept-row > div:nth-child(4) { grid-area: d; }
+  .concept-row > div:nth-child(5) { grid-area: e; justify-self: end; }
+}

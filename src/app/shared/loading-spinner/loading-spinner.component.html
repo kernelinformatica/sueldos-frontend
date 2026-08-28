@@ -1,0 +1,6 @@
+<div *ngIf="visible" [ngClass]="{'spinner-overlay': centered, 'spinner-inline': !centered}">
+  <div class="spinner-container">
+    <div class="spinner"></div>
+    <div *ngIf="text" class="spinner-text">{{ text }}</div>
+  </div>
+</div>

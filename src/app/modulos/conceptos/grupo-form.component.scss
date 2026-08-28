@@ -1,0 +1,15 @@
+@use '../../../styles/variables' as *;
+
+.grupo-form { color:#1f2a44 }
+
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem }
+
+.form-actions { margin-top:0.8rem; display:flex; gap:0.6rem }
+
+.empleados-table thead th { padding:0.6rem }
+
+/* Form fields styling to match Concepto form */
+.field { display:flex; flex-direction:column; gap:0.35rem }
+.field label { font-weight:700; font-size:0.85rem; color:#344054 }
+.field input, .field select, .field textarea { width:100%; padding:0.6rem; border:1px solid #d6dae8; border-radius:10px }
+.required-mark { color:#b42318 }
