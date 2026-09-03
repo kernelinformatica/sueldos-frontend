@@ -16,14 +16,16 @@
       <a routerLink="/modulos" title="Selector de módulos" style="color: #fff; opacity: 0.85; display: flex; align-items: center;">
         <i class="fas fa-th-large"></i>
       </a>
-      <a *ngIf="canViewGrupos" routerLink="/admin/conceptos/grupos" title="Grupos de conceptos" style="color: #fff; opacity: 0.85; display: flex; align-items: center; margin-left: 0.5rem;">
-        <i class="fas fa-layer-group"></i>
-      </a>
+      <button *ngIf="esAdmin && (tituloModulo === 'Kilo Vivo')" (click)="crearPagina.emit()" title="Nueva página" style="background: none; border: none; padding: 0; margin: 0; color: #fff; line-height: 1; cursor: pointer; display: flex; align-items: center;">
+        <i class="fas fa-plus"></i>
+      </button>
     </span>
   </div>
 
 
-
+  <hr class="sidebar-divider mt-3 mb-2" />
+  <div class="sidebar-section-title">SUS OPCIONES</div>
+  <hr class="sidebar-divider mt-2 mb-2" />
 
   <!-- Menú dinámico debajo del selector de módulos -->
   <ul *ngIf="menu && menu.length > 0" class="nav flex-column mt-2 menu-dropdown-root">
@@ -33,28 +35,26 @@
       [collapsed]="collapsed"
       [depth]="0">
     </app-sidebar-menu-item>
-    
   </ul>
 
-
-    <!-- Mostrar sección de Grupos separada cuando estamos en el módulo Conceptos -->
-    <div *ngIf="tituloModulo === 'Conceptos' && canViewGrupos">
-      <hr class="sidebar-divider mt-2 mb-2" />
-      <div class="sidebar-section-title">GRUPOS</div>
+  <!-- Menú Opciones solo en Multimedia -->
+  <li *ngIf="tituloModulo === 'Multimedia'" class="nav-item" [ngClass]="{'active': componentsOpen}">
+    <a class="nav-link collapsed d-flex align-items-center" href="#" (click)="componentsOpen = !componentsOpen; $event.preventDefault()" [attr.aria-expanded]="componentsOpen" aria-controls="collapseOpciones" style="display: flex; justify-content: space-between;">
+      <span class="d-flex align-items-center">
+        <i class="fas fa-fw fa-sliders-h"></i>
+        <span class="ms-2" style="font-size:0.88em;">Opciones</span>
+      </span>
+      <i class="fas" [ngClass]="{'fa-angle-down': !componentsOpen, 'fa-angle-up': componentsOpen}" style="margin-left: auto;"></i>
+    </a>
+    <div *ngIf="componentsOpen" @slideDown aria-labelledby="headingOpciones">
       <ul class="nav flex-column mt-2 menu-dropdown-root">
-        <app-sidebar-menu-item
-          *ngFor="let item of gruposMenuFiltered"
-          [item]="item"
-          [collapsed]="collapsed"
-          [depth]="0">
-        </app-sidebar-menu-item>
+        <li class="nav-item">
+          <a class="nav-link d-flex align-items-center py-1 px-2" style="font-size:0.88em; min-height:32px;" routerLink="/modulos/multimedia/carga-masiva" routerLinkActive="active">
+            <i class="fas fa-cloud-upload-alt me-2" style="font-size:1em;"></i> Carga Masiva
+          </a>
+        </li>
       </ul>
-      <hr class="sidebar-divider mt-2 mb-2" />
     </div>
-  
-  
-    
-
-
+  </li>
  
 </nav>

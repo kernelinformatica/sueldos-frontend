@@ -1,0 +1,36 @@
+<div class="sucursal-form-shell">
+  <app-loading-spinner></app-loading-spinner>
+  <div class="form-header">
+    <div>
+      <p class="kicker">Gestión de Sucursales</p>
+      <h3>Alta / edición de sucursal</h3>
+      <p class="subtitle">Pantalla base para crear y actualizar sucursales.</p>
+    </div>
+    <div class="header-actions">
+      <a routerLink="/admin/sucursales" class="btn-action btn-icon action-icon save-action back-action" title="Volver al listado">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <button type="button" class="btn-action btn-icon action-icon save-action" (click)="save()" title="Guardar" [disabled]="saving || !canSave || form.invalid">
+        <i class="bi bi-floppy"></i>
+      </button>
+    </div>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="save()">
+    <section class="form-card">
+      <div class="grid-2" style="margin-top:0.6rem">
+        <div class="field">
+          <label>Nombre <span class="required-mark">*</span></label>
+          <input formControlName="nombre" />
+        </div>
+        <div class="field">
+          <label>Orden <span class="required-mark">*</span></label>
+          <input formControlName="orden" type="number" />
+        </div>
+      </div>
+    </section>
+  </form>
+
+  <app-modal-alerta [visible]="resultVisible" [titulo]="resultTitle" [mensaje]="resultMessage" [icono]="'bi bi-check-circle-fill'" [accentColor]="'#198754'" [buttonColor]="'#198754'" [esConfirmacion]="false" (cerrar)="closeResult()"></app-modal-alerta>
+  <app-modal-alerta [visible]="errorVisible" [titulo]="errorTitle" [mensaje]="errorMessage" [icono]="'bi bi-exclamation-triangle-fill'" [accentColor]="'#d32f2f'" [buttonColor]="'#d32f2f'" [esConfirmacion]="false" (cerrar)="closeError()"></app-modal-alerta>
+</div>

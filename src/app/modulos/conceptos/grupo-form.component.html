@@ -7,10 +7,10 @@
       <p class="subtitle">Crear o editar una agrupación de conceptos.</p>
     </div>
     <div class="header-actions">
-      <a routerLink="/admin/conceptos/grupos" class="btn-action btn-icon" title="Volver al listado">
+      <a routerLink="/admin/conceptos/grupos" class="btn-action btn-icon action-icon save-action back-action" title="Volver al listado">
         <i class="bi bi-arrow-left"></i>
       </a>
-      <button class="btn-action btn-icon" (click)="save()" [disabled]="loading" title="Guardar">
+      <button type="button" class="btn-action btn-icon action-icon save-action" (click)="save()" [disabled]="loading || !canEditGroup" title="Guardar">
         <i class="bi bi-floppy"></i>
       </button>
     </div>
@@ -22,56 +22,165 @@
       <div class="grid-3" style="margin-top:0.6rem">
         <div class="field">
           <label>Alias <span class="required-mark">*</span></label>
-          <input formControlName="alias" />
+          <input formControlName="alias" [disabled]="!canEditGroup" />
         </div>
         <div class="field">
           <label>Nombre <span class="required-mark">*</span></label>
-          <input formControlName="nombre" />
+          <input formControlName="nombre" [disabled]="!canEditGroup" />
         </div>
         <div class="field">
           <label>Código</label>
-          <input formControlName="codigo" type="number" />
+          <input formControlName="codigo" type="number" [disabled]="!canEditGroup" />
         </div>
       </div>
       <div class="grid-2" style="margin-top:0.6rem">
         <div class="field">
           <label>Permite importe fijo</label>
-          <select [disabled]="false" formControlName="permite_importe_fijo">
+          <select [disabled]="!canEditGroup" formControlName="permite_importe_fijo">
             <option [ngValue]="1">Sí</option>
             <option [ngValue]="0">No</option>
           </select>
         </div>
         <div class="field">
           <label>Orden</label>
-          <input formControlName="orden" type="number" />
+          <input formControlName="orden" type="number" [disabled]="!canEditGroup" />
         </div>
       </div>
       <div class="field" style="margin-top:0.6rem">
         <label>Descripción</label>
-        <textarea formControlName="descripcion" rows="3"></textarea>
+          <textarea formControlName="descripcion" rows="3" [disabled]="!canEditGroup"></textarea>
       </div>
       <div class="field" style="margin-top:0.6rem">
         <label>Comentario</label>
-        <textarea formControlName="comentario" rows="2" placeholder="Comentario interno sobre el grupo"></textarea>
+          <textarea formControlName="comentario" rows="2" [disabled]="!canEditGroup" placeholder="Comentario interno sobre el grupo"></textarea>
       </div>
     </section>
   </form>
 
-  <section *ngIf="grupoId" class="form-card" style="margin-top:0.25rem">
-    <h4>Asignaciones</h4>
-    <div>
-      <p>Lista de conceptos asignados</p>
-      <table class="empleados-table">
-        <tbody>
-          <tr *ngFor="let a of asignaciones">
-            <td>{{ a.concepto?.nombre || a?.nombre || '-' }}</td>
-            <td>{{ a.concepto_id || a.concepto?.concepto_id || '-' }}</td>
-            <td><a (click)="confirmRemoveAsignacion(a)" class="btn-action btn-icon"><i class="bi bi-trash"></i></a></td>
-          </tr>
-        </tbody>
-      </table>
+  <section *ngIf="grupoId && canRelateGroup" class="form-card" style="margin-top:0.25rem">
+    <div class="assignment-panel-header">
+      <div>
+        <h4>Relación con conceptos</h4>
+        <p>Buscá conceptos y agregalos al grupo desde acá mismo.</p>
+      </div>
+      <div class="assignment-counter">{{ totalAsignados }} asignados</div>
+    </div>
+
+    <div class="assignment-grid">
+      <div class="assignment-column">
+        <div class="column-actions">
+          <div class="panel-subtitle">Buscar y asignar</div>
+          <label class="select-all-inline">
+            <input type="checkbox" [checked]="isAllVisibleSelected()" (change)="toggleSelectAllAvailable()" />
+            <span>Seleccionar todos</span>
+          </label>
+        </div>
+        <div class="search-row">
+          <div class="assignment-search type-search">
+            <select [(ngModel)]="conceptoTipoFilter" [ngModelOptions]="{ standalone: true }">
+              <option value="">Todos los tipos</option>
+              <option *ngFor="let tipo of tiposConcepto" [value]="tipo.id">{{ tipo.nombre }}</option>
+            </select>
+          </div>
+          <div class="assignment-search">
+            <input [(ngModel)]="conceptoSearch" [ngModelOptions]="{ standalone: true }" type="text" placeholder="Buscar por código, nombre o descripción" />
+          </div>
+        </div>
+        <div class="bulk-actions">
+          <button type="button" class="btn-action btn-icon action-icon bulk-btn" (click)="assignSelected()" [disabled]="!selectedAvailableIds.size" title="Asignar seleccionados">
+            <i class="bi bi-box-arrow-right"></i>
+          </button>
+        </div>
+
+        <div class="concept-list-scroll available-dropzone" (dragover)="$event.preventDefault()" (drop)="onDropToAssigned()">
+          <div *ngIf="conceptosLoading" class="empty-state">Cargando conceptos...</div>
+          <button type="button" class="concept-row" *ngFor="let c of conceptosFiltrados" (click)="toggleAvailableSelection(c)" [class.is-assigned]="isAssigned(c)" [class.is-selected]="isSelectedAvailable(c)" draggable="true" (dragstart)="onDragStart(c)" (dragend)="onDragEnd()">
+            <input type="checkbox" [checked]="isSelectedAvailable(c)" (click)="$event.stopPropagation()" (change)="toggleAvailableSelection(c, $any($event.target).checked)" [disabled]="isAssigned(c)" />
+            <div class="concept-row-main">
+              <div class="concept-title-line">
+                <strong>{{ c.codigo || c.concepto_id || '-' }}</strong>
+                <span class="concept-type-badge" [ngClass]="tipoBadgeClass(c)">{{ tipoBadgeLabel(c) }}</span>
+              </div>
+              <span>{{ c.descripcion || c.nombre || '-' }}</span>
+            </div>
+            <div class="concept-row-action">
+              <i [ngClass]="isAssigned(c) ? 'bi bi-check2-circle' : 'bi bi-plus-circle' "></i>
+            </div>
+          </button>
+          <div *ngIf="!conceptosLoading && conceptosFiltrados.length === 0" class="empty-state">No hay conceptos para mostrar.</div>
+        </div>
+      </div>
+
+      <div class="assignment-column">
+        <div class="column-actions">
+          <div class="panel-subtitle">Conceptos agrupados</div>
+          <label class="select-all-inline">
+            <input type="checkbox" [checked]="isAllAssignedVisibleSelected()" (change)="toggleSelectAllAssigned()" />
+            <span>Seleccionar todos</span>
+          </label>
+        </div>
+        <div class="bulk-actions">
+          <button type="button" class="btn-action btn-icon action-icon bulk-btn danger" (click)="removeSelected()" [disabled]="!selectedAssignedIds.size" title="Quitar seleccionados">
+            <i class="bi bi-trash3"></i>
+          </button>
+        </div>
+        <div class="assigned-list" *ngIf="grupoId; else pendingList">
+          <div class="assigned-item drop-target" (dragover)="$event.preventDefault()" (drop)="onDropToAssignedPanel()">
+            <ng-container *ngIf="dropAssignLoading; else dropHint">
+              <div class="drop-loading">
+                <app-loading-spinner></app-loading-spinner>
+                <span>{{ dropAssignText }}</span>
+              </div>
+            </ng-container>
+            <ng-template #dropHint>
+              <span class="drop-hint">Suelta aquí un concepto para asignarlo al grupo</span>
+            </ng-template>
+          </div>
+          <div class="assigned-item" *ngFor="let a of asignaciones" [class.is-selected]="isSelectedAssigned(a)">
+            <input type="checkbox" [checked]="isSelectedAssigned(a)" (change)="toggleAssignedSelection(a, $any($event.target).checked)" />
+            <div>
+              <div class="concept-title-line">
+                <span class="grouped-indicator" title="Incluido en el grupo">
+                  <i class="bi bi-check-circle-fill"></i>
+                </span>
+                <strong>{{ conceptoCodigo(a) }}</strong>
+                <span class="concept-type-badge" [ngClass]="assignedRowTypeClass(a)">{{ assignedRowTypeLabel(a) }}</span>
+              </div>
+              <span>{{ conceptoNombre(a) }}</span>
+            </div>
+            <button *ngIf="isSelectedAssigned(a)" type="button" class="btn-action btn-icon action-icon danger" (click)="confirmRemoveAsignacion(a)" title="Quitar concepto">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+          <div *ngIf="asignaciones.length === 0" class="empty-state">Todavía no hay conceptos asignados.</div>
+        </div>
+        <ng-template #pendingList>
+          <div class="assigned-list">
+            <div class="empty-state" *ngIf="pendingConceptoIds.size === 0">Guardá el grupo para habilitar la relación persistente.</div>
+            <ng-container *ngFor="let c of conceptosFiltrados">
+              <div class="assigned-item" *ngIf="isAssigned(c)">
+                <div>
+                  <div class="concept-title-line">
+                    <span class="grouped-indicator" title="Incluido en el grupo">
+                      <i class="bi bi-check-circle-fill"></i>
+                    </span>
+                    <strong>{{ c.codigo || c.concepto_id || '-' }}</strong>
+                    <span class="concept-type-badge" [ngClass]="tipoBadgeClass(c)">{{ tipoBadgeLabel(c) }}</span>
+                  </div>
+                  <span>{{ c.descripcion || c.nombre || '-' }}</span>
+                </div>
+                <button type="button" class="btn-action btn-icon action-icon danger" (click)="toggleConcepto(c)" title="Quitar selección">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+            </ng-container>
+          </div>
+        </ng-template>
+      </div>
     </div>
   </section>
 
   <app-modal-alerta [visible]="modalVisible" [titulo]="modalTitle" [mensaje]="modalMessage" [icono]="'bi bi-trash'" [mostrarSpinner]="modalSpinner" [bloquearCierre]="modalBlock" [esConfirmacion]="true" (cerrar)="onModalClose($event)"></app-modal-alerta>
+  <app-modal-alerta [visible]="saveResultModalVisible" [titulo]="saveResultModalTitle" [mensaje]="saveResultModalMessage" [icono]="saveResultModalIcon" [accentColor]="saveResultModalAccent" [buttonColor]="saveResultModalAccent" [esConfirmacion]="false" (cerrar)="closeSaveResultModal()"></app-modal-alerta>
+  <app-modal-alerta [visible]="errorModalVisible" [titulo]="errorModalTitle" [mensaje]="errorModalMessage" [icono]="errorModalIcon" [accentColor]="errorModalAccent" [buttonColor]="errorModalAccent" [esConfirmacion]="false" (cerrar)="closeErrorModal()"></app-modal-alerta>
 </div>

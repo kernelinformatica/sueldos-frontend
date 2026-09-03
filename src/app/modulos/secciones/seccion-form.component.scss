@@ -1,0 +1,85 @@
+@use '../../../styles/variables' as *;
+
+.seccion-form-shell { padding: 1rem; color:#1f2a44; }
+
+.form-shell { padding: 1rem; }
+.form-header { display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; }
+.kicker { text-transform:uppercase; color:#667085; font-weight:700 }
+h3 { margin:0; font-size:1.4rem; color:#283593 }
+.subtitle { margin:0.25rem 0 0; color:#667085 }
+
+.form-card { background:#fff; border:1px solid #e7e9f1; border-radius:14px; padding:1rem; margin-bottom:1rem }
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem }
+.field { display:flex; flex-direction:column; gap:0.35rem }
+.field label { font-weight:700; font-size:0.85rem; color:#344054 }
+.field input, .field select, .field textarea { width:100%; padding:0.6rem; border:1px solid #d6dae8; border-radius:10px }
+.required-mark { color:#b42318 }
+
+.header-actions { display:flex; align-items:center; gap:0.6rem; }
+.header-actions .btn-action.btn-icon {
+	border:1px solid rgba(99,102,241,0.18);
+	background:#eef2ff;
+	color:#283593;
+	box-shadow:0 1px 2px rgba(15,23,42,0.05);
+	transition: background .16s ease, transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+
+.header-actions .btn-action.btn-icon:hover {
+	background:#dfe3ff;
+	border-color:#c7d2fe;
+	transform:translateY(-1px);
+	box-shadow:0 8px 18px rgba(79,70,229,0.12);
+}
+
+.header-actions .btn-action.btn-icon:active { transform:translateY(0); }
+
+.header-actions .btn-action.btn-icon[disabled] {
+	opacity:0.55;
+	cursor:not-allowed;
+	transform:none;
+	box-shadow:0 1px 2px rgba(15,23,42,0.05);
+}
+
+.btn-action {
+	border:0;
+	border-radius:999px;
+	padding:0.7rem 1rem;
+	font-weight:600;
+	background:#e8eaf6;
+	color:#283593;
+	text-decoration:none;
+	display:inline-flex;
+	align-items:center;
+	gap:0.5rem;
+}
+
+.btn-icon {
+	width:2.6rem;
+	height:2.6rem;
+	display:inline-flex;
+	align-items:center;
+	justify-content:center;
+	padding:0;
+	font-size:1rem;
+	line-height:1;
+}
+
+.btn-icon i { font-size:1.1rem }
+
+.save-action {
+	display:inline-flex;
+	align-items:center;
+	justify-content:center;
+	gap:0;
+	border-radius:999px;
+}
+
+.back-action { width:2.35rem; height:2.35rem; padding:0; }
+.save-action:hover { background:#dfe3ff; transform:translateY(-1px) }
+.save-action:active { transform:translateY(0) }
+.save-action[disabled] { opacity:0.6; cursor:not-allowed; transform:none }
+
+@media (max-width: 768px) {
+	.form-header { flex-direction:column; }
+	.grid-2 { grid-template-columns:1fr; }
+}

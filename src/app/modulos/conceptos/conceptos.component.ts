@@ -59,11 +59,15 @@ export class ConceptosComponent implements OnInit {
         if (key && !tipos.has(key)) tipos.set(key, { id: key, nombre: t?.nombre || t?.codigo || key });
         });
         this.conceptTipos = Array.from(tipos.values());
-        // If backend already includes `topes` on each concepto, compute summaries for UI here
+        // Load topes for each concepto (cached) and compute a summary for UI
         (this.conceptos || []).forEach((c: any) => {
-          c.topes = toplesOrEmpty(c.topes);
-          c.topeSummary = computeTopesSummary(c.topes, c);
-          c.topeTooltip = buildTopesTooltip(c.topes);
+          const id = Number(c.concepto_id ?? c.id ?? c.conceptoId);
+          if (!id) return;
+          this.svc.getTopes(id).subscribe((topes: any[]) => {
+            c.topes = toplesOrEmpty(topes);
+            c.topeSummary = computeTopesSummary(c.topes, c);
+            try { this.cdr.detectChanges(); } catch {}
+          });
         });
       }, (err) => { console.error('Error cargando conceptos', err); });
   }
@@ -199,16 +203,4 @@ function computeTopesSummary(topes: any[], concepto: any) {
 
 function formatNumber(n: number, unidad?: string) {
   try { if (unidad === 'porcentaje') return (Number(n) || 0) + '%'; return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2 }).format(n); } catch { return String(n); }
-}
-
-function buildTopesTooltip(topes: any[]) {
-  if (!Array.isArray(topes) || topes.length === 0) return 'Sin topes asignados';
-  return (topes || []).map((t: any, i: number) => {
-    const accion = String(t?.accion || '').toUpperCase() || '-';
-    const unidad = (t?.unidad === 'porcentaje') ? '%' : '$';
-    const valor = (t?.valor == null) ? '-' : formatNumber(Number(t?.valor || 0), t?.unidad);
-    const scope = t?.concepto_id ? 'Concepto' : (t?.grupo_id ? 'Grupo' : (t?.padron_id ? 'Padrón' : 'Global'));
-    const activo = (t?.activo == 1 || t?.activo === true) ? '' : ' (inactivo)';
-    return `${i+1}. ${accion} ${valor} ${unidad} — ${scope}${activo}`;
-  }).join('\n');
 }

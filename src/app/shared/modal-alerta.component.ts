@@ -10,7 +10,7 @@ import { CommonModule } from '@angular/common';
     <div class="modal-container" *ngIf="visible">
       <div class="modal-content">
         <div class="modal-header">
-          <span *ngIf="icono" class="modal-icono" [ngClass]="icono" style="margin-right:0.7em;font-size:1.3em;"></span>
+          <span *ngIf="icono" class="modal-icono" [ngClass]="icono" [style.color]="accentColor" style="margin-right:0.7em;font-size:1.3em;"></span>
           <span class="modal-title">{{ titulo }}</span>
           <button class="modal-close" (click)="onClose()" [disabled]="bloquearCierre">&times;</button>
         </div>
@@ -24,11 +24,11 @@ import { CommonModule } from '@angular/common';
         </div>
         <div class="modal-footer" *ngIf="!mostrarSpinner">
           <ng-container *ngIf="esConfirmacion; else soloOk">
-            <button class="modal-btn-ok" style="margin-right:1.2em;min-width:90px;" (click)="onClose(true)">Aceptar</button>
+            <button class="modal-btn-ok" [style.marginRight]="'1.2em'" [style.minWidth]="'90px'" [style.background]="buttonColor" (click)="onClose(true)">Aceptar</button>
             <button class="modal-btn-ok" style="background:#bbb;color:#222;min-width:90px;" (click)="onClose(false)">Cancelar</button>
           </ng-container>
           <ng-template #soloOk>
-            <button class="modal-btn-ok" (click)="onClose()">OK</button>
+            <button class="modal-btn-ok" [style.background]="buttonColor" (click)="onClose()">OK</button>
           </ng-template>
         </div>
       </div>
@@ -129,7 +129,6 @@ import { CommonModule } from '@angular/common';
       border-top: 1px solid #eee;
     }
     .modal-btn-ok {
-      background: #198754;
       color: #fff;
       border: none;
       border-radius: 6px;
@@ -141,14 +140,9 @@ import { CommonModule } from '@angular/common';
       transition: background 0.2s;
     }
     .modal-btn-ok:hover {
-      background: #145c32;
+      filter: brightness(0.88);
     }
-    .modal-icono {
-      display: inline-flex;
-      align-items: center;
-      vertical-align: middle;
-      color: #198754;
-    }
+    .modal-icono { display: inline-flex; align-items: center; vertical-align: middle; }
     @keyframes slideDown {
       0% { transform: translateY(-60px) scale(0.98); opacity: 0; }
       100% { transform: translateY(0) scale(1); opacity: 1; }
@@ -172,6 +166,8 @@ export class ModalAlertaComponent {
   @Input() mostrarSpinner: boolean = false;
   @Input() textoSpinner = '';
   @Input() bloquearCierre: boolean = false;
+  @Input() accentColor = '#198754';
+  @Input() buttonColor = '#198754';
   @Output() cerrar = new EventEmitter<boolean>();
 
   onClose(confirmado: boolean = false) {

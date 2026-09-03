@@ -25,8 +25,16 @@
       <label>Código</label>
       <input type="text" [(ngModel)]="filtros.codigo" placeholder="Código" />
     </div>
+    <div class="filtro-item filtro-small">
+      <label>Alcance</label>
+      <select [(ngModel)]="filtros.alcance">
+        <option value="todos">Todos</option>
+        <option value="protegidos">Protegidos por sistema</option>
+        <option value="comunes">Generales</option>
+      </select>
+    </div>
     <div class="filtro-actions">
-      <button class="btn-action btn-icon" (click)="filtros={nombre:'',codigo:''}" title="Limpiar filtros">
+      <button class="btn-action btn-icon" (click)="filtros={nombre:'',codigo:'',alcance:'todos'}" title="Limpiar filtros">
         <i class="bi bi-eraser-fill"></i>
       </button>
     </div>
@@ -50,7 +58,7 @@
         <ng-container *ngFor="let g of gruposFiltrados">
           <tr [class.expanded-parent]="isExpanded(g)">
             <td class="group-icon"><i class="bi bi-tags"></i></td>
-            <td>{{ g.codigo || '-' }}</td>
+            <td>{{ grupoCodigo(g) }}</td>
             <td>{{ g.alias || '-' }}</td>
             <td>{{ g.nombre || '-' }}</td>
             <td>
@@ -70,23 +78,29 @@
                     <i class="bi bi-shield-lock" title="Protegido por el sistema"></i>
 
                   </span>
-                <button class="btn-action btn-icon" (click)="toggleConceptos(g)" [title]="isExpanded(g) ? 'Ocultar conceptos' : 'Ver conceptos'" *ngIf="(g.conceptos || []).length > 0">
+                  <button class="btn-action btn-icon" (click)="toggleConceptos(g)" [title]="isExpanded(g) ? 'Ocultar conceptos' : 'Ver conceptos'" *ngIf="hasConceptos(g)">
                     <i [ngClass]="{'bi bi-chevron-down': !isExpanded(g), 'bi bi-chevron-up': isExpanded(g)}"></i>
                   </button>
+                  <button class="btn-action btn-icon" (click)="relacionar(g)" title="Relacionar conceptos" *ngIf="canRelateGroup(g)">
+                    <i class="bi bi-link-45deg"></i>
+                  </button>
+                  <a (click)="edit(g)" class="btn-action btn-icon" [class.disabled]="!canModifyGroup(g)" title="Editar" *ngIf="canModifyGroup(g)">
+                    <i class="bi bi-pencil-square"></i>
+                  </a>
 
                 </ng-container>
                 <ng-template #normalActions>
-                  <button class="btn-action btn-icon" (click)="toggleConceptos(g)" [title]="isExpanded(g) ? 'Ocultar conceptos' : 'Ver conceptos'" *ngIf="(g.conceptos || []).length > 0">
+                  <button class="btn-action btn-icon" (click)="toggleConceptos(g)" [title]="isExpanded(g) ? 'Ocultar conceptos' : 'Ver conceptos'" *ngIf="hasConceptos(g)">
                     <i [ngClass]="{'bi bi-chevron-down': !isExpanded(g), 'bi bi-chevron-up': isExpanded(g)}"></i>
                   </button>
-                  <button class="btn-action btn-icon" (click)="relacionar(g)" title="Relacionar conceptos" *ngIf="canRelate">
+                  <button class="btn-action btn-icon" (click)="relacionar(g)" title="Relacionar conceptos" *ngIf="canRelateGroup(g)">
                     <i class="bi bi-link-45deg"></i>
                   </button>
                   <span *ngIf="g.verificado" class="badge-verificado" title="Verificado">Verificado</span>
-                  <a (click)="edit(g)" class="btn-action btn-icon" [class.disabled]="!canEdit" title="Editar" *ngIf="canEdit">
+                  <a (click)="edit(g)" class="btn-action btn-icon" [class.disabled]="!canModifyGroup(g)" title="Editar" *ngIf="canModifyGroup(g)">
                     <i class="bi bi-pencil-square"></i>
                   </a>
-                  <a (click)="confirmDelete(g)" class="btn-action btn-icon" [class.disabled]="!canDelete" title="Eliminar" *ngIf="canDelete">
+                  <a (click)="confirmDelete(g)" class="btn-action btn-icon" [class.disabled]="!canRemoveGroup(g)" title="Eliminar" *ngIf="canRemoveGroup(g)">
                     <i class="bi bi-trash"></i>
                   </a>
                 </ng-template>
@@ -102,8 +116,8 @@
                   <tbody>
                     <tr *ngFor="let c of (g.conceptos || [])" class="expanded-item">
                       <td class="concept-icon"><i class="bi bi-list"></i></td>
-                      <td class="concept-code">{{ c.codigo || c.concepto_id || '-' }}</td>
-                      <td class="concept-name">{{ c.descripcion || c.nombre || '-' }}</td>
+                      <td class="concept-code">{{ conceptoCodigo(c) }}</td>
+                      <td class="concept-name">{{ conceptoLabel(c) }}</td>
                       <td>{{ c.tipo || c.tipo_nombre || '-' }}</td>
                       <td>
                         <span *ngIf="(c.topes?.length || c.tiene_topes)" class="badge-topes">Topes</span>
@@ -122,4 +136,5 @@
   <div *ngIf="!loading && grupos.length === 0" class="empty-box">No hay grupos creados.</div>
 
   <app-modal-alerta [visible]="modalVisible" [titulo]="modalTitle" [mensaje]="modalMessage" [icono]="modalIcon" [mostrarSpinner]="modalSpinner" [bloquearCierre]="modalBlock" [esConfirmacion]="true" (cerrar)="onModalClose($event)"></app-modal-alerta>
+  <app-modal-alerta [visible]="errorModalVisible" [titulo]="errorModalTitle" [mensaje]="errorModalMessage" [icono]="errorModalIcon" [esConfirmacion]="false" (cerrar)="closeErrorModal()"></app-modal-alerta>
 </div>

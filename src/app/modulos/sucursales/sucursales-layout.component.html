@@ -1,0 +1,18 @@
+<app-navbar [user]="user" [sitioActual]="sitioActual" [sidebarCollapsed]="collapsed" [showSidebarToggle]="false"></app-navbar>
+<app-sidebar [menu]="menu" [collapsed]="collapsed" [tituloModulo]="tituloModulo" [esAdmin]="true" [paginasOpen]="false" [componentsOpen]="false" (collapsedChange)="collapsed = $event"></app-sidebar>
+
+<div class="sucursales-shell" [class.collapsed]="collapsed">
+  <section class="sucursales-hero">
+    <div class="module-breadcrumb">
+      <a routerLink="/modulos">Módulos</a>
+      <span>/</span>
+      <span>Sucursales</span>
+    </div>
+    <h2>Gestión de Sucursales</h2>
+    <p>Alta, baja, edición y relación de secciones desde la misma pantalla.</p>
+  </section>
+
+  <section class="sucursales-page">
+    <router-outlet></router-outlet>
+  </section>
+</div>

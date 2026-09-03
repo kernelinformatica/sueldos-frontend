@@ -1,0 +1,74 @@
+.listado-grupos { color: #1f2a44; }
+
+.listado-empleados { color: #1f2a44; }
+.listado-top { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem }
+.table-wrap { overflow-x:auto }
+.empleados-table { width:100%; border-collapse:collapse; font-size:0.95rem }
+.empleados-table thead th { text-align:left; background:#f8f9fc; color:#283593; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; padding:0.9rem 0.85rem; border-bottom:1px solid #e7e9f1 }
+.empleados-table tbody td { padding:0.9rem 0.85rem; border-bottom:1px solid #eef2f6 }
+.empleados-table .actions-col { text-align: right; }
+.empleados-table .actions-col .row-actions-right { display: flex; justify-content: flex-end; gap: 0.5rem; }
+.empleados-table tbody tr.row-inactive { opacity: 0.58; background: #f8fafc; }
+.empleados-table tbody tr.row-inactive:hover { opacity: 0.72; }
+.estado-cell { display:inline-flex; align-items:center; gap:0.45rem; }
+.estado-cell.estado-inactive { color:#b42318; font-weight:700; }
+.btn-action { border:0; border-radius:999px; padding:0.7rem 1rem; font-weight:600; background:#e8eaf6; color:#283593; text-decoration:none; display:inline-flex; align-items:center; gap:0.5rem }
+.btn-icon { width:2.6rem; height:2.6rem; display:inline-flex; align-items:center; justify-content:center; padding:0; }
+.form-card-hero { border-radius: 20px; }
+.hero-grid { display:flex; justify-content:space-between; gap:1rem; align-items:flex-start }
+.hero-badge { display:inline-flex; padding:0.25rem 0.6rem; border-radius:999px; background:#eef2ff; color:#283593; font-weight:700; font-size:0.8rem }
+.hero-meta { display:flex; gap:1rem }
+.hero-meta span { display:block; color:#667085; font-size:0.8rem }
+.hero-meta strong { font-size:1.2rem }
+
+/* Filtros panel - same look as Conceptos list */
+.filtros-panel {
+	display: grid;
+	grid-template-columns: 1.3fr 0.7fr auto;
+	gap: 0.75rem;
+	align-items: end;
+	background: #f8f9fc;
+	border: 1px solid #e7e9f1;
+	border-radius: 18px;
+	padding: 1rem;
+	margin-bottom: 1rem;
+}
+
+.filtro-item {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+}
+
+.filtro-item label {
+	font-size: 0.78rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: #667085;
+}
+
+.filtro-item input, .filtro-item select {
+	border: 1px solid #d6dae8;
+	border-radius: 12px;
+	padding: 0.6rem 0.8rem;
+	background: #fff;
+	color: #1f2a44;
+	outline: none;
+}
+
+.filtro-actions { display:flex; justify-content:flex-end; align-items:center }
+
+.filtro-actions .btn-action { margin-left: 0.5rem }
+
+.filtro-wide { width: 100%; }
+.filtro-small { width: 100%; }
+
+.filtro-item input:focus, .filtro-item select:focus {
+  border-color: #5c6bc0;
+  box-shadow: 0 0 0 3px rgba(92, 107, 192, 0.12);
+}
+
+@media (max-width: 768px) {
+  .filtros-panel { grid-template-columns: 1fr; }
+}

@@ -65,6 +65,28 @@ export class AuthService {
     return user?.permissions || user?.permisos || [];
   }
 
+  isSuperAdmin(): boolean {
+    const user = this.getUser();
+    const candidates = [
+      user?.rol?.alias,
+      user?.rol?.codigo,
+      user?.rol?.nombre,
+      user?.role?.alias,
+      user?.role?.codigo,
+      user?.role?.nombre,
+      user?.perfil?.alias,
+      user?.perfil?.codigo,
+      user?.perfil?.nombre,
+      user?.rol,
+      user?.role,
+      user?.perfil
+    ];
+    return candidates.some((value) => {
+      const normalized = String(value || '').toLowerCase().replace(/[\s-]+/g, '_');
+      return normalized === 'super_admin' || normalized === 'super-administrador' || normalized === 'super_administrador' || normalized === 'superadministrador';
+    });
+  }
+
   isLoggedIn(): boolean {
     return this.hasValidToken();
   }

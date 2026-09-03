@@ -6,31 +6,33 @@ import { SidebarComponent } from '../../core/layout/sidebar.component';
 import { AuthService } from '../../auth/auth.service';
 
 @Component({
-  selector: 'app-conceptos-layout',
+  selector: 'app-secciones-layout',
   standalone: true,
   imports: [CommonModule, RouterOutlet, RouterLink, NavbarComponent, SidebarComponent],
-  templateUrl: './conceptos-layout.component.html',
-  styleUrls: ['./conceptos-layout.component.scss']
+  templateUrl: './secciones-layout.component.html',
+  styleUrls: ['./secciones-layout.component.scss']
 })
-export class ConceptosLayoutComponent {
+export class SeccionesLayoutComponent {
   collapsed = false;
   menu = [
-    { label: 'Listado', route: '/admin/conceptos', icon: 'bi bi-list' },
-    { label: 'Nuevo concepto', route: '/admin/conceptos/alta', icon: 'bi bi-plus-lg' }
+    { label: 'Listado', route: '/admin/secciones', icon: 'bi bi-list' },
+    { label: 'Nueva sección', route: '/admin/secciones/alta', icon: 'bi bi-plus-lg' },
+    { label: 'Sucursales', route: '/admin/sucursales', icon: 'bi bi-shop' }
   ];
 
   constructor(private auth: AuthService) {
     const perms = this.auth.getPermissions() || [];
     const has = (alias: string) => Array.isArray(perms) && perms.some((p: any) => (typeof p === 'string' ? p === alias : (p?.alias === alias)));
-    // example: show extra items based on permisos
-    if (!has('conceptos')) {
-      // hide menu items if no permiso
+    if (!has('secciones')) {
       this.menu = [];
+      return;
     }
 
-    if (has('grupos') || has('grupos_crear') || has('grupos_editar') || has('grupos_eliminar') || has('grupos_rela_conceptos')) {
-      this.menu.push({ label: 'Grupos', route: '/admin/conceptos/grupos', icon: 'bi bi-tags' });
+    this.menu = [{ label: 'Listado', route: '/admin/secciones', icon: 'bi bi-list' }];
+    if (has('secciones_agregar')) {
+      this.menu.push({ label: 'Nueva sección', route: '/admin/secciones/alta', icon: 'bi bi-plus-lg' });
     }
+    this.menu.push({ label: 'Sucursales', route: '/admin/sucursales', icon: 'bi bi-shop' });
   }
 
   get user(): any { return this.auth.getUser(); }
@@ -41,6 +43,8 @@ export class ConceptosLayoutComponent {
       if (!Array.isArray(sitios)) return null;
       const sitioId = Number(localStorage.getItem('sitioId'));
       return sitios.find((s: any) => s.id === sitioId) || sitios[0] || null;
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   }
 }

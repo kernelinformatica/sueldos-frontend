@@ -13,9 +13,6 @@
       <a routerLink="/admin/conceptos/alta" class="btn-action btn-icon" aria-label="Nuevo concepto" title="Nuevo concepto">
         <i class="bi bi-plus-lg"></i>
       </a>
-      <a routerLink="/admin/conceptos/grupos" class="btn-action" aria-label="Grupos" title="Grupos de conceptos">
-        Grupos
-      </a>
     </div>
   </div>
   <section class="form-card form-card-hero" style="margin-bottom:1rem">
@@ -71,11 +68,10 @@
           <th>Nombre</th>
           <th>Tipo</th>
           <th>Grupo</th>
-          <th  style="text-align: right;">Importe fijo</th>
-          <th  style="text-align: right;">Operación</th>
-          <th style="text-align: right;"></th>
-          <th>topes</th>
-          <th  style="text-align: right;">Acciones</th>
+          <th>Importe fijo</th>
+          <th>Operación</th>
+          <th></th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -97,9 +93,16 @@
           <td>
             <div class="group-cell" [title]="c.grupo?.descripcion || c.grupo?.descripcion || ''">
             {{ c.grupo?.nombre || '-' }}
+                <ng-container *ngIf="c.topeSummary">
+                  <span class="badge-tope" [title]="c.topeSummary.display" [ngClass]="{
+                    'badge-tope--reject': c.topeSummary.action === 'reject',
+                    'badge-tope--clamp': c.topeSummary.action === 'clamp',
+                    'badge-tope--warn': c.topeSummary.action === 'warn'
+                  }">{{ c.topeSummary.tope?.accion || c.topeSummary.action }}</span>
+                </ng-container>
             </div>
           </td>
-          <td  style="text-align: right;">
+          <td>
             <ng-container *ngIf="(c.importe_fijo ?? 0) > 0">
               <span class="badge-importe">$ {{ c.importe_fijo | number:'1.2-2' }}</span>
             </ng-container>
@@ -107,7 +110,7 @@
               -
             </ng-container>
           </td>
-          <td  style="text-align: right;">
+          <td>
             <ng-container *ngIf="(((c.multiplicador ?? 0) / (c.divisor ?? 1) * 100) >= 0.1)">
               <span class="badge-op">{{ ((c.multiplicador ?? 0) / (c.divisor ?? 1) * 100) | number:'1.0-2' }}%</span>
             </ng-container>
@@ -115,24 +118,13 @@
               {{ c.suma_resta || '-' }}
             </ng-container>
           </td>
-          <td  style="text-align: left;">
+          <td>
             <ng-container style="margin-left:0.6rem">
               <span class="badge-sr" *ngIf="(c.suma_resta ?? '') === 'S'">Suma</span>
               <span class="badge-sr badge-sr--neg" *ngIf="(c.suma_resta ?? '') === 'R'">Resta</span>
             </ng-container>
           </td>
-          <td class="tope-cell">
-            <ng-container *ngIf="(c.topes || []).length > 0">
-              <span [title]="c.topeTooltip || c.topeSummary?.display">
-                <i class="bi bi-shield-fill-exclamation tope-icon" [ngClass]="{
-                  'tope--reject': c.topeSummary?.action === 'reject',
-                  'tope--clamp': c.topeSummary?.action === 'clamp',
-                  'tope--warn': c.topeSummary?.action === 'warn'
-                }"></i>
-              </span>
-            </ng-container>
-          </td>
-          <td class="actions-cell">
+          <td>
             <div class="row-actions">
               <a (click)="editConcepto(c)" class="btn-action btn-icon" [class.disabled]="!canEdit" title="Editar" *ngIf="canEdit">
                 <i class="bi bi-pencil-square"></i>

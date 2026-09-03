@@ -1,0 +1,111 @@
+<div class="listado-empleados text-sm">
+  <app-loading-spinner></app-loading-spinner>
+  <div class="listado-top">
+    <div>
+      <h3>Secciones</h3>
+      <p>Secciones cargadas <span class="badge">{{ secciones.length }}</span></p>
+    </div>
+    <div class="listado-actions">
+      <button type="button" class="btn-action btn-icon" (click)="createSeccion()" aria-label="Nueva sección" title="Nueva sección" *ngIf="canCreate">
+        <i class="bi bi-plus-lg"></i>
+      </button>
+    </div>
+  </div>
+
+  <section class="form-card form-card-hero" style="margin-bottom:1rem">
+    <div class="hero-grid">
+      <div class="hero-main">
+        <span class="hero-badge">Gestión</span>
+        <div class="hero-name-row">
+          <div>
+            <h4>Listado de secciones</h4>
+            <p>Alta, baja y edición de secciones con navegación similar al módulo de conceptos.</p>
+          </div>
+        </div>
+      </div>
+      <div class="hero-meta">
+        <div>
+          <span>Total</span>
+          <strong>{{ secciones.length }}</strong>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="filtros-panel" style="margin-bottom:0.6rem">
+    <div class="filtro-item filtro-wide">
+      <label>Sucursal</label>
+      <select [(ngModel)]="filtros.sucursal_id" (change)="onFiltroChange()">
+        <option value="">Todas</option>
+        <option *ngFor="let s of sucursales" [value]="s.sucursal_id || s.id">{{ s.nombre }}</option>
+      </select>
+    </div>
+    <div class="filtro-item filtro-wide">
+      <label>Buscar seccion</label>
+      <input type="text" [(ngModel)]="filtros.sucursal_nombre" (input)="onFiltroChange()" placeholder="Escriba el nombre de la seccion" />
+    </div>
+    <div class="filtro-item filtro-small">
+      <label>Estado</label>
+      <select [(ngModel)]="filtros.estado" (change)="onFiltroChange()">
+        <option value="">Todos</option>
+        <option *ngIf="estadosLoading" value="" disabled>Cargando estados...</option>
+        <option *ngIf="!estadosLoading && estadosError && !estados.length" value="" disabled>{{ estadosError }}</option>
+        <option *ngFor="let e of estados" [value]="e.estado_id">{{ estadoLabel(e) }}</option>
+      </select>
+    </div>
+    <div class="filtro-actions">
+      <button type="button" class="btn-action btn-icon" (click)="filtros={sucursal_id:'',sucursal_nombre:'',estado:''}; onFiltroChange()" title="Limpiar filtros">
+        <i class="bi bi-eraser-fill"></i>
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-box">Cargando secciones...</div>
+
+  <div *ngIf="!loading" class="table-wrap">
+    <table class="empleados-table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Nombre</th>
+          <th>Sucursal</th>
+          <th>Estado</th>
+          <th class="actions-col">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let s of secciones" [class.row-inactive]="isInactiveSection(s)">
+          <td>{{ seccionCodigo(s) }}</td>
+          <td>{{ s.nombre }}</td>
+          <td>{{ sucursalNombre(s) }}</td>
+          <td>
+            <span class="estado-cell" [class.estado-inactive]="isInactiveSection(s)">
+              <i [class]="estadoIconClass(s)"></i>
+            </span>
+          </td>
+          <td class="actions-col">
+            <div class="row-actions row-actions-right">
+              <a (click)="editSeccion(s)" class="btn-action btn-icon" title="Editar" *ngIf="canEdit">
+                <i class="bi bi-pencil-square"></i>
+              </a>
+              <a (click)="deleteSeccion(s)" class="btn-action btn-icon" title="Eliminar lógico" *ngIf="canDelete">
+                <i class="bi bi-trash"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <app-modal-alerta
+    [visible]="deleteModalVisible"
+    [titulo]="deleteModalTitle"
+    [mensaje]="deleteModalMessage"
+    [icono]="'bi bi-exclamation-triangle-fill'"
+    [esConfirmacion]="true"
+    [accentColor]="'#d32f2f'"
+    [buttonColor]="'#d32f2f'"
+    (cerrar)="onDeleteModalClose($event)">
+  </app-modal-alerta>
+</div>

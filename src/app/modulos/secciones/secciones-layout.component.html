@@ -1,0 +1,18 @@
+<app-navbar [user]="user" [sitioActual]="sitioActual" [sidebarCollapsed]="collapsed" [showSidebarToggle]="false"></app-navbar>
+<app-sidebar [menu]="menu" [collapsed]="collapsed" [tituloModulo]="'Secciones'" [esAdmin]="true" [paginasOpen]="false" [componentsOpen]="false" (collapsedChange)="collapsed = $event"></app-sidebar>
+
+<div class="secciones-shell" [class.collapsed]="collapsed">
+  <section class="secciones-hero">
+    <div class="module-breadcrumb">
+      <a routerLink="/modulos">Módulos</a>
+      <span>/</span>
+      <span>Secciones</span>
+    </div>
+    <h2>Gestión de Secciones</h2>
+    <p>Alta, baja y edición de secciones con la misma navegación del módulo de conceptos.</p>
+  </section>
+
+  <section class="secciones-page">
+    <router-outlet></router-outlet>
+  </section>
+</div>

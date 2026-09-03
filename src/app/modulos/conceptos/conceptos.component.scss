@@ -294,13 +294,6 @@ tr.is-disabled .employee-status-note {
 
 .row-actions a { display: inline-flex; align-items:center; justify-content:center; }
 
-/* Topes icon column */
-.tope-cell { width: 48px; text-align: center; }
-.tope-icon { font-size: 0.9rem; display: inline-block; padding: 0.25rem; border-radius: 6px; }
-.tope--reject { color: #fff; background: #ef4444; box-shadow: 0 1px 0 rgba(0,0,0,0.08) inset; }
-.tope--clamp { color: #fff; background: #f97316; box-shadow: 0 1px 0 rgba(0,0,0,0.06) inset; }
-.tope--warn { color: #1f2937; background: #fbbf24; box-shadow: 0 1px 0 rgba(0,0,0,0.04) inset; }
-
 .loading-box,
 .empty-box,
 .error-box {

@@ -15,7 +15,10 @@
 .badge-tope-small { display:inline-block; padding:0.25rem 0.5rem; border-radius:999px; background:#fff7ed; color:#92400e; border:1px solid #ffedd5; font-weight:700 }
 
 /* Buttons shared with Conceptos list */
-.btn-action { border: 0; border-radius: 999px; padding: 0.7rem 1rem; font-weight: 600; background: #e8eaf6; color: #283593; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; }
+.btn-action { border: 0; border-radius: 999px; padding: 0.7rem 1rem; font-weight: 600; background: #e8eaf6; color: #283593; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; transition: background .16s ease, transform .16s ease, box-shadow .16s ease; }
+.btn-action:hover { background:#dfe3ff; transform:translateY(-1px) }
+.btn-action:active { transform:translateY(0) }
+.btn-action[disabled], .btn-action.disabled { opacity:0.6; cursor:not-allowed; transform:none }
 .btn-icon { width: 2.6rem; height: 2.6rem; display: inline-flex; align-items: center; justify-content: center; padding: 0; font-size: 1rem; border-radius: 999px; }
 .btn-icon i { font-size: 1.1rem; }
 
@@ -100,12 +103,13 @@ tr.expanded-parent + tr.expanded-row .expanded-item td,
 }
 .badge-topes { display:inline-flex; align-items:center; justify-content:center; min-width:40px; height:22px; padding:0 8px; border-radius:999px; background:#fff7ed; color:#92400e; border:1px solid #ffedd5; font-weight:700 }
 
-.concept-code { color:#0f172a; font-weight:400 }
-.concept-name { color:#0b1220; font-weight:400 }
+.concept-code { color:#0f172a; font-weight:400; font-size:0.88rem }
+.concept-name { color:#0b1220; font-weight:400; font-size:0.88rem }
 
 .badge-verificado { display:inline-flex; align-items:center; gap:0.4rem; padding:0.28rem 0.6rem; border-radius:999px; background:#ecfdf5; color:#065f46; border:1px solid #bbf7d0; font-weight:700; font-size:0.8rem }
 
 .badge-protegido { display:inline-flex; align-items:center; gap:0.35rem; padding:0.28rem 0.6rem; border-radius:999px; background:#eef2ff; color:#0f172a; border:1px solid #dbeafe; font-weight:700; font-size:0.85rem }
+.badge-protegido i { font-size:1.15rem; color:#f59e0b; }
 
 /* Group comment icon + tooltip */
 .group-comment { position: relative; display:inline-flex; align-items:center; margin-left:0.5rem; color:#64748b; cursor:default }

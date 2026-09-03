@@ -239,8 +239,8 @@ export class ConceptoFormComponent implements OnInit {
           if (this.selectedTipo) this.applyTipoRules(false);
             // after loading original concept, evaluate permiso using grupo if present
             this.updatePermiteImporteFlag();
-            // load topes for this concepto (data fetch), UI visibility still depende de permisos
-            try { this.loadTopes(); } catch (e) {}
+            // load topes for this concepto only if user can view them
+              try { if (this.canViewTopes) this.loadTopes(); } catch (e) {}
             // Ensure grupo control stores the actual group object (select uses [ngValue]="g").
             try {
               const origGrpId = this.originalValue?.grupo?.grupo_id ?? this.originalValue?.grupo_id ?? null;
