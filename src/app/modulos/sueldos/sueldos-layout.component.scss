@@ -1,0 +1,21 @@
+.module-shell {
+  display: flex;
+  min-height: calc(100vh - 64px);
+  background: #f4f7fb;
+}
+
+.module-content {
+  flex: 1;
+  padding: 1.5rem;
+  overflow: auto;
+}
+
+@media (max-width: 992px) {
+  .module-shell {
+    flex-direction: column;
+  }
+
+  .module-content {
+    padding: 1rem;
+  }
+}

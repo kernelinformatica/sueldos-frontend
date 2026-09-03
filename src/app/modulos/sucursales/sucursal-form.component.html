@@ -18,18 +18,220 @@
 
   <form [formGroup]="form" (ngSubmit)="save()">
     <section class="form-card">
-      <div class="grid-2" style="margin-top:0.6rem">
-        <div class="field">
-          <label>Nombre <span class="required-mark">*</span></label>
-          <input formControlName="nombre" />
+      <div class="section-block">
+        <div class="section-title">General</div>
+        <div class="grid-2">
+          <div class="field">
+            <label>Código interno <span class="required-mark">*</span></label>
+            <input formControlName="cod_interno" type="number" />
+          </div>
+          <input formControlName="empresa_id" type="hidden" />
         </div>
-        <div class="field">
-          <label>Orden <span class="required-mark">*</span></label>
-          <input formControlName="orden" type="number" />
+
+        <div class="grid-2 field-row-gap">
+          <div class="field">
+            <label>Nombre <span class="required-mark">*</span></label>
+            <input formControlName="nombre" />
+          </div>
+          <div class="field">
+            <label>Dirección</label>
+            <input formControlName="direccion" />
+          </div>
+        </div>
+
+        <div class="grid-2 field-row-gap">
+          <div class="field responsable-field">
+            <label>Responsable de sucursal</label>
+            <div class="autocomplete-wrap">
+              <input
+                type="text"
+                [value]="responsableQuery"
+                (input)="onResponsableInputChange($any($event.target).value)"
+                placeholder="Buscar por nombre o legajo"
+                autocomplete="off" />
+              <button *ngIf="responsableQuery" type="button" class="clear-localidad" (click)="clearResponsable()" aria-label="Limpiar responsable">×</button>
+            </div>
+            <input formControlName="resp_sucursal" type="hidden" />
+            <div class="autocomplete-panel" *ngIf="responsableLoading || responsableResultados.length || responsableError">
+              <div class="autocomplete-status" *ngIf="responsableLoading">Buscando responsables...</div>
+              <div class="autocomplete-status error" *ngIf="!responsableLoading && responsableError">{{ responsableError }}</div>
+              <ng-container *ngIf="!responsableLoading && !responsableError">
+                <button
+                  type="button"
+                  class="autocomplete-item"
+                  *ngFor="let empleado of responsableResultados"
+                  (click)="selectResponsable(empleado)">
+                  <span class="autocomplete-photo" *ngIf="empleado.foto; else empleadoSinFoto">
+                    <img [src]="empleado.foto" [alt]="empleado.texto || formatEmpleadoLabel(empleado)" />
+                  </span>
+                  <ng-template #empleadoSinFoto>
+                    <span class="autocomplete-photo autocomplete-photo-placeholder">
+                      <i class="bi bi-person"></i>
+                    </span>
+                  </ng-template>
+                  <span class="autocomplete-content">
+                    <span class="autocomplete-main">
+                      <span class="autocomplete-legajo" *ngIf="empleado.legajo">{{ empleado.legajo }}</span>
+                      <span class="autocomplete-name">{{ empleado.nombre }} {{ empleado.apellido }}</span>
+                    </span>
+                    <span class="autocomplete-secondary" *ngIf="empleado.texto">{{ empleado.texto }}</span>
+                    <span class="autocomplete-secondary" *ngIf="!empleado.texto && empleado.documento">Doc. {{ empleado.documento }}</span>
+                  </span>
+                </button>
+                <div class="autocomplete-status" *ngIf="!responsableResultados.length">Sin coincidencias</div>
+              </ng-container>
+            </div>
+            <div class="selected-localidad" *ngIf="sucursalId && (responsableDisplayLabel || form.get('resp_sucursal')?.value)">
+              Encargado actual: {{ responsableDisplayLabel || ('ID ' + form.get('resp_sucursal')?.value) }}
+            </div>
+          </div>
+          <div class="field">
+            <label>Orden <span class="required-mark">*</span></label>
+            <input formControlName="orden" type="number" />
+          </div>
+        </div>
+
+        <div class="grid-2 field-row-gap">
+          <div class="field">
+            <label>Principal <span class="required-mark">*</span></label>
+            <select formControlName="principal">
+              <option [ngValue]="0">No</option>
+              <option [ngValue]="1">Sí</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Estado <span class="required-mark">*</span></label>
+            <select formControlName="estado">
+              <option *ngFor="let estado of estados" [ngValue]="estado.value">{{ estado.label }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <div class="section-title">Localización</div>
+        <div class="grid-2">
+          <div class="field localidad-field">
+            <label>Localidad</label>
+            <div class="autocomplete-wrap">
+              <input
+                type="text"
+                [value]="localidadQuery"
+                (input)="onLocalidadInputChange($any($event.target).value)"
+                placeholder="Buscar por nombre o código postal"
+                autocomplete="off" />
+              <button *ngIf="localidadQuery" type="button" class="clear-localidad" (click)="clearLocalidad()" aria-label="Limpiar localidad">×</button>
+            </div>
+            <input formControlName="localidad_id" type="hidden" />
+            <div class="autocomplete-panel" *ngIf="localidadLoading || localidadResultados.length || localidadError">
+              <div class="autocomplete-status" *ngIf="localidadLoading">Buscando localidades...</div>
+              <div class="autocomplete-status error" *ngIf="!localidadLoading && localidadError">{{ localidadError }}</div>
+              <ng-container *ngIf="!localidadLoading && !localidadError">
+                <button
+                  type="button"
+                  class="autocomplete-item"
+                  *ngFor="let localidad of localidadResultados"
+                  (click)="selectLocalidad(localidad)">
+                  <span class="autocomplete-main">{{ localidad.texto || formatLocalidadLabel(localidad) }}</span>
+                  <span class="autocomplete-secondary" *ngIf="localidad.codigo_postal || localidad.codigoPostal">CP {{ localidad.codigo_postal || localidad.codigoPostal }}</span>
+                </button>
+                <div class="autocomplete-status" *ngIf="!localidadResultados.length">Sin coincidencias</div>
+              </ng-container>
+            </div>
+            <div class="selected-localidad" *ngIf="localidadSeleccionada">
+              Seleccionada: {{ localidadSeleccionada.texto || formatLocalidadLabel(localidadSeleccionada) }}
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2 field-row-gap">
+          <div class="field">
+            <label>Longitud</label>
+            <input formControlName="longitud" type="number" step="0.000001" />
+          </div>
+          <div class="field field-hint-box">
+            <label>Ubicación</label>
+            <p class="field-hint">La ubicación se completa a mano con latitud y longitud, o tomando como referencia la localidad seleccionada.</p>
+          </div>
+        </div>
+        <div class="grid-2 field-row-gap">
+          <div class="field">
+            <label>Latitud</label>
+            <input formControlName="latitud" type="number" step="0.000001" />
+          </div>
+          <div class="field field-hint-box">
+            <label>Geografía</label>
+            <p class="field-hint">Si la localidad ya la tenés seleccionada, podés usarla como base para cargar las coordenadas.</p>
+          </div>
         </div>
       </div>
     </section>
   </form>
+
+  <section class="relation-shell" *ngIf="canRelacionar">
+    <app-loading-spinner *ngIf="relationSaving" [visible]="true" [centered]="true" [text]="'Guardando relación...'" [size]="34" [backdropOpacity]="0.12"></app-loading-spinner>
+    <div class="relation-head">
+      <div>
+        <p class="kicker">Relación de secciones</p>
+        <h4>Relacionar sucursales y secciones</h4>
+        <p class="subtitle">Elegí una sucursal a la izquierda y administrá sus secciones a la derecha.</p>
+      </div>
+      <button type="button" class="btn-action btn-primary" (click)="guardarRelacion()" [disabled]="relationSaving || !sucursalRelationSelectedId">
+        <i class="bi bi-floppy-fill" *ngIf="!relationSaving"></i>
+        <span *ngIf="!relationSaving">Guardar relación</span>
+        <span *ngIf="relationSaving">Guardando...</span>
+      </button>
+    </div>
+
+    <div class="relation-grid">
+      <div class="relation-panel">
+        <div class="relation-panel-title">Sucursales</div>
+        <input class="relation-search" type="text" [value]="sucursalRelationSearch" (input)="sucursalRelationSearch = $any($event.target).value" placeholder="Buscar sucursal" />
+        <div class="relation-list">
+          <button
+            type="button"
+            class="relation-row"
+            *ngFor="let sucursal of filteredSucursalesRelacionables"
+            [class.active]="(sucursal.sucursal_id || sucursal.id) === sucursalRelationSelectedId"
+            (click)="selectRelationSucursal(sucursal.sucursal_id || sucursal.id)">
+            <span class="relation-row-main">
+              <span class="relation-row-title">{{ sucursalLabel(sucursal) }}</span>
+              <span class="relation-row-meta" *ngIf="sucursal.principal === 1">Casa central</span>
+            </span>
+            <span class="relation-row-meta" *ngIf="!isSucursalActiva(sucursal)">Inactiva</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="relation-panel">
+        <div class="relation-panel-title">Secciones</div>
+        <input class="relation-search" type="text" [value]="seccionRelationSearch" (input)="seccionRelationSearch = $any($event.target).value" placeholder="Buscar sección" />
+        <div class="relation-list" *ngIf="!seccionesLoading; else loadingSeccionesTpl">
+          <label class="relation-row relation-row-check" *ngFor="let seccion of filteredSeccionesDisponibles">
+            <input type="checkbox" [checked]="isSelectedSeccion(seccion.seccion_id || seccion.id)" (change)="toggleSeccionSelection(seccion.seccion_id || seccion.id)" />
+            <span class="relation-row-main">
+              <span class="relation-row-title">{{ seccionLabel(seccion) }}</span>
+              <span class="relation-row-meta">Sucursal actual: {{ seccionSucursalLabel(seccion) }}</span>
+            </span>
+          </label>
+        </div>
+        <ng-template #loadingSeccionesTpl>
+          <div class="empty-state">Cargando secciones...</div>
+        </ng-template>
+      </div>
+    </div>
+  </section>
+
+  <app-modal-alerta
+    [visible]="relationFeedbackVisible"
+    [titulo]="relationFeedbackTitle"
+    [mensaje]="relationFeedbackMessage"
+    [icono]="relationFeedbackIcon"
+    [accentColor]="relationFeedbackAccentColor"
+    [buttonColor]="relationFeedbackButtonColor"
+    [esConfirmacion]="false"
+    (cerrar)="closeRelationFeedback()">
+  </app-modal-alerta>
 
   <app-modal-alerta [visible]="resultVisible" [titulo]="resultTitle" [mensaje]="resultMessage" [icono]="'bi bi-check-circle-fill'" [accentColor]="'#198754'" [buttonColor]="'#198754'" [esConfirmacion]="false" (cerrar)="closeResult()"></app-modal-alerta>
   <app-modal-alerta [visible]="errorVisible" [titulo]="errorTitle" [mensaje]="errorMessage" [icono]="'bi bi-exclamation-triangle-fill'" [accentColor]="'#d32f2f'" [buttonColor]="'#d32f2f'" [esConfirmacion]="false" (cerrar)="closeError()"></app-modal-alerta>

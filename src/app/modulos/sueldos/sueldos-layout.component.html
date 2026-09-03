@@ -1,0 +1,14 @@
+<app-navbar [user]="user" [sitioActual]="sitioActual" [showSidebarToggle]="true" class="navbar-app-selector"></app-navbar>
+
+<div class="module-shell">
+  <app-sidebar
+    [menu]="menu"
+    [collapsed]="collapsed"
+    [tituloModulo]="'Sueldos'"
+    (collapsedChange)="collapsed = $event"
+  ></app-sidebar>
+
+  <main class="module-content">
+    <router-outlet></router-outlet>
+  </main>
+</div>

@@ -1,0 +1,134 @@
+<div class="listado-empleados text-sm cargos-shell">
+  <app-loading-spinner></app-loading-spinner>
+  <div class="listado-top">
+    <span></span>
+    
+  </div>
+
+  <section class="form-card form-card-hero" style="margin-bottom:1rem">
+    <div class="module-breadcrumb">
+      <a href="#" (click)="goTo('/modulos'); $event.preventDefault()">Módulos</a>
+      <span>/</span>
+      <a href="#" (click)="goTo('/admin/sucursales'); $event.preventDefault()">Sucursales</a>
+      <span>/</span>
+      <a href="#" (click)="goTo('/admin/secciones'); $event.preventDefault()">Secciones</a>
+      <span>/</span>
+      <span>Cargos</span>
+    </div>
+    <div class="hero-grid">
+      <div class="hero-main">
+        <span class="hero-badge">Gestión</span>
+        <div class="hero-name-row">
+           
+          <div>
+           
+            <h4>Listado de cargos</h4>
+            <p>Alta, baja y edición de cargos con la misma navegación visual que el módulo de secciones.</p>
+          </div>
+        </div>
+      </div>
+      <div class="hero-meta">
+        <div >
+          <div class="listado-actions">
+      <button type="button" class="btn-action btn-icon" (click)="createCargo()" aria-label="Nuevo cargo" title="Nuevo cargo" *ngIf="canCreate">
+        <i class="bi bi-plus-lg"></i>
+      </button>
+    </div>
+          <div>
+            <span>Total</span>
+            <strong>{{ cargos.length }}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cargo-list-card">
+    <div class="filtros-panel">
+      <div class="filtro-item filtro-wide">
+        <label>Buscar cargo</label>
+        <input type="text" [(ngModel)]="filtros.q" (input)="onFiltroChange()" placeholder="Escriba el nombre del cargo" />
+      </div>
+      <div class="filtro-item filtro-wide">
+        <label>Sucursal</label>
+        <select [(ngModel)]="filtros.sucursal_id" (ngModelChange)="onSucursalChange()">
+          <option value="">Todas</option>
+          <option *ngFor="let s of sucursales" [ngValue]="s.sucursal_id || s.id">{{ sucursalLabel(s) }}</option>
+        </select>
+      </div>
+      <div class="filtro-item filtro-wide">
+        <label>Sección</label>
+        <select [(ngModel)]="filtros.seccion_id" (change)="onSeccionChange()">
+          <option value="">Todas</option>
+          <option *ngFor="let s of secciones" [value]="s.seccion_id || s.id">{{ seccionLabel(s) }}</option>
+        </select>
+      </div>
+      <div class="filtro-actions">
+        <button type="button" class="btn-action btn-icon" (click)="filtros={q:'',sucursal_id:'',seccion_id:''}; onSucursalChange()" title="Limpiar filtros">
+          <i class="bi bi-eraser-fill"></i>
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="loading" class="loading-box">Cargando cargos...</div>
+
+    <div *ngIf="!loading" class="table-wrap">
+      <table class="empleados-table">
+        <thead>
+          <tr>
+            <th class="id-col">ID</th>
+            <th class="icon-col">Icono</th>
+            <th>Nombre</th>
+            <th>Abreviatura</th>
+            <th>Responsable</th>
+            <th>Descripción</th>
+            <th>Sección</th>
+            <th>Sucursal</th>
+            <th class="actions-col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of cargos">
+            <td class="id-col">{{ c.cargo_id || c.id || '-' }}</td>
+            <td class="icon-col">
+              <span class="cargo-icon" title="Cargo">
+                <i class="bi bi-person"></i>
+              </span>
+            </td>
+            <td>{{ cargoLabel(c) }}</td>
+            <td>{{ c.abreviatura || '-' }}</td>
+            <td>{{ c.responsable || '-' }}</td>
+            <td>{{ c.descripcion || '-' }}</td>
+            <td>{{ seccionOfCargo(c) }}</td>
+            <td>{{ sucursalOfCargo(c) }}</td>
+            <td class="actions-col">
+              <div class="row-actions row-actions-right">
+                <a (click)="editCargo(c)" class="btn-action btn-icon" title="Editar" *ngIf="canEdit">
+                  <i class="bi bi-pencil-square"></i>
+                </a>
+                <a (click)="deleteCargo(c)" class="btn-action btn-icon" title="Eliminar" *ngIf="canDelete">
+                  <i class="bi bi-trash"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="!loading && !cargos.length" class="empty-state-panel empty-state-panel-cargos">
+      {{ emptyStateMessage }}
+    </div>
+  </section>
+
+  <app-modal-alerta
+    [visible]="deleteModalVisible"
+    [titulo]="deleteModalTitle"
+    [mensaje]="deleteModalMessage"
+    [icono]="'bi bi-exclamation-triangle-fill'"
+    [esConfirmacion]="true"
+    [accentColor]="'#d32f2f'"
+    [buttonColor]="'#d32f2f'"
+    (cerrar)="onDeleteModalClose($event)">
+  </app-modal-alerta>
+</div>

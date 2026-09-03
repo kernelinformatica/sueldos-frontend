@@ -1,0 +1,5 @@
+<app-navbar [user]="user" (collapsedChange)="collapsed = $event" [sidebarCollapsed]="collapsed"></app-navbar>
+<app-sidebar [menu]="menu" [collapsed]="collapsed" [tituloModulo]="'Cargos'" [esAdmin]="true" [paginasOpen]="false" [componentsOpen]="false" (collapsedChange)="collapsed = $event"></app-sidebar>
+<div class="cargos-shell" [class.collapsed]="collapsed">
+  <router-outlet></router-outlet>
+</div>

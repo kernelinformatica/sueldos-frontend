@@ -28,6 +28,13 @@ export const routes: Routes = [
       { path: 'editar', loadComponent: () => import('./modulos/secciones/seccion-form.component').then(m => m.SeccionFormComponent) }
     ]
   },
+  { path: 'admin/cargos', canActivate: [AuthGuard], loadComponent: () => import('./modulos/cargos/cargos-layout.component').then(m => m.CargosLayoutComponent),
+    children: [
+      { path: '', loadComponent: () => import('./modulos/cargos/cargos.component').then(m => m.CargosComponent) },
+      { path: 'alta', loadComponent: () => import('./modulos/cargos/cargo-form.component').then(m => m.CargoFormComponent) },
+      { path: 'editar', loadComponent: () => import('./modulos/cargos/cargo-form.component').then(m => m.CargoFormComponent) }
+    ]
+  },
   { path: 'admin/sucursales', canActivate: [AuthGuard], loadComponent: () => import('./modulos/sucursales/sucursales-layout.component').then(m => m.SucursalesLayoutComponent),
     children: [
       { path: '', loadComponent: () => import('./modulos/sucursales/sucursales.component').then(m => m.SucursalesComponent) },
@@ -35,7 +42,13 @@ export const routes: Routes = [
       { path: 'editar', loadComponent: () => import('./modulos/sucursales/sucursal-form.component').then(m => m.SucursalFormComponent) }
     ]
   },
-  { path: 'sueldos', canActivate: [AuthGuard], loadComponent: () => import('./modulos/sueldos/dashboard/dashboard.component').then(m => m.DashboardComponent) },
+  { path: 'sueldos', canActivate: [AuthGuard], loadComponent: () => import('./modulos/sueldos/sueldos-layout.component').then(m => m.SueldosLayoutComponent),
+    children: [
+      { path: '', loadComponent: () => import('./modulos/sueldos/home.component').then(m => m.HomeComponent) },
+      { path: 'liquidar', loadComponent: () => import('./modulos/sueldos/liquidar.component').then(m => m.LiquidarComponent) },
+      { path: 'listado', loadComponent: () => import('./modulos/sueldos/listado.component').then(m => m.ListadoComponent) }
+    ]
+  },
  
   { path: '', redirectTo: 'login', pathMatch: 'full' },
   { path: '**', redirectTo: 'login' }

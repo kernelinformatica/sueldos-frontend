@@ -53,7 +53,9 @@ export class SucursalesComponent implements OnInit {
 
   get canCreate(): boolean { return this.hasPerm('sucursales_agregar'); }
   get canEdit(): boolean { return this.hasPerm('sucursales_editar'); }
-  get canDelete(): boolean { return this.hasPerm('sucursales_borrar'); }
+  get canDelete(): boolean {
+    return this.hasPerm('sucursales_borrar') || this.hasPerm('sucursales_eliminar') || this.auth.isSuperAdmin();
+  }
   get canRelacionar(): boolean { return this.hasPerm('sucursales_relacionar'); }
 
   private hasPerm(alias: string): boolean {
@@ -70,6 +72,9 @@ export class SucursalesComponent implements OnInit {
           seccion_id: Number(s?.seccion_id ?? s?.id ?? 0) || null,
           nombre: s?.nombre ?? s?.descripcion ?? 'Sin nombre',
           orden: Number(s?.orden ?? 0) || 0
+          , sucursal_id: Number(s?.sucursal_id ?? s?.sucursal?.id ?? s?.sucursal?.sucursal_id ?? 0) || null,
+          sucursal_nombre: s?.sucursal_nombre ?? s?.sucursal?.nombre ?? s?.sucursal?.razon_social ?? null,
+          sucursal_orden: Number(s?.sucursal_orden ?? s?.sucursal?.orden ?? 0) || 0
         }))
         .sort((a:any, b:any) => a.orden - b.orden || String(a.nombre).localeCompare(String(b.nombre)));
     }, () => {
@@ -111,6 +116,7 @@ export class SucursalesComponent implements OnInit {
       sucursal_id: Number(s?.sucursal_id ?? s?.id ?? 0) || null,
       nombre: s?.nombre ?? s?.razon_social ?? s?.descripcion ?? s?.cod_interno ?? 'Sin nombre',
       orden: Number(s?.orden ?? 0) || 0,
+      principal: Number(s?.principal ?? 0) || 0,
       secciones
     };
   }
@@ -122,7 +128,10 @@ export class SucursalesComponent implements OnInit {
         ...s,
         seccion_id: Number(s?.seccion_id ?? s?.id ?? 0) || null,
         nombre: s?.nombre ?? s?.descripcion ?? 'Sin nombre',
-        orden: Number(s?.orden ?? 0) || 0
+        orden: Number(s?.orden ?? 0) || 0,
+        sucursal_id: Number(s?.sucursal_id ?? s?.sucursal?.id ?? s?.sucursal?.sucursal_id ?? 0) || null,
+        sucursal_nombre: s?.sucursal_nombre ?? s?.sucursal?.nombre ?? s?.sucursal?.razon_social ?? s?.sucursal?.descripcion ?? s?.sucursal?.cod_interno ?? null,
+        sucursal_orden: Number(s?.sucursal_orden ?? s?.sucursal?.orden ?? 0) || 0
       }))
       .sort((a:any, b:any) => a.orden - b.orden || String(a.nombre).localeCompare(String(b.nombre)));
   }
@@ -262,8 +271,34 @@ export class SucursalesComponent implements OnInit {
     return String(seccion?.nombre || seccion?.descripcion || seccion?.seccion_id || seccion?.id || 'Sin nombre');
   }
 
+  seccionSucursalLabel(seccion: any): string {
+    const nested = seccion?.sucursal || {};
+    const label =
+      seccion?.sucursal_nombre ||
+      nested?.nombre ||
+      nested?.razon_social ||
+      nested?.descripcion ||
+      nested?.cod_interno ||
+      (nested?.sucursal_id || nested?.id ? `Sucursal ${nested.sucursal_id ?? nested.id}` : '') ||
+      (seccion?.sucursal_id ? `Sucursal ${seccion.sucursal_id}` : '');
+    return String(label || 'Sin sucursal');
+  }
+
   sucursalLabel(sucursal: any): string {
     return String(sucursal?.nombre || sucursal?.razon_social || sucursal?.descripcion || sucursal?.cod_interno || 'Sin nombre');
+  }
+
+  isPrincipalSucursal(sucursal: any): boolean {
+    return Number(sucursal?.principal ?? 0) === 1;
+  }
+
+  isSucursalActiva(sucursal: any): boolean {
+    const estado = Number(sucursal?.estado ?? 0);
+    return estado === 1 || estado === 0;
+  }
+
+  expandLabel(sucursal: any): string {
+    return this.isExpanded(sucursal) ? 'Ocultar secciones' : 'Ver secciones';
   }
 
   private mapError(err: any, fallback: string): string {

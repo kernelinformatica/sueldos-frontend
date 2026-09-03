@@ -6,35 +6,36 @@ import { SidebarComponent } from '../../core/layout/sidebar.component';
 import { AuthService } from '../../auth/auth.service';
 
 @Component({
-  selector: 'app-secciones-layout',
+  selector: 'app-sueldos-layout',
   standalone: true,
   imports: [CommonModule, RouterOutlet, NavbarComponent, SidebarComponent],
-  templateUrl: './secciones-layout.component.html',
-  styleUrls: ['./secciones-layout.component.scss']
+  templateUrl: './sueldos-layout.component.html',
+  styleUrls: ['./sueldos-layout.component.scss']
 })
-export class SeccionesLayoutComponent {
+export class SueldosLayoutComponent {
   collapsed = false;
-  menu = [
-    { label: 'Listado', route: '/admin/secciones', icon: 'bi bi-list' },
-    { label: 'Nueva sección', route: '/admin/secciones/alta', icon: 'bi bi-plus-lg' },
-    { label: 'Cargos', route: '/admin/cargos', icon: 'bi bi-briefcase' },
-    { label: 'Sucursales', route: '/admin/sucursales', icon: 'bi bi-shop' }
-  ];
+  menu: Array<{ label: string; route: string; icon: string }> = [];
 
   constructor(private auth: AuthService, private router: Router) {
     const perms = this.auth.getPermissions() || [];
-    const has = (alias: string) => Array.isArray(perms) && perms.some((p: any) => (typeof p === 'string' ? p === alias : (p?.alias === alias)));
-    if (!has('secciones')) {
+    const has = (alias: string): boolean => Array.isArray(perms) && perms.some((p: any) => (typeof p === 'string' ? p === alias : p?.alias === alias));
+    const canEnter = has('sueldos') || has('sueldos_liquidar') || has('sueldos_liquidaciones');
+    if (!canEnter) {
       this.menu = [];
       return;
     }
 
-    this.menu = [{ label: 'Listado', route: '/admin/secciones', icon: 'bi bi-list' }];
-    if (has('secciones_agregar')) {
-      this.menu.push({ label: 'Nueva sección', route: '/admin/secciones/alta', icon: 'bi bi-plus-lg' });
+    this.menu = [
+      { label: 'Inicio', route: '/sueldos', icon: 'bi bi-house' }
+    ];
+
+    if (has('sueldos_liquidar')) {
+      this.menu.push({ label: 'Liquidar', route: '/sueldos/liquidar', icon: 'bi bi-cash-stack' });
     }
-    this.menu.push({ label: 'Cargos', route: '/admin/cargos', icon: 'bi bi-briefcase' });
-    this.menu.push({ label: 'Sucursales', route: '/admin/sucursales', icon: 'bi bi-shop' });
+
+    if (has('sueldos_liquidaciones')) {
+      this.menu.push({ label: 'Listado de liquidaciones', route: '/sueldos/listado', icon: 'bi bi-card-list' });
+    }
   }
 
   get user(): any { return this.auth.getUser(); }

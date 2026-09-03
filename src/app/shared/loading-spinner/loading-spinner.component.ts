@@ -18,6 +18,7 @@ import { LoadingService } from './loading.service';
     `:host { position: fixed; inset: 0; pointer-events: none; z-index: 9999; }
     .spinner-backdrop { position: absolute; inset: 0; display:flex; align-items:center; justify-content:center; pointer-events: none; }
     .spinner-box { background: #fff; border-radius: 10px; display:flex; gap:12px; align-items:center; box-shadow: 0 6px 18px rgba(0,0,0,0.12); pointer-events:auto; }
+    .spinner-box.spinner-centered { flex-direction:column; gap:10px; text-align:center; }
     .spinner-ring { border:4px solid #e6e6e6; border-radius:50%; animation:spin 1s linear infinite; }
     .spinner-label { font-weight:600; color:#333; font-size:0.95rem; }
     @keyframes spin { to { transform: rotate(360deg); } }

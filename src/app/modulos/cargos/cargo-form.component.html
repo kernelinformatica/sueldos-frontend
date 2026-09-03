@@ -1,0 +1,146 @@
+<div class="cargo-form-shell">
+  <app-loading-spinner></app-loading-spinner>
+  <div *ngIf="catalogLoading && !loading" class="loading-box">Cargando secciones y sucursales...</div>
+  <div class="module-breadcrumb">
+    <a routerLink="/admin/cargos">Cargos</a>
+    <span>/</span>
+    <span>{{ cargoId ? 'Edición' : 'Alta' }}</span>
+  </div>
+
+  <section class="form-card-hero">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <p class="kicker">Gestión de Cargos</p>
+        <h3>{{ cargoId ? 'Edición de cargo' : 'Alta de cargo' }}</h3>
+        <p class="subtitle">Cada cargo queda asociado a una sección y, por herencia, a su sucursal.</p>
+      </div>
+      <div class="hero-figure">
+        <div class="hero-badge"><i class="bi bi-briefcase-fill"></i></div>
+        <div class="hero-metrics">
+          <span>{{ cargoId ? 'Editar registro' : 'Nuevo registro' }}</span>
+          <strong>{{ currentSucursalLabel }}</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-actions hero-actions">
+      <a routerLink="/admin/cargos" class="btn-action btn-icon action-icon save-action back-action" title="Volver al listado">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <button type="button" class="btn-action btn-icon action-icon save-action" (click)="save()" title="Guardar" [disabled]="saving || !canSave || form.invalid">
+        <i class="bi bi-floppy"></i>
+      </button>
+    </div>
+  </section>
+
+  <form [formGroup]="form" (ngSubmit)="save()">
+    <section class="form-card cargo-form-card">
+      <div class="grid-2" style="margin-top:0.6rem">
+        <div class="field">
+          <label>Sección <span class="required-mark">*</span></label>
+          <select formControlName="seccion_id">
+            <option [ngValue]="null">Seleccione una sección</option>
+            <option *ngFor="let s of secciones" [ngValue]="s.seccion_id || s.id">{{ seccionLabel(s) }} <span *ngIf="s.sucursal">- {{ sucursalLabel(s.sucursal) }}</span></option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Nombre <span class="required-mark">*</span></label>
+          <input formControlName="nombre" />
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:0.6rem">
+        <div class="field">
+          <label>Abreviatura</label>
+          <input formControlName="abreviatura" />
+        </div>
+        <div class="field">
+          <label>Estado <span class="required-mark">*</span></label>
+          <select formControlName="estado_id">
+            <option [ngValue]="1">Activo</option>
+            <option [ngValue]="0">Inactivo</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:0.6rem">
+        <div class="field">
+          <label>Responsable</label>
+          <div class="autocomplete-wrap">
+            <input
+              type="text"
+              [value]="responsableQuery"
+              (input)="onResponsableInputChange($any($event.target).value)"
+              placeholder="Buscar por nombre o legajo"
+              autocomplete="off" />
+            <button *ngIf="responsableQuery" type="button" class="clear-localidad" (click)="clearResponsable()" aria-label="Limpiar responsable">×</button>
+          </div>
+          <div class="autocomplete-panel" *ngIf="responsableLoading || responsableResultados.length || responsableError">
+            <div class="autocomplete-status" *ngIf="responsableLoading">Buscando responsables...</div>
+            <div class="autocomplete-status error" *ngIf="!responsableLoading && responsableError">{{ responsableError }}</div>
+            <ng-container *ngIf="!responsableLoading && !responsableError">
+              <button
+                type="button"
+                class="autocomplete-item"
+                *ngFor="let empleado of responsableResultados"
+                (click)="selectResponsable(empleado)">
+                <span class="autocomplete-photo" *ngIf="empleado.foto; else empleadoSinFoto">
+                  <img [src]="empleado.foto" [alt]="empleado.texto || formatEmpleadoLabel(empleado)" />
+                </span>
+                <ng-template #empleadoSinFoto>
+                  <span class="autocomplete-photo autocomplete-photo-placeholder">
+                    <i class="bi bi-person"></i>
+                  </span>
+                </ng-template>
+                <span class="autocomplete-content">
+                  <span class="autocomplete-main">
+                    <span class="autocomplete-legajo" *ngIf="empleado.legajo">{{ empleado.legajo }}</span>
+                    <span class="autocomplete-name">{{ empleado.apellido }}, {{ empleado.nombre }}</span>
+                  </span>
+                  <span class="autocomplete-secondary" *ngIf="empleado.texto">{{ empleado.texto }}</span>
+                  <span class="autocomplete-secondary" *ngIf="!empleado.texto && empleado.documento">Doc. {{ empleado.documento }}</span>
+                </span>
+              </button>
+              <div class="autocomplete-status" *ngIf="!responsableResultados.length">Sin coincidencias</div>
+            </ng-container>
+          </div>
+        </div>
+        <div class="field">
+          <label>Descripción</label>
+          <input formControlName="descripcion" />
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:0.6rem">
+        <div class="field">
+          <label>Orden <span class="required-mark">*</span></label>
+          <input formControlName="orden" type="number" />
+        </div>
+        <div class="field">
+          <label>Sucursal vinculada</label>
+          <div class="field-readonly">
+            {{ currentSucursalLabel }}
+          </div>
+        </div>
+      </div>
+
+      <div class="cargo-detail-box" *ngIf="currentSeccion">
+        <div class="cargo-detail-title">Detalle de la sección seleccionada</div>
+        <div class="cargo-detail-grid">
+          <div>
+            <span>Sección</span>
+            <strong>{{ seccionLabel(currentSeccion) }}</strong>
+          </div>
+          <div>
+            <span>Sucursal</span>
+            <strong>{{ currentSucursalLabel }}</strong>
+          </div>
+          <div>
+            <span>Detalle sección</span>
+            <strong>{{ currentSeccion?.descripcion || currentSeccion?.nombre || '-' }}</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+  </form>
+
+  <app-modal-alerta [visible]="resultVisible" [titulo]="resultTitle" [mensaje]="resultMessage" [icono]="'bi bi-check-circle-fill'" [accentColor]="'#198754'" [buttonColor]="'#198754'" [esConfirmacion]="false" (cerrar)="closeResult()"></app-modal-alerta>
+  <app-modal-alerta [visible]="errorVisible" [titulo]="errorTitle" [mensaje]="errorMessage" [icono]="'bi bi-exclamation-triangle-fill'" [accentColor]="'#d32f2f'" [buttonColor]="'#d32f2f'" [esConfirmacion]="false" (cerrar)="closeError()"></app-modal-alerta>
+</div>

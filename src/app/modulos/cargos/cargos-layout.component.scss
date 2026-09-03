@@ -1,0 +1,25 @@
+.cargos-shell {
+	margin-left: 220px;
+	min-height: 100vh;
+	background: #f4f7fb;
+	padding: 4.75rem 1.25rem 1.25rem;
+	transition: padding-left .18s ease;
+}
+
+.cargos-shell.collapsed {
+	margin-left: 60px;
+}
+
+.cargos-shell > * {
+	max-width: 1600px;
+	width: 100%;
+	margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+	.cargos-shell,
+	.cargos-shell.collapsed {
+		margin-left: 0;
+		padding: 4rem 0.75rem 0.9rem;
+	}
+}

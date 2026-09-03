@@ -47,20 +47,31 @@
   <div *ngIf="loading" class="loading-box">Cargando sucursales...</div>
 
   <div *ngIf="!loading && sucursales.length" class="sucursal-list">
-    <article *ngFor="let sucursal of sucursales" class="sucursal-card">
+    <article *ngFor="let sucursal of sucursales" class="sucursal-card" [class.sucursal-card-inactive]="!isSucursalActiva(sucursal)" [class.sucursal-card-principal]="isPrincipalSucursal(sucursal)">
       <div class="sucursal-header">
-        <button type="button" class="expand-btn expand-btn-text" (click)="toggleExpand(sucursal)">
-          <i class="bi" [class.bi-chevron-down]="!isExpanded(sucursal)" [class.bi-chevron-up]="isExpanded(sucursal)"></i>
-          <span>{{ isExpanded(sucursal) ? 'Ocultar secciones' : 'Ver secciones' }}</span>
+        <button
+          type="button"
+          class="expand-btn"
+          (click)="toggleExpand(sucursal)"
+          [attr.title]="expandLabel(sucursal)"
+          [attr.aria-label]="expandLabel(sucursal)">
+          <i class="bi" [class.bi-eye]="!isExpanded(sucursal)" [class.bi-eye-slash]="isExpanded(sucursal)"></i>
         </button>
         <div class="sucursal-main">
-          <h5>{{ sucursalLabel(sucursal) }}</h5>
-          <p>Orden {{ sucursal.orden || 0 }} · ID {{ sucursal.sucursal_id || sucursal.id }} · {{ sucursalSecciones(sucursal).length }} secciones</p>
+          <div class="sucursal-title-row">
+            <span class="principal-badge" *ngIf="isPrincipalSucursal(sucursal)">
+              <i class="bi bi-star-fill"></i>
+              Casa central
+            </span>
+            <span class="inactive-badge" *ngIf="!isSucursalActiva(sucursal)">
+              Inactiva
+            </span>
+            <h5>{{ sucursalLabel(sucursal) }}</h5>
+            <span class="section-count-badge">{{ sucursalSecciones(sucursal).length }} secciones</span>
+          </div>
+          <p>Orden {{ sucursal.orden || 0 }} · ID {{ sucursal.sucursal_id || sucursal.id }}</p>
         </div>
         <div class="sucursal-actions">
-          <button type="button" class="btn-action btn-icon" title="Relacionar secciones" (click)="openRelateModal(sucursal)" *ngIf="canRelacionar">
-            <i class="bi bi-link-45deg"></i>
-          </button>
           <button type="button" class="btn-action btn-icon" title="Editar" (click)="editSucursal(sucursal)" *ngIf="canEdit">
             <i class="bi bi-pencil-square"></i>
           </button>
@@ -90,35 +101,6 @@
   <div *ngIf="!loading && !sucursales.length" class="empty-state-panel">
     No hay sucursales para mostrar.
   </div>
-
-  <app-modal-alerta
-    [visible]="relationModalVisible"
-    [titulo]="relationModalTitle"
-    [mensaje]="relationModalMessage"
-    [icono]="'bi bi-link-45deg'"
-    [esConfirmacion]="false"
-    [bloquearCierre]="false"
-    [accentColor]="'#283593'"
-    [buttonColor]="'#283593'"
-    (cerrar)="closeRelationModal()">
-    <div class="relation-modal-body">
-      <label class="relation-search-label">Buscar sección</label>
-      <input class="relation-search" type="text" [(ngModel)]="relationSearch" placeholder="Filtrar secciones" />
-      <div class="relation-list" *ngIf="!seccionesLoading; else loadingSeccionesTpl">
-        <label class="relation-item" *ngFor="let seccion of filteredSeccionesDisponibles">
-          <input type="checkbox" [checked]="isSelectedSeccion(seccion.seccion_id)" (change)="toggleSeccionSelection(seccion.seccion_id)" />
-          <span>{{ seccionLabel(seccion) }}</span>
-        </label>
-      </div>
-      <ng-template #loadingSeccionesTpl>
-        <div class="empty-state">Cargando secciones...</div>
-      </ng-template>
-      <div class="relation-footer">
-        <button type="button" class="btn-action" (click)="closeRelationModal()">Cancelar</button>
-        <button type="button" class="btn-action btn-primary" (click)="guardarRelacion()" [disabled]="relationSaving">Guardar relación</button>
-      </div>
-    </div>
-  </app-modal-alerta>
 
   <app-modal-alerta
     [visible]="deleteModalVisible"

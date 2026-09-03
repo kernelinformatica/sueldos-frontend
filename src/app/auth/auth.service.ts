@@ -60,9 +60,31 @@ export class AuthService {
     return user ? JSON.parse(user) : null;
   }
 
-  getPermissions(): string[] {
+  getPermissions(): any[] {
     const user = this.getUser();
-    return user?.permissions || user?.permisos || [];
+    const collected: any[] = [];
+    const sources = [
+      user?.permissions,
+      user?.permisos,
+      user?.rol?.permissions,
+      user?.rol?.permisos,
+      user?.role?.permissions,
+      user?.role?.permisos,
+      user?.perfil?.permissions,
+      user?.perfil?.permisos
+    ];
+
+    const pushValues = (value: any): void => {
+      if (!value) return;
+      if (Array.isArray(value)) {
+        value.forEach(pushValues);
+        return;
+      }
+      collected.push(value);
+    };
+
+    sources.forEach(pushValues);
+    return collected;
   }
 
   isSuperAdmin(): boolean {

@@ -3,13 +3,17 @@
 
 <div class="secciones-shell" [class.collapsed]="collapsed">
   <section class="secciones-hero">
-    <div class="module-breadcrumb">
-      <a routerLink="/modulos">Módulos</a>
-      <span>/</span>
-      <span>Secciones</span>
+    <div class="secciones-hero-header">
+      <div class="module-breadcrumb">
+        <a href="#" (click)="goTo('/modulos'); $event.preventDefault()">Módulos</a>
+        <span>/</span>
+        <a href="#" (click)="goTo('/admin/sucursales'); $event.preventDefault()">Sucursales</a>
+        <span>/</span>
+        <span>Secciones</span>
+      </div>
+      <h2>Gestión de Secciones</h2>
+      <p>Alta, baja y edición de secciones con la misma navegación del módulo de conceptos.</p>
     </div>
-    <h2>Gestión de Secciones</h2>
-    <p>Alta, baja y edición de secciones con la misma navegación del módulo de conceptos.</p>
   </section>
 
   <section class="secciones-page">
