@@ -24,7 +24,9 @@ export class ConceptoFormComponent implements OnInit {
   loading = false;
   saving = false;
   tipos: any[] = [];
+  formulaTipos: any[] = [];
   selectedTipo: any = null;
+  selectedFormulaTipo: any = null;
   permiteImporteFlag = false;
   permiteFormulaFlag = false;
   grupos: any[] = [];
@@ -159,10 +161,11 @@ export class ConceptoFormComponent implements OnInit {
       codigo: ['', [Validators.required, Validators.minLength(1), Validators.maxLength(50)]],
       descripcion: ['', [Validators.required, Validators.minLength(2)]],
       tipo_concepto_id: [null, Validators.required],
+      formula_tipo_id: [null],
       grupo_id: [null],
       importe_fijo: [null],
       multiplicador: [1, [Validators.min(0)]],
-      divisor: [1, [Validators.min(0)]],
+      divisor: [100, [Validators.min(0)]],
       suma_resta: ['S', Validators.required],
       afecta_sac: [false],
       es_sueldo_basico: [false],
@@ -172,7 +175,7 @@ export class ConceptoFormComponent implements OnInit {
     });
     // Disable controls initially except `tipo_concepto_id`, `codigo` and `descripcion`
     Object.keys(this.form.controls).forEach(k => {
-      if (k !== 'tipo_concepto_id' && k !== 'codigo' && k !== 'descripcion') {
+      if (k !== 'tipo_concepto_id' && k !== 'formula_tipo_id' && k !== 'codigo' && k !== 'descripcion') {
         this.form.controls[k].disable({ emitEvent: false });
       }
     });
@@ -191,6 +194,10 @@ export class ConceptoFormComponent implements OnInit {
     grupoCtrl?.valueChanges.subscribe(() => this.updatePermiteImporteFlag());
     // load tipos and grupos in parallel
     this.svc.tiposList().pipe(catchError(() => of([]))).subscribe((t: any) => { this.tipos = t || []; if (this.form.value.tipo_concepto_id) this.onTipoChange(this.form.value.tipo_concepto_id); this.updatePermiteImporteFlag(); });
+    this.svc.formulaTiposList().pipe(catchError(() => of([]))).subscribe((ft: any) => {
+      this.formulaTipos = ft || [];
+      this.syncSelectedFormulaTipo(this.form.value.formula_tipo_id);
+    });
     this.svc.gruposList().pipe(catchError(() => of([]))).subscribe((g: any) => {
       this.grupos = g || [];
       // if editing and originalValue has grupo id, patch control with full group object
@@ -223,10 +230,11 @@ export class ConceptoFormComponent implements OnInit {
             codigo: res.codigo,
             descripcion: res.descripcion,
             tipo_concepto_id: res.tipo_concepto?.tipo_concepto_id ?? res.tipo_concepto_id,
+            formula_tipo_id: res.formula_tipo?.formula_tipo_id ?? res.formula_tipo_id ?? null,
             grupo_id: res.grupo?.grupo_id ?? res.grupo_id,
             importe_fijo: res.importe_fijo ?? null,
             multiplicador: res.multiplicador ?? 1,
-            divisor: res.divisor ?? 1,
+            divisor: res.divisor ?? 100,
             suma_resta: res.suma_resta ?? 'S',
             afecta_sac: !!res.afecta_sac,
             es_sueldo_basico: !!res.es_sueldo_basico,
@@ -236,6 +244,7 @@ export class ConceptoFormComponent implements OnInit {
           // set selectedTipo based on loaded concepto
           const tipoId = this.form.value.tipo_concepto_id;
           if (tipoId) { this.selectedTipo = this.tipos.find(tt => (tt.id ?? tt.tipo_concepto_id ?? tt.tipo_concepto_id) == tipoId) || null; }
+          this.syncSelectedFormulaTipo(this.form.value.formula_tipo_id);
           if (this.selectedTipo) this.applyTipoRules(false);
             // after loading original concept, evaluate permiso using grupo if present
             this.updatePermiteImporteFlag();
@@ -270,6 +279,7 @@ export class ConceptoFormComponent implements OnInit {
     // keep permiteImporteFlag driven by selected grupo only (grupo toma prioridad)
     // enable basic fields now that a tipo is selected
     this.enableBasicFields();
+    try { this.form.get('formula_tipo_id')?.enable({ emitEvent: false }); } catch {}
     this.applyTipoRules(true);
     // force-enable multiplicador/divisor when tipo indicates they should be usable
     const ctrlMult = this.form.get('multiplicador');
@@ -287,6 +297,15 @@ export class ConceptoFormComponent implements OnInit {
     // debug log
     try { console.log('ConceptoForm:onTipoChange', { id, selectedTipo: this.selectedTipo, permiteImporte: this.permiteImporteFlag }); } catch {}
     try { this.cdr.detectChanges(); } catch {}
+  }
+
+  onFormulaTipoChange(formulaTipoId: any) {
+    this.syncSelectedFormulaTipo(formulaTipoId);
+  }
+
+  private syncSelectedFormulaTipo(formulaTipoId: any) {
+    const id = formulaTipoId == null || formulaTipoId === '' ? null : (typeof formulaTipoId === 'object' ? (formulaTipoId.formula_tipo_id ?? formulaTipoId.id ?? null) : formulaTipoId);
+    this.selectedFormulaTipo = this.formulaTipos.find((ft: any) => Number(ft.id ?? ft.formula_tipo_id ?? ft.id) === Number(id)) || null;
   }
 
   private getGroupPermiteImporte(): boolean | null {
@@ -330,7 +349,7 @@ export class ConceptoFormComponent implements OnInit {
 
 
   private enableBasicFields() {
-    const basic = ['codigo', 'descripcion', 'suma_resta', 'afecta_sac', 'es_sueldo_basico', 'detalle', 'orden'];
+    const basic = ['codigo', 'descripcion', 'formula_tipo_id', 'suma_resta', 'afecta_sac', 'es_sueldo_basico', 'detalle', 'orden'];
     basic.forEach(k => { const c = this.form.get(k); if (c) c.enable({ emitEvent: false }); });
   }
 
@@ -547,7 +566,7 @@ export class ConceptoFormComponent implements OnInit {
       let baseImporte = this.normalizeNumber(this.f['importe_fijo']?.value);
       if (baseImporte === null || baseImporte === undefined) baseImporte = this.originalValue?.importe_fijo ?? null;
       const multiplicador = this.normalizeNumber(this.f['multiplicador']?.value) ?? 1;
-      const divisor = this.normalizeNumber(this.f['divisor']?.value) ?? 1;
+      const divisor = this.normalizeNumber(this.f['divisor']?.value) ?? 100;
       if (baseImporte === null) {
         this.previewResult = { importe: null, source: 'Cálculo local', message: 'No hay importe base disponible para calcular.' };
         this.showPreview = true;
@@ -787,9 +806,10 @@ export class ConceptoFormComponent implements OnInit {
       descripcion: v.descripcion,
       // ensure we send numeric ids not whole objects
       tipo_concepto_id: (function(raw:any){ if (raw==null) return null; if (typeof raw === 'object') return Number(raw.tipo_concepto_id ?? raw.conceptos_tipos_id ?? raw.id ?? raw); return Number(raw); })(v.tipo_concepto_id),
+      formula_tipo_id: (function(raw:any){ if (raw==null || raw === '') return null; if (typeof raw === 'object') return Number(raw.formula_tipo_id ?? raw.id ?? raw); return Number(raw); })(v.formula_tipo_id),
       grupo_id: (function(raw:any){ if (raw==null) return null; if (typeof raw === 'object') return Number(raw.grupo_id ?? raw.id ?? raw); return Number(raw); })(v.grupo_id) || null,
       multiplicador: this.normalizeNumber(v.multiplicador) ?? 1,
-      divisor: this.normalizeNumber(v.divisor) ?? 1,
+      divisor: this.normalizeNumber(v.divisor) ?? 100,
       suma_resta: v.suma_resta,
       afecta_sac: v.afecta_sac ? 1 : 0,
       es_sueldo_basico: v.es_sueldo_basico ? 1 : 0,

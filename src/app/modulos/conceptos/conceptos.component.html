@@ -67,6 +67,7 @@
           <th [width]="15">Código</th>
           <th>Nombre</th>
           <th>Tipo</th>
+          <th>Fórmula</th>
           <th>Grupo</th>
           <th>Importe fijo</th>
           <th>Operación</th>
@@ -90,6 +91,9 @@
             </div>
           </td>
           <td>{{ c.tipo_concepto?.nombre || c.tipo_concepto?.codigo || '-' }}</td>
+          <td>
+            <span class="formula-type-badge" [title]="formulaTipoLabel(c)">{{ formulaTipoLabel(c) }}</span>
+          </td>
           <td>
             <div class="group-cell" [title]="c.grupo?.descripcion || c.grupo?.descripcion || ''">
             {{ c.grupo?.nombre || '-' }}

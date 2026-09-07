@@ -42,6 +42,13 @@
           </select>
         </div>
         <div class="field">
+          <label>Estado</label>
+          <select [disabled]="!canEditGroup" formControlName="estado_id">
+            <option *ngIf="estados.length === 0" [ngValue]="1">Activo</option>
+            <option *ngFor="let estado of estados" [ngValue]="estado.estado_id">{{ estado.nombre }}</option>
+          </select>
+        </div>
+        <div class="field">
           <label>Orden</label>
           <input formControlName="orden" type="number" [disabled]="!canEditGroup" />
         </div>

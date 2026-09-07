@@ -1,6 +1,13 @@
-<app-navbar [user]="user" [sitioActual]="sitioActual" [showSidebarToggle]="true" class="navbar-app-selector"></app-navbar>
+<app-navbar
+  [user]="user"
+  [sitioActual]="sitioActual"
+  [sidebarCollapsed]="collapsed"
+  [showSidebarToggle]="true"
+  (collapsedChange)="collapsed = $event"
+  class="navbar-app-selector">
+</app-navbar>
 
-<div class="module-shell">
+<div class="module-shell" [class.sidebar-collapsed]="collapsed">
   <app-sidebar
     [menu]="menu"
     [collapsed]="collapsed"

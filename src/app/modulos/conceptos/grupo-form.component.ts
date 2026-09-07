@@ -9,6 +9,8 @@ import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-sp
 import { ModalAlertaComponent } from '../../shared/modal-alerta.component';
 import { ConceptosService } from './conceptos.service';
 import { AuthService } from '../../auth/auth.service';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-grupo-form',
@@ -25,6 +27,7 @@ export class GrupoFormComponent implements OnInit {
   asignaciones: any[] = [];
   conceptos: any[] = [];
   tiposConcepto: any[] = [];
+  estados: Array<{ estado_id: number; nombre: string }> = [];
   conceptosLoading = false;
   conceptoSearch = '';
   conceptoTipoFilter = '';
@@ -48,9 +51,9 @@ export class GrupoFormComponent implements OnInit {
   saveResultModalIcon = 'bi bi-check-circle-fill';
   saveResultModalAccent = '#198754';
 
-  constructor(private fb: FormBuilder, private svc: GruposService, private conceptosSvc: ConceptosService, private route: ActivatedRoute, private router: Router, private toast: ToastService, private cdr: ChangeDetectorRef, private auth: AuthService) {
+  constructor(private fb: FormBuilder, private svc: GruposService, private conceptosSvc: ConceptosService, private route: ActivatedRoute, private router: Router, private toast: ToastService, private cdr: ChangeDetectorRef, private auth: AuthService, private http: HttpClient) {
     this.form = this.fb.group({
-      grupo_id: [null], empresa_id: [1], codigo: [null], alias: ['', Validators.required], nombre: ['', Validators.required], descripcion: [''], comentario: [''], permite_importe_fijo: [0], orden: [0]
+      grupo_id: [null], empresa_id: [1], codigo: [null], alias: ['', Validators.required], nombre: ['', Validators.required], descripcion: [''], comentario: [''], permite_importe_fijo: [0], orden: [0], estado_id: [1, Validators.required]
     });
   }
 
@@ -97,8 +100,25 @@ export class GrupoFormComponent implements OnInit {
   }
   ngOnInit(): void {
     const id = Number(this.route.snapshot.queryParams['id'] || 0);
+    this.loadEstados();
     this.loadConceptos();
     if (id) { this.load(id); }
+  }
+
+  loadEstados() {
+    this.http.get<any>(`${environment.apiUrl}/api/estados`).subscribe({
+      next: (res) => {
+        const data = Array.isArray(res) ? res : (res?.data || res?.estados || res?.items || []);
+        this.estados = (data || []).map((estado: any) => ({
+          estado_id: Number(estado?.estado_id ?? estado?.id ?? 0) || 0,
+          nombre: String(estado?.nombre ?? estado?.descripcion ?? estado?.name ?? estado?.estado ?? 'Estado')
+        })).filter((estado: any) => estado.estado_id > 0);
+      },
+      error: (err) => {
+        console.error('load estados', err);
+        this.estados = [];
+      }
+    });
   }
 
   get canRelate(): boolean {
@@ -171,7 +191,7 @@ export class GrupoFormComponent implements OnInit {
     this.svc.get(id).pipe(finalize(()=>{ this.loading=false; try{this.cdr.detectChanges();}catch{} })).subscribe((res:any)=>{
       const g = res?.data || res;
       this.grupoActual = g || null;
-      this.form.patchValue(g || {});
+      this.form.patchValue({ ...(g || {}), estado_id: Number(g?.estado_id ?? g?.estado?.estado_id ?? g?.estado?.id ?? g?.estado ?? 1) || 1 });
       this.grupoId = g?.grupo_id || g?.id || null;
       this.loadAsignaciones();
     }, (err)=>{ console.error('load grupo', err); });
@@ -392,7 +412,8 @@ export class GrupoFormComponent implements OnInit {
       grupo_id: this.grupoId ?? this.form.get('grupo_id')?.value ?? null,
       codigo: this.form.get('codigo')?.value === '' ? null : Number(this.form.get('codigo')?.value ?? 0),
       orden: Number(this.form.get('orden')?.value ?? 0),
-      permite_importe_fijo: Number(this.form.get('permite_importe_fijo')?.value ?? 0)
+      permite_importe_fijo: Number(this.form.get('permite_importe_fijo')?.value ?? 0),
+      estado_id: Number(this.form.get('estado_id')?.value ?? 0)
     };
     const op = this.grupoId ? this.svc.update(this.grupoId, payload) : this.svc.create(payload);
     op.pipe(finalize(()=>{ this.loading=false; try{this.cdr.detectChanges();}catch{} })).subscribe((res:any)=>{

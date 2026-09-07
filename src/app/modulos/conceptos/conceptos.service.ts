@@ -63,6 +63,60 @@ export class ConceptosService {
     );
   }
 
+  formulaTiposList() {
+    const params = new HttpParams().set('per_page', String(1000));
+    return this.http.get<any>(`${environment.apiUrl}/api/formula-tipos`, { headers: this.authHeaders(), params }).pipe(
+      map(r => {
+        const arr = Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : (r?.items || []));
+        const currentEmpresaId = this.getCurrentEmpresaId();
+        const normalized = (arr || []).map((it: any) => ({
+          ...it,
+          id: it.formula_tipo_id ?? it.id ?? null,
+          formula_tipo_id: it.formula_tipo_id ?? it.id ?? null,
+          nombre: it.nombre ?? it.descripcion ?? it.codigo ?? null,
+          codigo: it.codigo ?? null,
+          descripcion: it.descripcion ?? null,
+          empresa_id: it.empresa_id ?? null
+        }));
+        const byKey = new Map<string, any>();
+        normalized.forEach((it: any) => {
+          const key = String(it.id ?? it.codigo ?? it.nombre ?? '');
+          if (!key) return;
+          const existing = byKey.get(key);
+          if (!existing) {
+            byKey.set(key, it);
+            return;
+          }
+          const existingIsGlobal = existing?.empresa_id == null;
+          const nextIsCompany = it?.empresa_id != null && (currentEmpresaId == null || Number(it.empresa_id) === Number(currentEmpresaId));
+          if (existingIsGlobal && nextIsCompany) {
+            byKey.set(key, it);
+          }
+        });
+        return Array.from(byKey.values()).sort((a: any, b: any) => {
+          const empresaA = a?.empresa_id == null ? 0 : 1;
+          const empresaB = b?.empresa_id == null ? 0 : 1;
+          if (empresaA !== empresaB) return empresaB - empresaA;
+          const ca = String(a.codigo || '');
+          const cb = String(b.codigo || '');
+          if (ca !== cb) return ca.localeCompare(cb);
+          return String(a.nombre || '').localeCompare(String(b.nombre || ''));
+        });
+      }),
+      catchError((err) => { console.error('[ConceptosService] formulaTiposList error', err); return of([]); })
+    );
+  }
+
+  private getCurrentEmpresaId(): number | null {
+    try {
+      const raw = localStorage.getItem('empresaId') ?? localStorage.getItem('sitioId');
+      const value = raw === null ? null : Number(raw);
+      return value !== null && Number.isFinite(value) ? value : null;
+    } catch {
+      return null;
+    }
+  }
+
   gruposList() {
     const params = new HttpParams().set('per_page', String(1000));
     return this.http.get<any>(`${environment.apiUrl}/api/grupos_conceptos_master`, { headers: this.authHeaders(), params }).pipe(

@@ -30,7 +30,7 @@
 
   <form [formGroup]="form">
     <section class="form-card">
-      <div class="section-title"><h4>Datos básicos</h4><p>Código, descripción y tipo.</p></div>
+      <div class="section-title"><h4>Datos básicos</h4><p>Código, descripción, tipo y motor de fórmula.</p></div>
       <br>
       <div class="grid-3">
         <div class="field">
@@ -57,6 +57,18 @@
             </option>
           </select>
         </div>
+        <div class="field">
+          <label>Fórmula</label>
+          <select formControlName="formula_tipo_id" (change)="onFormulaTipoChange($any($event.target).value)">
+            <option [ngValue]="null">Sin seleccionar</option>
+            <option *ngFor="let ft of formulaTipos" [ngValue]="ft.id ?? ft.formula_tipo_id ?? ft.id">
+              {{ (ft.codigo ? (ft.codigo + ' - ') : '') + (ft.nombre || ft.descripcion || ('Tipo ' + (ft.id ?? ft.formula_tipo_id ?? ''))) }}
+            </option>
+          </select>
+          <div class="help-text" *ngIf="selectedFormulaTipo">
+            Seleccionado: {{ selectedFormulaTipo.codigo || '-' }} · {{ selectedFormulaTipo.nombre || selectedFormulaTipo.descripcion || '-' }}
+          </div>
+        </div>
 
       </div>
     </section>
@@ -68,9 +80,9 @@
           <span style="margin-left:0.6rem">Cargando topes...</span>
       </div>
 
-      <div *ngIf="!loadingTopes && topes?.length === 0" class="help-text">No hay topes configurados para este concepto.</div>
+      <div *ngIf="!loadingTopes && topes.length === 0" class="help-text">No hay topes configurados para este concepto.</div>
       <br>
-      <div *ngIf="!loadingTopes && topes?.length > 0" class="topes-list">
+      <div *ngIf="!loadingTopes && topes.length > 0" class="topes-list">
         <div *ngFor="let t of topes; trackBy: trackByTope" class="tope-box" [ngClass]="t.cssClass">
           <div class="tope-info">
             <div class="tope-title">{{ t.tipo | uppercase }} • {{ t.accion_label | uppercase }}</div>

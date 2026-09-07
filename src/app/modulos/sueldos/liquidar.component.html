@@ -1,42 +1,46 @@
 <section class="liquidar-page">
-  <div class="page-header">
-    <div>
+  <div class="hero-shell">
+    <div class="hero-copy">
       <p class="eyebrow">Liquidar</p>
-      <h1>Calculo de sueldos</h1>
-      <p>Seleccioná legajos, definí el tipo de liquidación y prepará el proceso para su ejecución segura.</p>
+      <h1>Liquidación mensual de sueldos</h1>
+      <p>Filtrá empleados activos, elegí exactamente a quién liquidar y ejecutá la liquidación con confirmación previa.</p>
     </div>
-    <div class="header-summary">
+    <div class="hero-metrics">
       <span class="summary-chip">
-        <strong>{{ totalSeleccionados }}</strong>
-        <small>seleccionados</small>
-      </span>
-      <span class="summary-chip alt">
         <strong>{{ periodoMes }}/{{ periodo }}</strong>
         <small>período</small>
+      </span>
+      <span class="summary-chip alt">
+        <strong>{{ totalSeleccionados }}</strong>
+        <small>seleccionados</small>
       </span>
     </div>
   </div>
 
-  <app-loading-spinner [visible]="isLoading" [centered]="true" text="Procesando..."></app-loading-spinner>
+  <app-loading-spinner [visible]="loadingResult" [centered]="true" text="Procesando liquidación..."></app-loading-spinner>
 
   <div *ngIf="errorMsg" class="alert alert-danger">{{ errorMsg }}</div>
 
   <div class="wizard-card">
     <div class="wizard-section liquidacion-config">
       <div class="section-head">
-        <h2>Configuración de liquidación</h2>
+        <h2>1. Configuración y filtros</h2>
+        <span class="state-badge state-badge-lg" [ngClass]="estadoBadge(estadoLiquidacionNombre)">
+          {{ estadoLiquidacionNombre }}
+        </span>
       </div>
+
+      
 
       <div class="grid-form">
         <label class="field-type">
           <span class="field-label-inline">
             <span>Tipo de liquidación</span>
-            <small class="field-meta" *ngIf="loadingTipos">Cargando tipos de liquidación...</small>
+            <small class="field-meta" *ngIf="loadingTipos">Cargando tipos...</small>
           </span>
-          <select [(ngModel)]="modoLiquidacion" [disabled]="loadingTipos || liquidacionTipos.length === 0">
-            <option *ngIf="loadingTipos" [ngValue]="null">Cargando tipos de liquidación...</option>
-            <option *ngIf="!loadingTipos && liquidacionTipos.length === 0" [ngValue]="null">Sin tipos de liquidación</option>
-            <option *ngFor="let tipo of liquidacionTipos; trackBy: trackByTipoId" [ngValue]="tipo.liquidacion_tipo_id">
+          <select [(ngModel)]="liquidacionTipoId">
+            <option *ngIf="liquidacionTipos.length === 0" [ngValue]="null">Sin tipos de liquidación</option>
+            <option *ngFor="let tipo of liquidacionTipos" [ngValue]="tipo.liquidacion_tipo_id">
               {{ tipo.nombre }}
             </option>
           </select>
@@ -51,157 +55,224 @@
         <label class="field-month">
           <span>Mes</span>
           <select [(ngModel)]="periodoMes">
-            <option *ngFor="let mes of meses" [ngValue]="mes.value">
-              {{ mes.label }}
-            </option>
+            <option *ngFor="let mes of meses" [ngValue]="mes.value">{{ mes.label }}</option>
           </select>
         </label>
 
-        <label class="field-action">
-          <span>Acción rápida</span>
-          <select>
-            <option>Previsualizar</option>
-            <option>Preparar liquidación</option>
-            <option>Ejecutar luego</option>
-          </select>
+        <label class="field-period">
+          <span>Fecha de liquidación</span>
+          <input type="date" [(ngModel)]="fechaLiquidacion" />
+        </label>
+
+        <label class="field-type">
+          <span class="field-label-inline">
+            <span>Estado de liquidación</span>
+            <small class="field-meta" *ngIf="estadosErrorMsg">{{ estadosErrorMsg }}</small>
+          </span>
+          <div class="state-badge state-badge-lg" [ngClass]="estadoBadge(estadoLiquidacionNombre)">
+            {{ estadoLiquidacionNombre }}
+          </div>
+          <small class="field-meta">En esta pantalla la liquidación se trabaja siempre en Edición.</small>
         </label>
       </div>
+
+    </div>
+
+    <div class="wizard-section">
+      
+
+      
+
+      <div *ngIf="loadingEmpleados" class="loading-box">Cargando empleados...</div>
+
+      <div class="employee-list-shell" *ngIf="!loadingEmpleados">
+        <div class="employee-section-header-row">
+          <div class="employee-section-title">
+            <h2>Legajos a liquidar</h2>
+          </div>
+          <div class="employee-section-actions">
+            <span class="select-all-count">{{ empleadosVisibles.length }} empleados visibles</span>
+      
+            <button type="button" class="icon-toggle-btn" (click)="toggleFiltrosBusqueda()" [attr.aria-label]="filtrosBusquedaColapsados ? 'Mostrar filtros' : 'Ocultar filtros'">
+              <i class="bi chevron-icon" [ngClass]="filtrosBusquedaColapsados ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="!filtrosBusquedaColapsados">
+          <div class="filters-grid filters-grid-employee">
+            <label class="filter-name">
+              <span>Búsqueda por nombre</span>
+              <input type="text" [(ngModel)]="nombreBusqueda" (input)="onFiltroChange()" placeholder="Apellido o nombre" />
+            </label>
+            <label class="filter-legajo">
+              <span>Legajo</span>
+              <input type="text" [(ngModel)]="legajoBusqueda" (input)="onFiltroChange()" placeholder="Legajo" />
+            </label>
+            <label class="filter-sucursal">
+              <span>Sucursal</span>
+              <select [(ngModel)]="sucursalId" (change)="onSucursalChange()">
+                <option [ngValue]="null">Todas</option>
+                <option *ngFor="let item of sucursales; trackBy: trackByCatalogoId" [ngValue]="catalogoNumericId(item)">
+                  {{ catalogoNombre(item, 'Sucursal ' + catalogoNumericId(item)) }}
+                </option>
+              </select>
+            </label>
+            <label class="filter-seccion">
+              <span>Sección</span>
+              <select [(ngModel)]="seccionId">
+                <option [ngValue]="null">Todas</option>
+                <option *ngFor="let item of secciones; trackBy: trackByCatalogoId" [ngValue]="catalogoNumericId(item)">
+                  {{ catalogoNombre(item, 'Sección ' + catalogoNumericId(item)) }}
+                </option>
+              </select>
+            </label>
+            <label class="filter-convenio">
+              <span>Convenio</span>
+              <select [(ngModel)]="convenioId" (change)="onConvenioChange()">
+                <option [ngValue]="null">Todos</option>
+                <option *ngFor="let item of convenios; trackBy: trackByCatalogoId" [ngValue]="catalogoNumericId(item)">
+                  {{ catalogoNombre(item, 'Convenio ' + catalogoNumericId(item)) }}
+                </option>
+              </select>
+            </label>
+            <label class="filter-categoria">
+              <span>Categoría de convenio</span>
+              <select [(ngModel)]="categoriaId">
+                <option [ngValue]="null">Todas</option>
+                <option *ngFor="let item of convenioCategorias; trackBy: trackByCatalogoId" [ngValue]="catalogoNumericId(item)">
+                  {{ catalogoNombre(item, 'Categoría ' + catalogoNumericId(item)) }}
+                </option>
+              </select>
+            </label>
+          </div>
+
+          <div class="employee-select-bar employee-select-bar-compact">
+            <div class="active-filters-badges" *ngIf="filtrosActivos.length">
+              <span class="filter-badge" *ngFor="let filtro of filtrosActivos">
+                <strong>{{ filtro.label }}</strong>
+                {{ filtro.value }}
+              </span>
+            </div>
+            <label class="select-all-toggle">
+              <input type="checkbox" [checked]="allVisibleSelected" [indeterminate]="someVisibleSelected" [disabled]="estadoSoloLectura" (change)="toggleTodos($any($event.target).checked)" />
+              <span>Seleccionar todo el filtrado</span>
+            </label>
+            <span class="select-all-count">{{ empleadosVisibles.length }} empleados visibles</span>
+          </div>
+        </div>
+
+      
+
+        <div class="employee-grid" *ngIf="empleadosVisibles.length; else noEmployees">
+          <article class="employee-card" *ngFor="let empleado of empleadosVisibles; trackBy: trackByEmpleadoId" [class.employee-card-selected]="isSelected(empleado)">
+            <input type="checkbox" [checked]="isSelected(empleado)" [disabled]="estadoSoloLectura" (change)="toggleEmpleado(empleado, $any($event.target).checked)" />
+            <div class="employee-avatar">
+              <img
+                *ngIf="fotoEmpleadoUrl(empleado); else avatarFallback"
+                [src]="fotoEmpleadoUrl(empleado)"
+                [alt]="nombreCompleto(empleado)"
+                loading="lazy"
+                (error)="$any($event.target).src = 'assets/logos/avatar-placeholder.svg'" />
+              <ng-template #avatarFallback>
+                <div class="avatar-fallback">{{ inicialesEmpleado(empleado) }}</div>
+              </ng-template>
+            </div>
+            <div class="employee-body">
+              <div class="employee-topline">
+                <div>
+                  <div class="employee-name"><strong>{{ nombreCompleto(empleado) }}</strong></div>
+                  <div class="employee-meta">Legajo {{ empleado.legajo || '-' }} · {{ empleado.cargo?.nombre || 'Empleado' }}</div>
+                </div>
+                <span class="estado" [ngClass]="estadoClase(empleado)">{{ estadoLabel(empleado.estado) }}</span>
+              </div>
+              <div class="employee-meta employee-location-row">
+                <span>{{ empleado.sucursal?.nombre || sucursalLabel(empleado.sucursal_id)  || '-' }}</span> -
+                <span>{{ empleado.seccion?.nombre || seccionLabel(empleado.seccion_id) || '-' }}</span>
+              </div>
+            </div>
+          </article>
+          
+        </div>
+     
+        <ng-template #noEmployees>
+          <div class="empty-employees">
+           <i class="bi bi-exclamation-triangle-fill"></i> No hay empleados que coincidan con los filtros.
+          </div>
+        </ng-template>
+      </div>
+     
     </div>
 
     <div class="wizard-section">
       <div class="section-head">
-        <h2>Legajos a liquidar</h2>
-       
+        <h2>3. Resumen previo</h2>
       </div>
-
-     
-
-      <div class="filters-grid">
-        <label>
-          <span>Buscar por nombre</span>
-          <input type="text" [(ngModel)]="filtros.nombre" (ngModelChange)="onFiltroChange()" placeholder="Apellido o nombre" />
-        </label>
-
-        <label>
-          <span class="field-label-inline">
-            <span>Sucursal</span>
-            <small class="field-meta" *ngIf="loadingSucursales">Cargando sucursales...</small>
-          </span>
-          <select [(ngModel)]="filtros.sucursal" (change)="onSucursalChange()">
-            <option [ngValue]="null">Todas</option>
-            <option *ngIf="loadingSucursales" [ngValue]="null" disabled>Cargando sucursales...</option>
-            <option *ngIf="!loadingSucursales && sucursales.length === 0" [ngValue]="null" disabled>Sin sucursales</option>
-            <option *ngFor="let sucursal of sucursales; trackBy: trackByCatalogoId" [ngValue]="getCatalogoId(sucursal)">{{ sucursal.nombre }}</option>
-          </select>
-          <small class="field-error" *ngIf="sucursalesErrorMsg">{{ sucursalesErrorMsg }}</small>
-        </label>
-
-        <label>
-          <span class="field-label-inline">
-            <span>Sección</span>
-            <small class="field-meta" *ngIf="loadingSecciones">Cargando secciones...</small>
-          </span>
-          <select [(ngModel)]="filtros.seccion" (ngModelChange)="onFiltroChange()" [disabled]="!filtros.sucursal || loadingSecciones">
-            <option [ngValue]="null">Todas</option>
-            <option *ngIf="!filtros.sucursal" [ngValue]="null" disabled>Primero seleccioná una sucursal</option>
-            <option *ngIf="loadingSecciones" [ngValue]="null" disabled>Cargando secciones...</option>
-            <option *ngIf="filtros.sucursal && !loadingSecciones && secciones.length === 0" [ngValue]="null" disabled>Sin secciones</option>
-            <option *ngFor="let seccion of secciones; trackBy: trackByCatalogoId" [ngValue]="getCatalogoId(seccion)">{{ seccion.nombre }}</option>
-          </select>
-          <small class="field-error" *ngIf="seccionesErrorMsg">{{ seccionesErrorMsg }}</small>
-        </label>
-
-        <label>
-          <span class="field-label-inline">
-            <span>Tipo de contratación</span>
-            <small class="field-meta" *ngIf="!loadingContrataciones && contratacionesTipos.length > 0">
-              {{ contratacionesTipos.length }} tipos disponibles
-            </small>
-          </span>
-          <select [(ngModel)]="filtros.contratacionTipo" (ngModelChange)="onFiltroChange()">
-            <option value="">Todos</option>
-            <option *ngIf="loadingContrataciones" value="" disabled>Cargando tipos de contratación...</option>
-            <option *ngIf="!loadingContrataciones && contratacionesTipos.length === 0" value="" disabled>Sin tipos de contratación</option>
-            <option *ngFor="let tipo of contratacionesTipos; trackBy: trackByCatalogoId" [ngValue]="getCatalogoId(tipo)">{{ contratacionLabel(tipo) }}</option>
-          </select>
-          <small class="field-error" *ngIf="contratacionesErrorMsg">{{ contratacionesErrorMsg }}</small>
-        </label>
-
-        <label>
-          <span class="field-label-inline">
-            <span>Categoría de convenio</span>
-            <small class="field-meta" *ngIf="!loadingCategorias && convenioCategorias.length > 0">
-              {{ convenioCategorias.length }} categorías disponibles
-            </small>
-          </span>
-          <select [(ngModel)]="filtros.convenioCategoria" (ngModelChange)="onFiltroChange()">
-            <option value="">Todas</option>
-            <option *ngIf="loadingCategorias" value="" disabled>Cargando categorías de convenio...</option>
-            <option *ngIf="!loadingCategorias && convenioCategorias.length === 0" value="" disabled>Sin categorías de convenio</option>
-            <option *ngFor="let categoria of convenioCategorias; trackBy: trackByCatalogoId" [ngValue]="getCatalogoId(categoria)">{{ categoriaLabel(categoria) }}</option>
-          </select>
-          <small class="field-error" *ngIf="categoriasErrorMsg">{{ categoriasErrorMsg }}</small>
-        </label>
+      <div class="result-summary-grid">
+        <div class="summary-box"><span>Seleccionados</span><strong>{{ totalSeleccionados }}</strong></div>
+        <div class="summary-box"><span>Período</span><strong>{{ periodoMes }}/{{ periodo }}</strong></div>
+        <div class="summary-box"><span>Fecha</span><strong>{{ fechaLiquidacion }}</strong></div>
+        <div class="summary-box"><span>Tipo</span><strong>{{ liquidacionTipoNombre }}</strong></div>
+        <div class="summary-box"><span>Estado</span><strong>{{ estadoLiquidacionNombre }}</strong></div>
       </div>
-      <div class="employee-select-bar">
-        <div class="active-filters-badges" *ngIf="filtrosActivos.length > 0">
-          <span class="filter-badge" *ngFor="let filtro of filtrosActivos">
-            <strong>{{ filtro.label }}</strong>
-            <span>{{ filtro.value }}</span>
-          </span>
-        </div>
-        <label class="select-all-toggle">
-          <input
-            type="checkbox"
-            [checked]="empleadosFiltrados.length > 0 && empleadosFiltrados.every(empleado => empleado.seleccionado)"
-            (change)="toggleTodos($any($event.target).checked)"
-          />
-          <span>Seleccionar todo el filtrado</span>
-        </label>
-        <small class="select-all-count">{{ empleadosFiltrados.length }} empleados visibles</small>
-      </div>
-
-      <div *ngIf="loadingEmpleados" class="loading-employees">Cargando empleados reales...</div>
-
-      <div *ngIf="!loadingEmpleados && empleados.length === 0" class="empty-employees">
-        Sin empleados activos para liquidar.
-      </div>
-
-      <div *ngIf="!loadingEmpleados && empleados.length > 0" class="employee-grid">
-        <label class="employee-card" *ngFor="let empleado of empleadosPaginados">
-          <input type="checkbox" [(ngModel)]="empleado.seleccionado" />
-          <div class="employee-avatar">
-            <img *ngIf="empleado.fotoUrl; else avatarFallback" [src]="empleado.fotoUrl" [alt]="empleado.nombre" />
-            <ng-template #avatarFallback>
-              <div class="avatar-fallback">{{ (empleado.apellido || empleado.nombre || 'E').charAt(0) }}</div>
-            </ng-template>
-          </div>
-          <div class="employee-body">
-            <div class="employee-topline">
-              <strong>{{ empleado.apellido ? empleado.apellido + ', ' : '' }}{{ empleado.nombre }}</strong>
-              <span class="estado" [ngClass]="empleado.estado.toLowerCase().replace(' ', '-')">{{ empleado.estado }}</span>
-            </div>
-            <small>Legajo {{ empleado.legajo }} · {{ empleado.cargo }}</small>
-            <small>{{ empleado.seccion }}</small>
-          </div>
-        </label>
-      </div>
-
-      <div class="pagination-bar" *ngIf="!loadingEmpleados && totalPages > 1">
-        <button type="button" class="page-btn" (click)="previousPage()" [disabled]="currentPage === 1">Anterior</button>
-        <div class="page-info">
-          Mostrando {{ pageRangeStart() }} - {{ pageRangeEnd() }} de {{ totalEmpleados }} empleados
-        </div>
-        <button type="button" class="page-btn" (click)="nextPage()" [disabled]="currentPage === totalPages">Siguiente</button>
+        <div class="result-block warning-block" *ngIf="resumenAdvertencias.length">
+        <h3>Advertencias</h3>
+        <ul>
+          <li *ngFor="let item of resumenAdvertencias">{{ item }}</li>
+        </ul>
       </div>
     </div>
 
     <div class="wizard-section commands">
-      <h2>Comandos</h2>
+      <h2>4. Ejecutar</h2>
       <div class="command-row">
-        <button type="button" class="btn-primary">Preparar liquidación</button>
-        <button type="button" class="btn-secondary">Cancelar</button>
+        <button *ngIf="totalSeleccionados > 0" type="button" class="btn-primary" (click)="abrirConfirmacion()" [disabled]="saving || loadingTipos || !liquidacionTipoId || !estadoLiquidacionId || !estadoPermiteEdicion">Confirmar y ejecutar</button>
+        
+        <button type="button" class="btn-secondary" routerLink="/sueldos/listado">Ver listado</button>
       </div>
     </div>
   </div>
+
+  <div class="result-card" *ngIf="resultado">
+    <div class="section-head">
+      <h2>Resultado de la ejecución</h2>
+    </div>
+    <div class="result-block success-block" *ngIf="resultadoMensaje">
+      <h3>{{ resultadoMensaje }}</h3>
+    </div>
+    <div class="result-summary-grid">
+      <div class="summary-box"><span>Liquidadas</span><strong>{{ resumenResultado.liquidadas }}</strong></div>
+      <div class="summary-box"><span>IDs generados</span><strong>{{ resumenResultado.idsGenerados.length }}</strong></div>
+      <div class="summary-box"><span>Advertencias</span><strong>{{ resumenResultado.advertencias.length }}</strong></div>
+      <div class="summary-box"><span>Errores</span><strong>{{ resumenResultado.errores.length }}</strong></div>
+    </div>
+    <div class="result-list" *ngIf="resumenResultado.idsGenerados.length">
+      <a class="result-pill" *ngFor="let id of resumenResultado.idsGenerados" routerLink="/sueldos/listado" [queryParams]="{ liquidacion_id: id }">#{{ id }}</a>
+    </div>
+    <div class="result-block" *ngIf="resumenResultado.advertencias.length">
+      <h3>Advertencias</h3>
+      <ul><li *ngFor="let item of resumenResultado.advertencias">{{ item }}</li></ul>
+    </div>
+    <div class="result-block" *ngIf="resumenResultado.errores.length">
+      <h3>Errores</h3>
+      <ul><li *ngFor="let item of resumenResultado.errores">{{ item }}</li></ul>
+    </div>
+  </div>
+
+  <div class="execution-table" *ngIf="detalleParcial.length">
+    <h2>Detalle por empleado</h2>
+    <table>
+      <thead><tr><th>Empleado</th><th>Estado</th><th>Neto</th><th>Observación</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let item of detalleParcial">
+          <td>{{ item.empleado || '-' }}</td>
+          <td><span class="state-badge" [ngClass]="estadoBadge(item.estado)">{{ item.estado || 'Procesado' }}</span></td>
+          <td>{{ item.total_neto | number:'1.2-2' }}</td>
+          <td>{{ item.mensaje || '-' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <app-modal-alerta [visible]="confirmVisible" [titulo]="confirmTitle" [mensaje]="confirmMessage" [esConfirmacion]="true" [mostrarSpinner]="confirmSpinner" (cerrar)="onConfirmClose($event)"></app-modal-alerta>
 </section>

@@ -5,10 +5,11 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { FormsModule } from '@angular/forms';
 import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { catchError, finalize, of } from 'rxjs';
+import { Subject, catchError, debounceTime, distinctUntilChanged, finalize, map, of } from 'rxjs';
 import { AuthService } from '../../auth/auth.service';
 import { LoadingService } from '../../shared/loading-spinner/loading.service';
 import { environment } from '../../environments/environment';
+import { ObraSocialSuggestion, ObraSocialesService } from '../../core/obra-sociales.service';
 
 interface CatalogoItem {
   id?: number;
@@ -135,6 +136,14 @@ export class EmpleadosFormComponent implements OnInit {
   convenioCategorias: CatalogoItem[] = [];
   estadosEmpleados: CatalogoItem[] = [];
   bancos: CatalogoItem[] = [];
+  obraSocialQuery = '';
+  obraSocialLoading = false;
+  obraSocialError = '';
+  obraSocialResultados: ObraSocialSuggestion[] = [];
+  obraSocialSeleccionada: ObraSocialSuggestion | null = null;
+  private obraSocialSeleccionadaId: number | null = null;
+  private obraSocialLastQuery = '';
+  private obraSocialSearch$ = new Subject<string>();
   archivosAdjuntos: ArchivoEmpleadoItem[] = [];
   fotoPreviewUrl = '';
   fotoPrincipalError = false;
@@ -179,11 +188,13 @@ export class EmpleadosFormComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private auth: AuthService,
+    private obraSocialesSvc: ObraSocialesService,
     private cdr: ChangeDetectorRef,
     private loadingService: LoadingService
   ) {
     this.form = this.createForm();
     this.setLoggedEmpresa();
+    this.setupObraSocialSearch();
     // When sección changes, filtrar cargos asociados
     this.form.get('seccion_id')?.valueChanges.subscribe((val) => {
       this.onSeccionChange(val);
@@ -386,6 +397,7 @@ export class EmpleadosFormComponent implements OnInit {
           foto: this.resolvePublicUrl(res.url_publica || res.foto_url_publica || res.foto || ''),
           sueldo_basico: (res as any).sueldo_actual ?? (res as any).sueldo_basico ?? (res as any).salario_base ?? (res as any).salario ?? (res as any).sueldo ?? null,
           convenio_id: (res as any).convenio_id ?? (res as any).convenio?.convenio_id ?? (res as any).convenio?.id ?? null,
+          obra_social_id: (res as any).obra_social_id ?? (res as any).obra_social?.obra_social_id ?? (res as any).obra_social?.id ?? null,
           habilitado: res.habilitado ?? 0,
           estado: this.getEstadoControlValue(res.estado),
           tipo_contratacion_id: res.tipo_contratacion_id ?? null,
@@ -411,6 +423,22 @@ export class EmpleadosFormComponent implements OnInit {
         const convenioId = Number((res as any).convenio_id ?? (res as any).convenio?.convenio_id ?? (res as any).convenio?.id ?? null);
         if (convenioId) {
           this.getCategoriasByConvenio(convenioId);
+        }
+
+        const obraSocialId = Number((res as any).obra_social_id ?? (res as any).obra_social?.obra_social_id ?? (res as any).obra_social?.id ?? 0) || null;
+        if (obraSocialId) {
+          const obraSocialData = (res as any).obra_social || {};
+          const obraSocial: ObraSocialSuggestion = {
+            obra_social_id: obraSocialId,
+            codigo: String(obraSocialData.codigo ?? '').trim(),
+            nombre: String(obraSocialData.nombre ?? '').trim(),
+            descripcion: String(obraSocialData.descripcion ?? '').trim(),
+            texto: String(obraSocialData.texto ?? '').trim() || [obraSocialData.codigo, obraSocialData.nombre].filter(Boolean).join(' - ')
+          };
+          this.obraSocialSeleccionada = obraSocial;
+          this.obraSocialSeleccionadaId = obraSocialId;
+          this.obraSocialQuery = this.formatObraSocialLabel(obraSocial);
+          this.obraSocialLastQuery = this.obraSocialQuery;
         }
 
         const normalizedEstadoCivil = this.normalizeEstadoCivil(res.estado_civil);
@@ -1004,6 +1032,8 @@ export class EmpleadosFormComponent implements OnInit {
       seccion_id: [null as number | null, [Validators.required]],
       cargo_id: [null as number | null, [Validators.required]],
       tipo_documento: ['DNI', [Validators.required]],
+      // cuil: ['CUIT', , [Validators.required]],
+      // CUIT: ['CUIL', , [Validators.required]],
       numero_documento: ['', [Validators.required, Validators.maxLength(20)]],
       nombre: ['', [Validators.required, Validators.maxLength(100)]],
       apellido: ['', [Validators.required, Validators.maxLength(100)]],
@@ -1027,6 +1057,7 @@ export class EmpleadosFormComponent implements OnInit {
       convenio_categoria_id: [null as number | null],
       dias_trabajados: ['30'],
       forma_pago_id: [null as number | null],
+      obra_social_id: [null as number | null],
       banco_id: [null as number | null],
       cbu: [''],
       numero_cuenta: ['']
@@ -1035,6 +1066,7 @@ export class EmpleadosFormComponent implements OnInit {
 
   private buildPayload(): Record<string, unknown> {
     const value = this.form.value;
+    const obraSocialId = Number(value.obra_social_id ?? this.obraSocialSeleccionadaId ?? this.obraSocialSeleccionada?.obra_social_id ?? 0) || null;
     const cuentaBancariaPrincipal = this.mostrarDatosBancarios()
       ? {
           banco_id: this.requiereBanco ? value.banco_id ?? null : null,
@@ -1045,8 +1077,115 @@ export class EmpleadosFormComponent implements OnInit {
 
     return {
       ...value,
+      obra_social_id: obraSocialId,
       cuenta_bancaria_principal: cuentaBancariaPrincipal
     };
+  }
+
+  onObraSocialInputChange(value: string): void {
+    const normalized = String(value || '').trim();
+    this.obraSocialQuery = value;
+    if (!normalized) {
+      this.clearObraSocial();
+      return;
+    }
+
+    if (normalized.length < 2) {
+      this.obraSocialResultados = [];
+      this.obraSocialLoading = false;
+      this.obraSocialError = '';
+      this.form.patchValue({ obra_social_id: null });
+      this.obraSocialSeleccionada = null;
+      this.obraSocialSeleccionadaId = null;
+      this.obraSocialLastQuery = '';
+      return;
+    }
+
+    this.form.patchValue({ obra_social_id: null });
+    this.obraSocialSeleccionada = null;
+    this.obraSocialSeleccionadaId = null;
+    this.obraSocialSearch$.next(normalized);
+  }
+
+  selectObraSocial(obraSocial: ObraSocialSuggestion): void {
+    this.obraSocialSeleccionada = obraSocial;
+    this.obraSocialSeleccionadaId = obraSocial.obra_social_id;
+    this.obraSocialQuery = this.formatObraSocialLabel(obraSocial);
+    this.form.patchValue({ obra_social_id: obraSocial.obra_social_id });
+    this.obraSocialResultados = [];
+    this.obraSocialError = '';
+    this.obraSocialLastQuery = this.obraSocialQuery;
+  }
+
+  clearObraSocial(): void {
+    this.obraSocialSeleccionada = null;
+    this.obraSocialSeleccionadaId = null;
+    this.obraSocialQuery = '';
+    this.form.patchValue({ obra_social_id: null });
+    this.obraSocialResultados = [];
+    this.obraSocialError = '';
+    this.obraSocialLastQuery = '';
+  }
+
+  private setupObraSocialSearch(): void {
+    this.obraSocialSearch$.pipe(debounceTime(300), distinctUntilChanged()).subscribe((query) => {
+      const normalized = String(query || '').trim();
+      if (normalized.length < 2) {
+        this.obraSocialResultados = [];
+        return;
+      }
+      if (normalized === this.obraSocialLastQuery) return;
+
+      this.obraSocialLoading = true;
+      this.obraSocialError = '';
+      this.obraSocialesSvc.search(normalized).pipe(
+        map((res: any) => {
+          if (res?.error) throw res.error;
+          const items = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+          return items.map((item: any) => this.normalizeObraSocialSuggestion(item)).filter((item: ObraSocialSuggestion) => item.obra_social_id > 0);
+        }),
+        catchError((err) => {
+          this.obraSocialError = this.displayBackendError(err, 'No se pudo buscar la obra social.');
+          return of([] as ObraSocialSuggestion[]);
+        }),
+        finalize(() => {
+          this.obraSocialLoading = false;
+          try { this.cdr.detectChanges(); } catch {}
+        })
+      ).subscribe({
+        next: (items) => {
+          this.obraSocialLastQuery = normalized;
+          this.obraSocialResultados = (items || []).slice(0, 20).sort((a: ObraSocialSuggestion, b: ObraSocialSuggestion) => this.formatObraSocialLabel(a).localeCompare(this.formatObraSocialLabel(b), 'es', { sensitivity: 'base' }));
+        }
+      });
+    });
+  }
+
+  private normalizeObraSocialSuggestion(item: any): ObraSocialSuggestion {
+    const obra_social_id = Number(item?.obra_social_id ?? item?.id ?? 0) || 0;
+    const codigo = String(item?.codigo ?? '').trim();
+    const nombre = String(item?.nombre ?? '').trim();
+    const descripcion = String(item?.descripcion ?? '').trim();
+    const texto = String(item?.texto ?? '').trim() || [codigo, nombre].filter(Boolean).join(' - ');
+    return { obra_social_id, codigo, nombre, descripcion, texto };
+  }
+
+  formatObraSocialLabel(obraSocial: ObraSocialSuggestion | null): string {
+    if (!obraSocial) return '';
+    return [obraSocial.codigo, obraSocial.nombre].filter(Boolean).join(' - ') || obraSocial.texto || '';
+  }
+
+  private displayBackendError(err: any, fallback: string): string {
+    const status = Number(err?.status ?? 0);
+    const payload = err?.error;
+    const apiMessage = payload?.error || payload?.message || payload?.mensaje || payload?.detail || err?.message;
+    if (status === 401) return 'Sesión vencida o no autorizada.';
+    if (status === 403) return 'La operación no está permitida.';
+    if (status === 404) return 'No se encontró la obra social.';
+    if (status === 409) return 'La obra social ya existe o entra en conflicto.';
+    if (apiMessage && String(apiMessage).trim()) return String(apiMessage).trim();
+    if (typeof payload === 'string' && payload.trim()) return payload.trim();
+    return fallback;
   }
 
   get esFotoLista(): boolean {

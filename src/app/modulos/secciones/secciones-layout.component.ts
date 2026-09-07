@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { NavbarComponent } from '../../core/layout/navbar.component';
 import { SidebarComponent } from '../../core/layout/sidebar.component';
 import { AuthService } from '../../auth/auth.service';
@@ -8,7 +9,7 @@ import { AuthService } from '../../auth/auth.service';
 @Component({
   selector: 'app-secciones-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, NavbarComponent, SidebarComponent],
+  imports: [CommonModule, RouterOutlet, RouterLink, NavbarComponent, SidebarComponent],
   templateUrl: './secciones-layout.component.html',
   styleUrls: ['./secciones-layout.component.scss']
 })
@@ -50,7 +51,4 @@ export class SeccionesLayoutComponent {
     }
   }
 
-  goTo(path: string): void {
-    this.router.navigateByUrl(path);
-  }
 }

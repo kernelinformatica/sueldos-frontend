@@ -34,15 +34,15 @@
           <div class="hero-main">
             <span class="hero-badge">Datos principales</span>
             <div class="hero-name-row">
-              <button type="button" class="avatar-preview avatar-preview-clickable" *ngIf="form.value.foto && !fotoPrincipalError; else heroAvatarFallback" (click)="openPhotoViewer()" aria-label="Ampliar foto principal">
-                <img [src]="form.value.foto" alt="Foto principal del empleado" (error)="onMainPhotoError()" />
+              <button type="button" class="avatar-preview avatar-preview-clickable" *ngIf="(fotoPreviewUrl || form.value.foto) && !fotoPrincipalError; else heroAvatarFallback" (click)="openPhotoViewer()" aria-label="Ampliar foto principal">
+                <img [src]="fotoPreviewUrl || form.value.foto" alt="Foto principal del empleado" (error)="onMainPhotoError()" />
               </button>
               <ng-template #heroAvatarFallback>
                 <div class="avatar-preview">
                   <i class="bi bi-person-badge"></i>
                 </div>
               </ng-template>
-              <div>
+              <div class="hero-name-text">
                 <h4>{{ form.value.apellido || 'Apellido' }}, {{ form.value.nombre || 'Nombre' }}</h4>
                 <p>{{ form.value.legajo || 'Legajo pendiente' }}</p>
               </div>
@@ -90,6 +90,8 @@
             <label>Tipo documento <span class="required-mark">*</span></label>
             <select formControlName="tipo_documento">
               <option value="DNI">DNI</option>
+               <option value="CUIT">CUIT</option>
+                <option value="CUIL">CUIL</option>
               <option value="LC">LC</option>
               <option value="LE">LE</option>
               <option value="PASAPORTE">Pasaporte</option>
@@ -282,6 +284,39 @@
               </option>
             </select>
           </div>
+          <div class="field field-wide">
+            <label>Obra social</label>
+            <div class="autocomplete-wrap">
+              <input
+                type="text"
+                [value]="obraSocialQuery"
+                (input)="onObraSocialInputChange($any($event.target).value)"
+                placeholder="Buscar por código o nombre"
+                autocomplete="off" />
+              <button *ngIf="obraSocialQuery" type="button" class="clear-localidad" (click)="clearObraSocial()" aria-label="Limpiar obra social">×</button>
+            </div>
+            <div class="autocomplete-panel" *ngIf="obraSocialLoading || obraSocialResultados.length || obraSocialError">
+              <div class="autocomplete-status" *ngIf="obraSocialLoading">Buscando obras sociales...</div>
+              <div class="autocomplete-status error" *ngIf="!obraSocialLoading && obraSocialError">{{ obraSocialError }}</div>
+              <ng-container *ngIf="!obraSocialLoading && !obraSocialError">
+                <button
+                  type="button"
+                  class="autocomplete-item"
+                  *ngFor="let obraSocial of obraSocialResultados"
+                  (click)="selectObraSocial(obraSocial)">
+                  <span class="autocomplete-content">
+                    <span class="autocomplete-main">
+                      <span class="autocomplete-legajo" *ngIf="obraSocial.codigo">{{ obraSocial.codigo }}</span>
+                      <span class="autocomplete-name">{{ obraSocial.nombre }}</span>
+                    </span>
+                    <span class="autocomplete-secondary" *ngIf="obraSocial.descripcion">{{ obraSocial.descripcion }}</span>
+                  </span>
+                </button>
+                <div class="autocomplete-status" *ngIf="!obraSocialResultados.length">Sin resultados</div>
+              </ng-container>
+            </div>
+            <div class="field-hint" *ngIf="obraSocialSeleccionada">Seleccionada: {{ formatObraSocialLabel(obraSocialSeleccionada) }}</div>
+          </div>
           <div class="field">
             <label>Estado empleado  </label>
             <select formControlName="estado">
@@ -407,6 +442,7 @@
                   <option value="recibo">Recibo</option>
                   <option value="otro">Otro</option>
                 </select>
+
               </div>
               <div class="field" *ngIf="archivoForm.tipo === 'foto'">
                 <label>Foto común o principal</label>

@@ -1,7 +1,229 @@
 <section class="listado-page">
-  <div class="panel">
-    <p class="eyebrow">Listado de liquidaciones</p>
-    <h1>Historial y auditoría</h1>
-    <p>Acá va el listado de liquidaciones, con filtros, estados y acciones sobre cada proceso.</p>
+  <div class="hero-card">
+    <div>
+      <p class="eyebrow">Listado de liquidaciones</p>
+      <h1>Historial y auditoría</h1>
+      <p>Consultá procesos, revisá totales y abrí el detalle de cada liquidación.</p>
+    </div>
+    <div class="hero-actions">
+      <a routerLink="/sueldos/liquidar" class="btn-primary">Nueva liquidación</a>
+      <button type="button" class="btn-secondary" (click)="load()" [disabled]="loading">Recargar</button>
+    </div>
   </div>
+
+  <div class="filters-card">
+    <label><span>Período</span><input [(ngModel)]="filtros.periodo" placeholder="2026-08" /></label>
+    <label><span>Empleado</span><input [(ngModel)]="filtros.empleado" placeholder="Apellido, nombre o legajo" /></label>
+    <label><span>Tipo</span><input [(ngModel)]="filtros.tipo" placeholder="Tipo de liquidación" /></label>
+    <label><span>Estado</span><input [(ngModel)]="filtros.estado" placeholder="Edición, Cerrada, etc." /></label>
+    <div class="filter-actions">
+      <button type="button" class="btn-primary" (click)="load()" [disabled]="loading">Filtrar</button>
+      <button type="button" class="btn-secondary" (click)="filtros={periodo:'',empleado:'',tipo:'',estado:''}; load()">Limpiar</button>
+    </div>
+  </div>
+
+  <div class="bulk-actions-card" *ngIf="liquidaciones.length">
+    <label class="select-all-toggle">
+      <input type="checkbox" [checked]="allLiquidacionesSelected" [indeterminate]="someLiquidacionesSelected" (change)="toggleAllLiquidaciones($any($event.target).checked)" />
+      <span>Seleccionar todas las liquidaciones</span>
+    </label>
+    <div class="bulk-actions-right">
+      <span class="bulk-selected-count">{{ selectedLiquidacionIds.size }} seleccionadas</span>
+      <button type="button" class="icon-action-btn icon-action-recalculate" (click)="recalcularSeleccionadas()" [disabled]="!hasSelectedLiquidaciones || savingBulk" aria-label="Recalcular seleccionadas" title="Recalcular seleccionadas">
+        <i class="bi" [ngClass]="savingBulk ? 'bi-arrow-repeat icon-spin' : 'bi-calculator'"></i>
+      </button>
+      <button type="button" class="icon-action-btn icon-action-review" (click)="cambiarEstadoSeleccionadas('revision')" [disabled]="!hasSelectedLiquidaciones || savingBulk" aria-label="Pasar a revisión" title="Pasar a revisión">
+        <i class="bi bi-arrow-right-circle"></i>
+      </button>
+      <button type="button" class="icon-action-btn icon-action-close" (click)="cambiarEstadoSeleccionadas('cerrada')" [disabled]="!hasSelectedLiquidaciones || savingBulk" aria-label="Pasar a cerrada" title="Pasar a cerrada">
+        <i class="bi bi-lock-fill"></i>
+      </button>
+      <button type="button" class="icon-action-btn icon-action-delete" (click)="eliminarSeleccionadas()" [disabled]="!hasSelectedLiquidaciones || savingBulk" aria-label="Borrar seleccionadas" title="Borrar seleccionadas">
+        <i class="bi bi-trash"></i>
+      </button>
+    </div>
+  </div>
+
+  <app-loading-spinner [visible]="loading" [centered]="true" text="Cargando liquidaciones..."></app-loading-spinner>
+  <div *ngIf="errorMsg" class="alert-error">{{ errorMsg }}</div>
+
+  <div class="table-wrap" *ngIf="!loading">
+    <table class="liquidaciones-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Empleado</th>
+          <th>Período</th>
+          <th>Fecha</th>
+          <th>Totales</th>
+          <th>Estado</th>
+          <th>Revisión</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let liq of liquidaciones">
+          <td>
+            <input type="checkbox" [checked]="isLiquidacionSelected(liq)" (change)="toggleLiquidacion(liq, $any($event.target).checked)" />
+          </td>
+          <td>
+            <div class="employee-cell">
+              <div class="employee-avatar" *ngIf="employeePhotoUrl(liq); else employeeFallbackAvatar">
+                <img [src]="employeePhotoUrl(liq)!" alt="Foto del empleado" />
+              </div>
+              <ng-template #employeeFallbackAvatar>
+                <div class="employee-avatar employee-avatar-fallback">
+                  <span>{{ (liq.empleado_apellido || liq.empleado?.apellido || liq.apellido || liq.empleado_nombre || liq.nombre || 'L').charAt(0) }}</span>
+                </div>
+              </ng-template>
+              <div>
+                <strong>{{ liq.empleado_apellido || liq.empleado?.apellido || liq.apellido || '' }} {{ liq.empleado_nombre || liq.empleado?.nombre || liq.nombre || 'Liquidación' }}</strong>
+                <div class="muted">{{ liq.empleado?.legajo || liq.legajo || '' }}</div>
+              </div>
+            </div>
+          </td>
+          <td>{{ formatPeriodo(liq) }}</td>
+          <td>{{ formatFecha(liq) }}</td>
+          <td>
+            <div class="totals-stack">
+              <span>Haberes {{ liq.total_haberes | number:'1.2-2' }}</span>
+              <span>Desc. {{ liq.total_descuentos | number:'1.2-2' }}</span>
+              <span>Neto {{ liq.total_neto | number:'1.2-2' }}</span>
+            </div>
+          </td>
+          <td>
+            <span class="state-badge" [ngClass]="estadoClass(liq)" [title]="estadoBadgeLabel(liq)">{{ estadoInfo(liq).nombre }}</span>
+            <div class="muted state-desc" *ngIf="estadoInfo(liq).descripcion">{{ estadoInfo(liq).descripcion }}</div>
+          </td>
+          <td><span class="review-badge" *ngIf="liq.requiere_revision || liq.tiene_observaciones">Revisión</span></td>
+          <td>
+            <div class="row-actions">
+              <button type="button" class="icon-action-btn icon-action-detail" (click)="openDetalle(liq)" aria-label="Ver detalle" title="Ver detalle">
+                <i class="bi bi-eye"></i>
+              </button>
+              <button type="button" class="icon-action-btn icon-action-recalculate" *ngIf="canRecalcular(liq)" (click)="recalcularLiquidacion(liq)" [disabled]="isRecalculating(liq)" aria-label="Recalcular liquidación" title="Recalcular liquidación">
+                <i class="bi" [ngClass]="isRecalculating(liq) ? 'bi-arrow-repeat icon-spin' : 'bi-calculator'"></i>
+              </button>
+              <button type="button" class="icon-action-btn icon-action-review" *ngIf="canChangeToRevision(liq)" (click)="abrirCambioEstadoIndividual(liq, 'revision')" aria-label="Pasar a revisión" title="Pasar a revisión">
+                <i class="bi bi-arrow-right-circle"></i>
+              </button>
+              <button type="button" class="icon-action-btn icon-action-close" *ngIf="canChangeToCerrada(liq)" (click)="abrirCambioEstadoIndividual(liq, 'cerrada')" aria-label="Pasar a cerrada" title="Pasar a cerrada">
+                <i class="bi bi-lock-fill"></i>
+              </button>
+              <button type="button" class="icon-action-btn icon-action-reopen" *ngIf="canReabrir(liq)" (click)="reabrirLiquidacion(liq)" aria-label="Reabrir liquidación" title="Reabrir liquidación">
+                <i class="bi bi-arrow-counterclockwise"></i>
+              </button>
+              <button type="button" class="icon-action-btn icon-action-annul" *ngIf="canAnular(liq)" (click)="anularLiquidacion(liq)" aria-label="Anular liquidación" title="Anular liquidación">
+                <i class="bi bi-slash-circle"></i>
+              </button>
+              <button type="button" class="icon-action-btn icon-action-delete" *ngIf="canDelete(liq)" (click)="eliminarLiquidacion(liq)" aria-label="Borrar liquidación" title="Borrar liquidación">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="empty-state" *ngIf="!loading && liquidaciones.length === 0">No hay liquidaciones para mostrar.</div>
+
+  <section class="detail-panel" *ngIf="detalleVisible">
+    <div class="detail-head">
+      <h2>Detalle de liquidación de {{ detalleNombreCompleto() }}</h2>
+      <button type="button" class="btn-secondary" (click)="detalleVisible = false">Cerrar</button>
+    </div>
+    <div *ngIf="loadingDetail" class="detail-loading">Cargando detalle...</div>
+    <div *ngIf="!loadingDetail && detalleLoadingError" class="alert-error">{{ detalleLoadingError }}</div>
+    <ng-container *ngIf="!loadingDetail && detalle && !detalleLoadingError">
+      <div class="detail-employee-hero">
+        <div class="employee-cell employee-cell-detail">
+          <div class="employee-avatar employee-avatar-large" *ngIf="detalleFotoUrl; else detailFallbackAvatar">
+            <img [src]="detalleFotoUrl" alt="Foto del empleado" />
+          </div>
+          <ng-template #detailFallbackAvatar>
+            <div class="employee-avatar employee-avatar-large employee-avatar-fallback">
+              <span>{{ detalleNombreCompleto().charAt(0) || 'E' }}</span>
+            </div>
+          </ng-template>
+          <div>
+            <p class="detail-employee-label">Empleado</p>
+            <strong class="detail-employee-name">{{ detalleNombreCompleto() }}</strong>
+            <div class="muted">{{ detalle?.empleado?.legajo || detalle?.empleado?.legajo_id || detalle?.empleado_label || '-' }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-summary-grid">
+        <div class="summary-box"><span>Empleado</span><strong>{{ detalleNombreCompleto() }}</strong></div>
+        <div class="summary-box"><span>Período</span><strong>{{ detallePeriodo }}</strong></div>
+        <div class="summary-box"><span>Estado</span><strong>{{ detalleEstado }}</strong></div>
+        <div class="summary-box"><span>Revisión</span><strong>{{ detalleRequiereRevision ? 'Sí' : 'No' }}</strong></div>
+      </div>
+
+      <div class="detail-summary-grid totals-grid">
+        <div class="summary-box"><span>Total haberes</span><strong>{{ detalleTotales.total_haberes | number:'1.2-2' }}</strong></div>
+        <div class="summary-box"><span>Total descuentos</span><strong>{{ detalleTotales.total_descuentos | number:'1.2-2' }}</strong></div>
+        <div class="summary-box"><span>Total neto</span><strong>{{ detalleTotales.total_neto | number:'1.2-2' }}</strong></div>
+        <div class="summary-box"><span>Costo empresa</span><strong>{{ detalleTotales.total_costo_empresa | number:'1.2-2' }}</strong></div>
+      </div>
+
+      <div class="detail-meta-row">
+        <span>Conceptos: {{ detalle?.meta?.cantidad_conceptos || 0 }}</span>
+        <span>Con revisión: {{ detalle?.meta?.cantidad_conceptos_con_revision || 0 }}</span>
+        <span>Calculado en: {{ detalle?.liquidacion?.calculado_en || '-' }}</span>
+      </div>
+
+      <div class="detail-table-wrap" *ngIf="detalle?.detalle?.length">
+        <table class="detail-table">
+          <thead>
+            <tr>
+              <th>Concepto</th>
+              <th>Fórmula</th>
+              <th class="align-right">Original</th>
+              <th class="align-right">Importe</th>
+              <th class="align-right">Cantidad</th>
+              <th>Tope / Observación</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of detalle.detalle">
+              <td>
+                <strong>{{ item.codigo_concepto || '-' }}</strong>
+                <div class="muted">{{ item.nombre_concepto || '-' }}</div>
+              </td>
+              <td>
+                <span class="formula-badge">{{ item.formula_tipo || item.formula_tipo_id || '-' }}</span>
+              </td>
+              <td class="align-right">{{ item.importe_original | number:'1.2-2' }}</td>
+              <td class="align-right">{{ item.importe | number:'1.2-2' }}</td>
+              <td class="align-right">{{ item.cantidad ?? 1 }}</td>
+              <td>
+                <div class="detail-note" *ngIf="item.tope_aplicado_id">Tope {{ item.tope_aplicado_id }}</div>
+                <div class="detail-note warning" *ngIf="item.requiere_revision">Requiere revisión</div>
+                <div class="detail-note" *ngIf="item.advertencia">{{ item.advertencia }}</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </ng-container>
+  </section>
+
+  <app-modal-alerta
+    [visible]="modalVisible"
+    [titulo]="modalTitle"
+    [icono]="modalIcon"
+    [mostrarSpinner]="modalSpinner"
+    [bloquearCierre]="modalBlock"
+    [esConfirmacion]="true"
+    [accentColor]="'#0f766e'"
+    [buttonColor]="'#0f766e'"
+    (cerrar)="onModalClose($event)">
+    <div>{{ modalMessage }}</div>
+    <div *ngIf="modalReasonRequired" class="modal-reason-wrap">
+      <label class="modal-reason-label">Motivo</label>
+      <textarea [(ngModel)]="modalReason" rows="3" class="modal-reason-input" placeholder="Escribí el motivo..." [disabled]="modalSpinner"></textarea>
+    </div>
+  </app-modal-alerta>
 </section>

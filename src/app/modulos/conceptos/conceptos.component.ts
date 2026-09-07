@@ -72,6 +72,17 @@ export class ConceptosComponent implements OnInit {
       }, (err) => { console.error('Error cargando conceptos', err); });
   }
 
+  formulaTipoLabel(concepto: any): string {
+    const ft = concepto?.formula_tipo;
+    if (!ft) return '-';
+    const codigo = ft?.codigo ?? ft?.clave ?? '';
+    const nombre = ft?.nombre ?? ft?.descripcion ?? ft?.label ?? '';
+    const id = ft?.formula_tipo_id ?? ft?.id ?? concepto?.formula_tipo_id ?? null;
+    const left = codigo ? String(codigo) : (id !== null && id !== undefined ? String(id) : '');
+    const right = nombre ? String(nombre) : '';
+    return [left, right].filter(Boolean).join(' - ') || '-';
+  }
+
   get conceptosFiltrados() {
     const q = (this.filtros.nombre || '').toString().trim().toLowerCase();
     const tipo = (this.filtros.tipo || '').toString().trim();
