@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize, timeout, catchError, of } from 'rxjs';
 import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
 import { ModalAlertaComponent } from '../../shared/modal-alerta.component';
@@ -45,12 +45,20 @@ export class ListadoComponent implements OnInit {
     | { kind: 'annul'; liquidacionId: number }
     | null = null;
   filtros = { periodo: '', empleado: '', tipo: '', estado: '' };
+  private empleadoIdFiltro: string = '';
 
-  constructor(private svc: LiquidacionesService, private cdr: ChangeDetectorRef) {}
+  constructor(private svc: LiquidacionesService, private route: ActivatedRoute, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     this.loadEstados();
-    this.load();
+    this.route.queryParamMap.subscribe((params) => {
+      this.empleadoIdFiltro = String(params.get('empleado_id') || '').trim();
+      const empleado = String(params.get('empleado') || '').trim();
+      if (this.empleadoIdFiltro || empleado) {
+        this.filtros.empleado = empleado || this.filtros.empleado;
+      }
+      this.load();
+    });
   }
 
   loadEstados(): void {
@@ -72,7 +80,15 @@ export class ListadoComponent implements OnInit {
     this.errorMsg = '';
     try { this.cdr.detectChanges(); } catch {}
 
-    this.svc.list(this.filtros).pipe(
+    const params: Record<string, string> = {
+      periodo: this.filtros.periodo,
+      empleado: this.filtros.empleado,
+      tipo: this.filtros.tipo,
+      estado: this.filtros.estado
+    };
+    if (this.empleadoIdFiltro) params['empleado_id'] = this.empleadoIdFiltro;
+
+    this.svc.list(params).pipe(
       timeout(15000),
       catchError((err) => {
         return of({ error: err });
@@ -91,7 +107,7 @@ export class ListadoComponent implements OnInit {
         }
 
         const items = Array.isArray(res) ? res : (res?.data || res?.items || res?.liquidaciones || []);
-        this.liquidaciones = items;
+        this.liquidaciones = this.applyClientFilters(items);
         this.syncSelectionWithCurrentList();
         this.errorMsg = '';
         try { this.cdr.detectChanges(); } catch {}
@@ -101,6 +117,18 @@ export class ListadoComponent implements OnInit {
         this.liquidaciones = [];
         try { this.cdr.detectChanges(); } catch {}
       }
+    });
+  }
+
+  private applyClientFilters(items: any[]): any[] {
+    const empleadoFiltro = this.normalize(this.filtros.empleado);
+    if (!empleadoFiltro && !this.empleadoIdFiltro) return items;
+    return items.filter((item) => {
+      const empleadoId = String(item?.empleado_id ?? item?.empleado?.id ?? '').trim();
+      const empleadoLabel = this.normalize(`${item?.empleado_label || ''} ${item?.empleado?.apellido || ''} ${item?.empleado?.nombre || ''} ${item?.empleado?.legajo || ''}`);
+      if (this.empleadoIdFiltro && empleadoId === this.empleadoIdFiltro) return true;
+      if (empleadoFiltro && empleadoLabel.includes(empleadoFiltro)) return true;
+      return false;
     });
   }
 
@@ -702,7 +730,7 @@ export class ListadoComponent implements OnInit {
     const id = Number(liquidacion?.liquidacion_id ?? liquidacion?.id ?? 0);
     if (!id) return;
     this.loadingDetail = true;
-    this.detalleVisible = true;
+    this.detalleVisible = false;
     this.detalleLoadingError = '';
     this.detalle = null;
     this.detalleNormalizado = null;
@@ -719,9 +747,11 @@ export class ListadoComponent implements OnInit {
       })
     ).subscribe({
       next: (res: any) => {
+        this.loadingDetail = false;
         if (res && res.error) {
           this.detalleLoadingError = this.extractHttpErrorMessage(res.error, 'No se pudo cargar el detalle.');
           this.detalle = null;
+          this.detalleVisible = true;
           try { this.cdr.detectChanges(); } catch {}
           return;
         }
@@ -729,12 +759,15 @@ export class ListadoComponent implements OnInit {
         this.detalle = res?.data || res || null;
         this.detalleNormalizado = this.normalizeDetalle(this.detalle, liquidacion);
         this.detalleLoadingError = '';
+        this.detalleVisible = true;
         try { this.cdr.detectChanges(); } catch {}
       },
       error: (err) => {
         this.detalle = null;
         this.detalleNormalizado = null;
         this.detalleLoadingError = this.extractHttpErrorMessage(err, 'No se pudo cargar el detalle.');
+        this.loadingDetail = false;
+        this.detalleVisible = true;
         try { this.cdr.detectChanges(); } catch {}
       }
     });
@@ -746,7 +779,15 @@ export class ListadoComponent implements OnInit {
   }
 
   get detallePeriodo(): string {
-    return this.detalleNormalizado?.liquidacion?.periodo || this.detalleNormalizado?.periodo || '-';
+    const raw = String(this.detalleNormalizado?.liquidacion?.periodo || this.detalleNormalizado?.periodo || '').trim();
+    if (!raw) return '-';
+    const match = raw.match(/^(\d{4})[-/](\d{1,2})$/);
+    if (match) {
+      return `${match[1]} / ${Number(match[2])}`;
+    }
+    const yearOnly = raw.match(/^(\d{4})$/);
+    if (yearOnly) return `${yearOnly[1]} / -`;
+    return raw;
   }
 
   get detalleEstado(): string {
@@ -778,8 +819,17 @@ export class ListadoComponent implements OnInit {
   private normalizeDetalle(data: any, liquidacion: any): any {
     const source = data?.data || data || {};
     const empleado = source?.empleado || source?.empleada || source?.empleado_detalle || source?.persona || liquidacion?.empleado || {};
+    const periodoRaw = String(source?.periodo || liquidacion?.periodo || `${liquidacion?.anio || ''}${liquidacion?.anio && liquidacion?.mes ? '-' : ''}${liquidacion?.mes || ''}` || '').trim();
+    let periodo = periodoRaw || '-';
+    const periodoMatch = periodoRaw.match(/^(\d{4})[-/](\d{1,2})(?:[-/].*)?$/);
+    if (periodoMatch) {
+      periodo = `${periodoMatch[1]} / ${Number(periodoMatch[2])}`;
+    } else {
+      const yearOnly = periodoRaw.match(/^(\d{4})$/);
+      if (yearOnly) periodo = `${yearOnly[1]} / -`;
+    }
     const liquidacionInfo = source?.liquidacion || source?.cabecera || source?.header || {
-      periodo: source?.periodo || liquidacion?.periodo || `${liquidacion?.anio || ''}${liquidacion?.anio && liquidacion?.mes ? '-' : ''}${liquidacion?.mes || ''}` || '-',
+      periodo,
       estado: source?.estado || liquidacion?.estado || liquidacion?.estado_nombre || '-',
       calculado_en: source?.calculado_en || source?.fecha_calculo || liquidacion?.calculado_en || null
     };
@@ -911,5 +961,123 @@ export class ListadoComponent implements OnInit {
     const apellido = this.detalleNormalizado?.empleado_apellido || this.detalleNormalizado?.empleado?.apellido || '';
     const nombre = this.detalleNormalizado?.empleado_nombre || this.detalleNormalizado?.empleado?.nombre || '';
     return [apellido, nombre].filter(Boolean).join(' ').trim() || this.detalleNormalizado?.empleado_label || '-';
+  }
+
+  imprimirDetalle(liquidacion?: any): void {
+    this.openDetalleEnVentana('print', liquidacion);
+  }
+
+  descargarDetallePdf(liquidacion?: any): void {
+    this.openDetalleEnVentana('pdf', liquidacion);
+  }
+
+  private openDetalleEnVentana(mode: 'print' | 'pdf', liquidacion?: any): void {
+    const detalleBase = liquidacion ? this.normalizeDetalle(this.detalle || liquidacion, liquidacion) : this.detalleNormalizado;
+    if (!detalleBase || this.loadingDetail) return;
+
+    const conceptos = Array.isArray(detalleBase?.detalle) ? detalleBase.detalle : [];
+    const html = `
+      <html>
+        <head>
+          <title>Recibo de liquidación</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 24px; color: #0f172a; }
+            h1 { font-size: 20px; margin: 0 0 8px; }
+            .meta { margin-bottom: 18px; color: #475569; font-size: 13px; }
+            .box { border: 1px solid #dbe2ea; border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; }
+            .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+            .row { margin: 6px 0; }
+            .label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #64748b; margin-bottom: 2px; }
+            .value { font-size: 14px; font-weight: 700; }
+            table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+            th, td { border: 1px solid #e2e8f0; padding: 8px; font-size: 12px; text-align: left; vertical-align: top; }
+            th { background: #f8fafc; }
+            .right { text-align: right; }
+            .footer { margin-top: 18px; font-size: 11px; color: #64748b; }
+            @media print { body { margin: 12mm; } }
+          </style>
+        </head>
+        <body>
+          <h1>Recibo de liquidación</h1>
+          <div class="meta">${this.escapeHtml(detalleBase.empleado_label || this.detalleNombreCompleto())} | ${this.escapeHtml(this.detallePeriodo)} | ${this.escapeHtml(this.detalleEstado)}</div>
+          <div class="box">
+            <div class="grid">
+              <div class="row"><span class="label">Empleado</span><span class="value">${this.escapeHtml(detalleBase.empleado_label || this.detalleNombreCompleto())}</span></div>
+              <div class="row"><span class="label">Periodo de liquidación</span><span class="value">${this.escapeHtml(this.detallePeriodo)}</span></div>
+              <div class="row"><span class="label">Estado</span><span class="value">${this.escapeHtml(this.detalleEstado)}</span></div>
+              <div class="row"><span class="label">Revisión</span><span class="value">${this.detalleRequiereRevision ? 'Sí' : 'No'}</span></div>
+            </div>
+          </div>
+          <div class="box">
+            <div class="grid">
+              <div class="row"><span class="label">Total haberes</span><span class="value">${this.formatMoney(this.detalleTotales?.total_haberes)}</span></div>
+              <div class="row"><span class="label">Total descuentos</span><span class="value">${this.formatMoney(this.detalleTotales?.total_descuentos)}</span></div>
+              <div class="row"><span class="label">Total neto</span><span class="value">${this.formatMoney(this.detalleTotales?.total_neto)}</span></div>
+              <div class="row"><span class="label">Costo empresa</span><span class="value">${this.formatMoney(this.detalleTotales?.total_costo_empresa)}</span></div>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Concepto</th>
+                <th>Fórmula</th>
+                <th>Tipo</th>
+                <th class="right">Original</th>
+                <th class="right">Importe</th>
+                <th class="right">Cantidad</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${conceptos.map((item: any) => `
+                <tr>
+                  <td><strong>${this.escapeHtml(String(item?.codigo_concepto || '-'))}</strong><br>${this.escapeHtml(String(item?.nombre_concepto || '-'))}</td>
+                  <td>${this.escapeHtml(String(item?.formula_tipo || item?.formula_tipo_id || '-'))}</td>
+                  <td><span class="receipt-flag ${String(item?.suma_resta ?? '').toUpperCase() === 'R' ? 'receipt-flag-resta' : 'receipt-flag-suma'}">${String(item?.suma_resta ?? '').toUpperCase() === 'R' ? 'Resta' : 'Suma'}</span></td>
+                  <td class="right">${this.formatMoney(item?.importe_original)}</td>
+                  <td class="right">${this.formatMoney(item?.importe)}</td>
+                  <td class="right">${this.formatQuantity(item?.cantidad ?? 1)}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+          <div class="footer">Generado el ${new Date().toLocaleString('es-AR')}</div>
+        </body>
+      </html>
+    `;
+
+    const win = window.open('', '_blank', 'noopener,noreferrer');
+    if (!win) {
+      this.errorMsg = 'El navegador bloqueó la apertura de la ventana de impresión.';
+      return;
+    }
+
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    win.onload = () => {
+      win.print();
+      if (mode === 'pdf') {
+        setTimeout(() => win.close(), 300);
+      }
+    };
+  }
+
+  private formatMoney(value: any): string {
+    const number = Number(value ?? 0);
+    return Number.isFinite(number) ? number.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00';
+  }
+
+  private formatQuantity(value: any): string {
+    const number = Number(value ?? 0);
+    return Number.isFinite(number) ? number.toLocaleString('es-AR', { maximumFractionDigits: 0 }) : '0';
+  }
+
+  private escapeHtml(value: string): string {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 }

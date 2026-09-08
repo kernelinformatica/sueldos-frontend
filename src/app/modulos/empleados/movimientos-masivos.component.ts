@@ -8,6 +8,7 @@ import { of } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { LoadingService } from '../../shared/loading-spinner/loading.service';
+import { LiquidacionesAnaliticaService } from './liquidaciones-analitica.service';
 
 @Component({
   selector: 'app-movimientos-masivos',
@@ -35,6 +36,14 @@ export class MovimientosMasivosComponent implements OnInit {
   loading = false;
   result: any = null;
   assignSummary: any[] = [];
+  analyticsLoading = false;
+  analyticsError = '';
+  analyticsLoaded = false;
+  analyticsResumen: any = null;
+  analyticsTop: any[] = [];
+  analyticsSectores: any[] = [];
+  analyticsFilters = { periodo_desde: '', periodo_hasta: '', liquidacion_tipo_id: null as number | null };
+  liquidacionTipos: any[] = [];
   // last payload enviado, usado para reintentos por empleado
   lastPayload: any = null;
   // Modal state for showing success/error messages from backend
@@ -55,7 +64,8 @@ export class MovimientosMasivosComponent implements OnInit {
     private http: HttpClient,
     private cdr: ChangeDetectorRef,
     private loadingService: LoadingService
-    , private auth: AuthService
+    , private auth: AuthService,
+    private analyticsSvc: LiquidacionesAnaliticaService
   ) {
     this.filterForm = this.fb.group({
       q: [''],
@@ -70,6 +80,7 @@ export class MovimientosMasivosComponent implements OnInit {
     this.loadConceptos();
     this.cargarEmpleados();
     this.cargarCatalogos();
+    this.loadLiquidacionTipos();
     // cuando cambia sucursal en filtros, cargar secciones por sucursal
     this.filterForm.get('sucursal_id')?.valueChanges.subscribe((val) => {
       const id = Number(val ?? null);
@@ -91,6 +102,113 @@ export class MovimientosMasivosComponent implements OnInit {
         this.cargos = [];
       }
     });
+  }
+
+  loadLiquidacionTipos(): void {
+    this.http.get<any>(`${environment.apiUrl}/api/liquidacion-tipos`).pipe(catchError(() => of([] as any[]))).subscribe((res) => {
+      const items = Array.isArray(res) ? res : (res?.data || res?.items || []);
+      this.liquidacionTipos = items || [];
+    });
+  }
+
+  loadAnalytics(): void {
+    this.analyticsLoading = true;
+    this.analyticsLoaded = true;
+    this.analyticsError = '';
+    this.analyticsSvc.getResumen({
+      periodo_desde: this.analyticsFilters.periodo_desde || undefined,
+      periodo_hasta: this.analyticsFilters.periodo_hasta || undefined,
+      liquidacion_tipo_id: this.analyticsFilters.liquidacion_tipo_id || undefined
+    }).pipe(finalize(() => { this.analyticsLoading = false; this.cdr.detectChanges(); })).subscribe({
+      next: (res: any) => {
+        if (res?.error) {
+          this.analyticsError = 'No se pudo cargar la analítica de liquidaciones.';
+          this.analyticsTop = [];
+          this.analyticsSectores = [];
+          this.analyticsResumen = null;
+          return;
+        }
+        this.analyticsResumen = res || {};
+        this.analyticsTop = Array.isArray(res?.top_salarios) ? [...res.top_salarios].sort((a, b) => Number(b?.sueldo ?? 0) - Number(a?.sueldo ?? 0)).slice(0, 5) : [];
+        this.analyticsSectores = Array.isArray(res?.por_sector) ? res.por_sector : [];
+      },
+      error: () => {
+        this.analyticsError = 'No se pudo cargar la analítica de liquidaciones.';
+        this.analyticsResumen = null;
+        this.analyticsTop = [];
+        this.analyticsSectores = [];
+      }
+    });
+  }
+
+  applyAnalyticsFilters(): void {
+    this.loadAnalytics();
+  }
+
+  clearAnalyticsFilters(): void {
+    this.analyticsFilters = { periodo_desde: '', periodo_hasta: '', liquidacion_tipo_id: null };
+    this.loadAnalytics();
+  }
+
+  hasAnalyticsData(): boolean {
+    return !!this.analyticsResumen || this.analyticsTop.length > 0 || this.analyticsSectores.length > 0;
+  }
+
+  analyticsReady(): boolean {
+    return this.hasAnalyticsData() && !this.analyticsError;
+  }
+
+  sortedTopSalarios(): any[] {
+    return [...this.analyticsTop].sort((a, b) => Number(b?.sueldo ?? 0) - Number(a?.sueldo ?? 0));
+  }
+
+  topSalaryMax(): number {
+    return Math.max(...this.sortedTopSalarios().map((item) => Number(item?.sueldo ?? 0)), 1);
+  }
+
+  topSalaryWidth(value: any): string {
+    const current = Number(value ?? 0);
+    return `${Math.max(8, Math.round((current / this.topSalaryMax()) * 100))}%`;
+  }
+
+  sectorMax(): number {
+    return Math.max(...this.analyticsSectores.map((item) => Number(item?.promedio ?? 0)), 1);
+  }
+
+  sectorWidth(value: any): string {
+    const current = Number(value ?? 0);
+    return `${Math.max(8, Math.round((current / this.sectorMax()) * 100))}%`;
+  }
+
+  analyticsSummaryCards(): Array<{ label: string; value: number; tone: string; subtitle: string }> {
+    return [
+      { label: 'Promedio de liquidación', value: Number(this.analyticsResumen?.promedio ?? 0), tone: 'blue', subtitle: 'Monto promedio por empleado' },
+      { label: 'Mediana de liquidación', value: Number(this.analyticsResumen?.mediana ?? 0), tone: 'indigo', subtitle: 'Valor central del reparto' },
+      { label: 'Mayor liquidación', value: Number(this.analyticsResumen?.maximo ?? 0), tone: 'green', subtitle: 'Empleado con mayor monto' },
+      { label: 'Menor liquidación', value: Number(this.analyticsResumen?.minimo ?? 0), tone: 'red', subtitle: 'Empleado con menor monto' },
+      { label: 'Brecha salarial', value: Number(this.analyticsResumen?.diferencia ?? 0), tone: 'amber', subtitle: 'Diferencia entre extremos' }
+    ];
+  }
+
+  rankColor(index: number): string {
+    const palette = ['#2563eb', '#0ea5e9', '#8b5cf6', '#14b8a6', '#f59e0b'];
+    return palette[index % palette.length];
+  }
+
+  formatMoney(value: any): string {
+    const num = Number(value ?? 0);
+    try { return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(num); } catch { return String(num); }
+  }
+
+  formatPercent(value: any): string {
+    const num = Number(value ?? 0);
+    return `${num.toFixed(2)}%`;
+  }
+
+  analyticsBarWidth(value: any): string {
+    const max = Math.max(...this.analyticsSectores.map((item) => Number(item?.promedio ?? 0)), 1);
+    const current = Number(value ?? 0);
+    return `${Math.max(6, Math.round((current / max) * 100))}%`;
   }
 
   cargarCatalogos(): void {

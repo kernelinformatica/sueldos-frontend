@@ -3,7 +3,6 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { LoadingService } from '../../shared/loading-spinner/loading.service';
-import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
 import { ModalAlertaComponent } from '../../shared/modal-alerta.component';
 import { EmpleadosAsignarConceptoComponent } from './empleados-asignar-concepto.component';
 import { EmpleadosConceptosService } from './empleados-conceptos.service';
@@ -19,8 +18,12 @@ interface ConceptoPersonal {
   vigenciaDesde: string;
   importe_fijo?: string | number | null;
   unidades?: number | null;
+  formula_tipo?: { formula_tipo_id?: number; codigo?: string; nombre?: string; descripcion?: string; orden?: number; activo?: number | boolean } | null;
+  formula_tipo_id?: number | null;
+  grupo?: { grupo_id?: number; nombre?: string; descripcion?: string; codigo?: string; orden?: number; permite_importe_fijo?: number | boolean; es_default_sistema?: number | boolean } | null;
   tipo_concepto?: { tipo_concepto_id?: number; codigo?: string; nombre?: string } | null;
-  grupo?: { grupo_id?: number; nombre?: string } | null;
+  suma_resta?: string | null;
+  es_sueldo_basico?: number | boolean | null;
 }
 
 interface EmpleadoFichaResponse {
@@ -34,6 +37,9 @@ interface EmpleadoFichaResponse {
   estado?: string | number;
   fecha_ingreso?: string | null;
   fecha_egreso?: string | null;
+  foto?: string | null;
+  foto_url_publica?: string | null;
+  url_publica?: string | null;
   seccion?: { nombre?: string };
   cargo?: { nombre?: string };
   sucursal?: { nombre?: string };
@@ -43,7 +49,7 @@ interface EmpleadoFichaResponse {
 @Component({
   selector: 'app-empleados-conceptos',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, LoadingSpinnerComponent, EmpleadosAsignarConceptoComponent, ModalAlertaComponent],
+  imports: [CommonModule, FormsModule, RouterLink, EmpleadosAsignarConceptoComponent, ModalAlertaComponent],
 
   templateUrl: './empleados-conceptos.component.html',
   styleUrls: ['./empleados-conceptos.component.scss']
@@ -62,6 +68,9 @@ export class EmpleadosConceptosComponent {
   showAsignar = false;
   conceptosDisponibles: any[] = [];
   conceptosAsignadosBackend: any[] = [];
+  editingConceptoId: number | null = null;
+  editingUnidades: string = '';
+  editingImporte: string = '';
   selectedConceptos = new Set<number>();
   selectAll = false;
   // modal alerta
@@ -72,6 +81,7 @@ export class EmpleadosConceptosComponent {
   modalSpinner = false;
   modalBlock = false;
   modalTextoSpinner = 'Procesando...';
+  private employeeAvatarMissing = false;
 
   constructor(private http: HttpClient, private route: ActivatedRoute, private cdr: ChangeDetectorRef, private loadingService: LoadingService, private conceptosSvc: EmpleadosConceptosService) {}
 
@@ -99,24 +109,34 @@ export class EmpleadosConceptosComponent {
         this.conceptosAsignadosBackend = items.map((it: any) => {
           const concepto = it.concepto ?? it;
           const empleadoConceptoId = it.empleado_concepto_id ?? it.empleadoConceptoId ?? null;
+          const conceptoId = concepto.concepto_id ?? it.concepto_id ?? concepto.id ?? null;
           const orden = ((it.orden ?? concepto.orden ?? 0) || 0);
           return {
-            id: empleadoConceptoId ?? concepto.concepto_id ?? it.concepto_id ?? it.id ?? null,
+            id: empleadoConceptoId ?? conceptoId ?? it.id ?? null,
+            concepto_id: conceptoId,
             empleado_concepto_id: empleadoConceptoId,
-            nombre: concepto.descripcion ?? concepto.detalle ?? concepto.nombre ?? String(concepto.concepto_id ?? concepto.id ?? ''),
+            nombre: concepto.descripcion ?? concepto.detalle ?? concepto.nombre ?? String(conceptoId ?? ''),
             codigo: concepto.codigo ?? '',
             fecha_asignacion: it.fecha_asignacion ?? it.fecha ?? null,
             // Accept different backend shapes: 'importe', 'importe_fijo' or concepto.importe_fijo
             importe_fijo: (concepto.importe_fijo ?? it.importe_fijo ?? it.importe) ?? 0,
             // Ensure null/undefined unidades fallback to 1
             unidades: (it.unidades ?? concepto.unidades) ?? 1,
+            formula_tipo: concepto.formula_tipo ?? it.formula_tipo ?? null,
+            formula_tipo_id: concepto.formula_tipo_id ?? it.formula_tipo_id ?? null,
             tipo_concepto: concepto.tipo_concepto ?? it.tipo_concepto ?? null,
             grupo: concepto.grupo ?? it.grupo ?? null,
+            suma_resta: concepto.suma_resta ?? it.suma_resta ?? null,
+            es_sueldo_basico: concepto.es_sueldo_basico ?? it.es_sueldo_basico ?? null,
             orden: Number(orden)
           };
         })
-        // ordenar según reglas: primero por `orden` si >0 asc, si orden==0 por `codigo`, finalmente por `fecha_asignacion`
+        // ordenar según prioridad del tipo de concepto y usar los demás campos como desempate
         .sort((a: any, b: any) => {
+          const ap = Number(a.tipo_concepto?.prioridad ?? 9999);
+          const bp = Number(b.tipo_concepto?.prioridad ?? 9999);
+          if (ap !== bp) return ap - bp;
+
           const ao = Number(a.orden || 0);
           const bo = Number(b.orden || 0);
           if (ao > 0 || bo > 0) {
@@ -255,6 +275,14 @@ export class EmpleadosConceptosComponent {
     return text || 'E';
   }
 
+  get fotoEmpleadoUrl(): string {
+    return this.resolvePublicUrl(this.empleado?.foto_url_publica || this.empleado?.url_publica || this.empleado?.foto || '');
+  }
+
+  get tieneFotoEmpleado(): boolean {
+    return !!this.fotoEmpleadoUrl && !this.employeeAvatarMissing;
+  }
+
   formatCurrency(value: string | number | null | undefined): string {
     const num = Number(value ?? NaN);
     if (!Number.isFinite(num)) return '-';
@@ -263,6 +291,68 @@ export class EmpleadosConceptosComponent {
     } catch (e) {
       return String(num);
     }
+  }
+
+  onEmployeeAvatarError(): void {
+    this.employeeAvatarMissing = true;
+  }
+
+  private resolvePublicUrl(url: string): string {
+    const value = String(url || '').trim();
+    if (!value) return '';
+    if (/^(https?:)?\/\//i.test(value) || value.startsWith('data:') || value.startsWith('blob:')) return value;
+    const base = String(environment.apiUrl || '').replace(/\/+$/, '');
+    if (value.startsWith('/')) return `${base}${value}`;
+    return `${base}/${value}`;
+  }
+
+  isFormulaFijo(concepto: any): boolean {
+    const code = String(concepto?.formula_tipo?.codigo ?? concepto?.formula_tipo?.nombre ?? concepto?.formula_tipo?.descripcion ?? '').trim().toUpperCase();
+    return code === 'FIJO' || code.includes('FIJO');
+  }
+
+  startInlineEdit(concepto: any) {
+    if (!this.isFormulaFijo(concepto) || !concepto?.id) return;
+    this.editingConceptoId = concepto.id;
+    this.editingUnidades = String(concepto.unidades ?? 1);
+    this.editingImporte = String(concepto.importe_fijo ?? '');
+  }
+
+  cancelInlineEdit() {
+    this.editingConceptoId = null;
+    this.editingUnidades = '';
+    this.editingImporte = '';
+  }
+
+  saveInlineEdit(concepto: any) {
+    if (!this.empleadoId || (!concepto?.empleado_concepto_id && !concepto?.id) || (!concepto?.concepto_id && !concepto?.concepto?.concepto_id)) return;
+    const unidades = Number(String(this.editingUnidades || '').replace(/,/g, '').trim());
+    const importe = Number(String(this.editingImporte || '').replace(/,/g, '').trim());
+    if (!Number.isFinite(unidades) || unidades <= 0) return;
+    if (!Number.isFinite(importe) || importe < 0) return;
+
+    this.loadingService.show();
+    const conceptoId = Number(concepto.concepto_id ?? concepto.concepto?.concepto_id ?? concepto.concepto?.id);
+    const empleadoConceptoId = Number(concepto.empleado_concepto_id ?? concepto.id);
+    const payload = [{ empleado_concepto_id: empleadoConceptoId, concepto_id: conceptoId, importe, unidades }];
+    console.debug('[EmpleadosConceptos] saveInlineEdit payload', { empleadoConceptoId, conceptoId, unidades, importe, payload });
+    this.conceptosSvc.assignConceptos(this.empleadoId, payload, 'web', { includeConceptoIds: false })
+      .pipe(finalize(() => this.loadingService.hide()))
+      .subscribe({
+        next: () => {
+          this.loadAsignados(this.empleadoId);
+          this.cancelInlineEdit();
+        },
+        error: (err) => {
+          console.error('Error guardando concepto fijo', err);
+          this.modalTitle = 'Error';
+          this.modalMessage = err?.error?.mensaje || 'No se pudo guardar el concepto.';
+          this.modalIcon = 'exclamation-triangle';
+          this.modalSpinner = false;
+          this.modalBlock = false;
+          this.modalVisible = true;
+        }
+      });
   }
 
   private cargarEmpleado(id: number): void {
@@ -302,7 +392,13 @@ export class EmpleadosConceptosComponent {
           nombre: it.descripcion ?? it.detalle ?? it.nombre ?? String(it.concepto_id ?? it.id ?? ''),
           codigo: it.codigo ?? '',
           descripcion: it.descripcion ?? it.detalle ?? null,
-          importe_fijo: it.importe_fijo ?? null
+          importe_fijo: it.importe_fijo ?? null,
+          formula_tipo: it.formula_tipo ?? null,
+          formula_tipo_id: it.formula_tipo_id ?? null,
+          grupo: it.grupo ?? null,
+          tipo_concepto: it.tipo_concepto ?? null,
+          suma_resta: it.suma_resta ?? null,
+          es_sueldo_basico: it.es_sueldo_basico ?? null
         }));
         try { this.cdr.detectChanges(); } catch {}
       },
@@ -310,11 +406,18 @@ export class EmpleadosConceptosComponent {
     });
   }
 
+  verLiquidacionesEmpleado(): void {
+    if (!this.empleadoId) return;
+    const nombre = this.nombreCompleto;
+    const url = `/sueldos/listado?empleado_id=${encodeURIComponent(String(this.empleadoId))}&empleado=${encodeURIComponent(nombre)}`;
+    window.location.href = url;
+  }
+
   cerrarAsignar() {
     this.showAsignar = false;
   }
 
-  onAsignar(event: { empleadoId: number; conceptoId: number }) {
+  onAsignar(event: { empleadoId: number; conceptoId: number; importeFijo?: number | null; unidades?: number | null }) {
     this.loadingService.show();
     // show modal spinner
     this.modalVisible = true;
@@ -323,7 +426,7 @@ export class EmpleadosConceptosComponent {
     this.modalTitle = 'Procesando';
     this.modalMessage = '';
     this.modalIcon = '';
-    this.conceptosSvc.assignConceptos(event.empleadoId, [event.conceptoId]).pipe(finalize(() => this.loadingService.hide())).subscribe({
+    this.conceptosSvc.assignConceptos(event.empleadoId, [{ concepto_id: event.conceptoId, importe_fijo: event.importeFijo ?? null, unidades: event.unidades ?? null }]).pipe(finalize(() => this.loadingService.hide())).subscribe({
       next: (res: any) => {
         // recargar asignados y la lista de disponibles para reflejar cambios
         this.loadAsignados(this.empleadoId);

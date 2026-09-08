@@ -175,7 +175,7 @@
   </section>
 
   <footer class="ficha-footer">
-    <div *ngIf="assignSummary?.length">
+    <div *ngIf="assignSummary.length">
       <h4>Resumen de asignación masiva</h4>
       <div *ngIf="result?.job_id" class="job-id">Job ID: {{ result.job_id }}</div>
       <div class="summary-list">
@@ -200,13 +200,15 @@
         </div>
       </div>
     </div>
-    <div *ngIf="!assignSummary?.length">
+    <div *ngIf="!assignSummary.length">
       <div *ngIf="result">
         <h4>Resultado</h4>
         <pre>{{ result | json }}</pre>
       </div>
     </div>
   </footer>
+
+  
 
   <!-- Modal para mostrar éxito / error -->
   <div class="modal-backdrop" *ngIf="modalVisible">

@@ -12,6 +12,13 @@ interface ConceptoItem {
   descripcion?: string | null;
   detalle?: string | null;
   importe_fijo?: string | number | null;
+  unidades?: number | string | null;
+  formula_tipo?: { formula_tipo_id?: number; codigo?: string; nombre?: string; descripcion?: string } | null;
+  formula_tipo_id?: number | null;
+  grupo?: { grupo_id?: number; nombre?: string; descripcion?: string; codigo?: string; orden?: number; permite_importe_fijo?: number | boolean; es_default_sistema?: number | boolean } | null;
+  tipo_concepto?: { tipo_concepto_id?: number; codigo?: string; descripcion?: string; prioridad?: number } | null;
+  suma_resta?: string | null;
+  es_sueldo_basico?: number | boolean | null;
   alreadyAssigned?: boolean;
 }
 
@@ -27,12 +34,15 @@ export class EmpleadosAsignarConceptoComponent {
   @Input() conceptosDisponibles: ConceptoItem[] = [];
   @Input() conceptosAsignados: ConceptoItem[] = [];
 
-  @Output() asignar = new EventEmitter<{ empleadoId: number; conceptoId: number }>();
+  @Output() asignar = new EventEmitter<{ empleadoId: number; conceptoId: number; importeFijo?: number | null; unidades?: number | null }>();
   @Output() quitar = new EventEmitter<{ empleadoId: number; conceptoId: number }>();
   @Output() cerrar = new EventEmitter<void>();
 
   seleccionId: number | null | undefined = null;
+  selectedConcepto: ConceptoItem | null = null;
   hoverId: number | null | undefined = null;
+  importeFijo: string = '';
+  unidades: string = '1';
   // búsqueda
   searchTerm = '';
   searchResults: ConceptoItem[] = [];
@@ -50,6 +60,9 @@ export class EmpleadosAsignarConceptoComponent {
     // don't allow selecting an already assigned concepto
     if ((item as any).alreadyAssigned) { this.seleccionId = null; return; }
     this.seleccionId = item.id ?? null;
+    this.selectedConcepto = item;
+    this.importeFijo = this.normalizeAmount(item.importe_fijo);
+    this.unidades = this.normalizeUnits(item.unidades);
     // put the selected name into the input so user can confirm and press Asignar
     this.searchTerm = item.nombre ?? this.searchTerm;
     // hide expanded results after selection for cleaner UX
@@ -90,6 +103,12 @@ export class EmpleadosAsignarConceptoComponent {
           descripcion: it.descripcion ?? null,
           detalle: it.detalle ?? null,
           importe_fijo: it.importe_fijo ?? null,
+          formula_tipo: it.formula_tipo ?? null,
+          formula_tipo_id: it.formula_tipo_id ?? null,
+          grupo: it.grupo ?? null,
+          tipo_concepto: it.tipo_concepto ?? null,
+          suma_resta: it.suma_resta ?? null,
+          es_sueldo_basico: it.es_sueldo_basico ?? null,
           alreadyAssigned: assignedIds.has(id)
         });
       });
@@ -104,7 +123,7 @@ export class EmpleadosAsignarConceptoComponent {
     // Prevent assigning if the selected concepto is already assigned
     const sel = this.searchResults.find(s => s.id === this.seleccionId as any);
     if (sel && (sel as any).alreadyAssigned) { return; }
-    this.asignar.emit({ empleadoId: this.empleadoId, conceptoId: this.seleccionId });
+    this.asignar.emit({ empleadoId: this.empleadoId, conceptoId: this.seleccionId, importeFijo: this.getImporteFijoToSend(), unidades: this.getUnidadesToSend() });
   }
 
   onQuitar(concepto: ConceptoItem) {
@@ -119,6 +138,50 @@ export class EmpleadosAsignarConceptoComponent {
   onSearchInput() {
     // push term into subject for debounced handling
     this.search$.next(String(this.searchTerm || '').trim());
+  }
+
+  get isFormulaFijo(): boolean {
+    const ft = this.selectedConcepto?.formula_tipo;
+    const code = String(ft?.codigo ?? ft?.nombre ?? ft?.descripcion ?? this.selectedConcepto?.nombre ?? '').trim().toUpperCase();
+    return code === 'FIJO' || code.includes('FIJO');
+  }
+
+  get canEditImporteFijo(): boolean {
+    return !!this.selectedConcepto && this.isFormulaFijo;
+  }
+
+  get canEditUnidades(): boolean {
+    return !!this.selectedConcepto && this.isFormulaFijo;
+  }
+
+  private normalizeAmount(value: any): string {
+    if (value === null || value === undefined || value === '') return '';
+    const n = Number(String(value).replace(/,/g, '').trim());
+    return Number.isFinite(n) && n >= 0 ? String(n) : '';
+  }
+
+  private getImporteFijoToSend(): number | null {
+    if (!this.canEditImporteFijo) return null;
+    const raw = String(this.importeFijo || '').trim();
+    if (!raw) return null;
+    const value = Number(raw.replace(/,/g, ''));
+    if (!Number.isFinite(value) || value < 0) return null;
+    return value;
+  }
+
+  private normalizeUnits(value: any): string {
+    if (value === null || value === undefined || value === '') return '1';
+    const n = Number(String(value).replace(/,/g, '').trim());
+    return Number.isFinite(n) && n > 0 ? String(n) : '1';
+  }
+
+  private getUnidadesToSend(): number | null {
+    if (!this.canEditUnidades) return null;
+    const raw = String(this.unidades || '').trim();
+    if (!raw) return null;
+    const value = Number(raw.replace(/,/g, ''));
+    if (!Number.isFinite(value) || value <= 0) return null;
+    return value;
   }
 
   ngOnDestroy(): void {

@@ -14,7 +14,6 @@
 </ng-template>
 
 <div class="concepts-page" *ngIf="!loading; else loadingTpl">
-
   <div class="page-top">
     <div>
       <p class="page-kicker">Ficha personal</p>
@@ -24,16 +23,13 @@
     <a routerLink="/admin/empleados/listado" class="btn-back">Volver al listado</a>
   </div>
 
- <!-- <div class="tabs-bar">
-    <button *ngFor="let tab of tabs" type="button" class="tab-btn" [class.active]="activeTab === tab" (click)="cambiarTab(tab)">
-      {{ tab }}
-    </button>
-  </div>-->
-
   <div class="concepts-layout">
     <aside class="concepts-sidebar">
       <div class="employee-card">
-        <div class="avatar-circle">{{ iniciales }}</div>
+        <div class="avatar-circle avatar-photo" [class.has-photo]="tieneFotoEmpleado">
+          <img *ngIf="tieneFotoEmpleado" [src]="fotoEmpleadoUrl" [alt]="nombreCompleto" (error)="onEmployeeAvatarError()" />
+          <span *ngIf="!tieneFotoEmpleado">{{ iniciales }}</span>
+        </div>
         <div>
           <h4>{{ nombreCompleto }}</h4>
           <p>Legajo {{ empleado?.legajo || '-' }} · {{ documentoLabel }}</p>
@@ -59,18 +55,20 @@
       <div class="side-section">
         <span class="side-label">Acciones</span>
         <button type="button" (click)="abrirAsignar()">Asignar concepto</button>
-        <button type="button">Editar vigencias</button>
-        <button type="button">Ver liquidaciones</button>
+       
+        <button type="button" (click)="verLiquidacionesEmpleado()">Ver liquidaciones</button>
       </div>
     </aside>
 
     <section class="concepts-main">
       <app-modal-alerta [visible]="modalVisible" [titulo]="modalTitle" [mensaje]="modalMessage" [icono]="modalIcon" [mostrarSpinner]="modalSpinner" [bloquearCierre]="modalBlock" [textoSpinner]="modalTextoSpinner" (cerrar)="onModalClose()"></app-modal-alerta>
+
       <div *ngIf="showAsignar" class="concepts-card">
         <app-empleados-asignar-concepto [empleadoId]="empleadoId" [conceptosDisponibles]="conceptosDisponibles" [conceptosAsignados]="conceptosAsignadosBackend" (asignar)="onAsignar($event)" (quitar)="onQuitar($event)" (cerrar)="cerrarAsignar()"></app-empleados-asignar-concepto>
-
       </div>
-<br>
+
+      <br>
+
       <div *ngIf="activeTab === 'Asignados' && conceptosAsignadosBackend.length > 0" class="concepts-card">
         <div class="card-head">
           <h4>Conceptos vigentes</h4>
@@ -92,52 +90,68 @@
           <div>Concepto</div>
           <div>Código</div>
           <div>Tipo</div>
+          <div>Fórmula</div>
           <div class="col-numeric">Unidades</div>
-           <div class="col-numeric">Importe</div>
+          <div class="col-numeric">Importe</div>
           <div></div>
         </div>
 
         <ng-container *ngFor="let c of conceptosAsignadosBackend; let i = index">
           <div class="concept-row assigned-row">
-          <div style="width:38px;text-align:center">
-            <input type="checkbox" [checked]="selectedConceptos.has(c.id)" (change)="toggleSelect(c.id, $event.target.checked)" />
-          </div>
-          <div>
-            <div class="name">{{ c.nombre }}</div>
-            <div class="group">{{ c.grupo?.nombre || '' }}</div>
-          </div>
-          <div>{{ c.codigo }}</div>
-          <div>
-            <span class="type-badge" [ngClass]="badgeClass(c.tipo_concepto?.codigo)">
-              {{ badgeLabel(c.tipo_concepto) }}
-            </span>
-          </div>
-          <div class="col-numeric">
-            <div class="value">{{ c.unidades ?? 1 }}</div>
-          </div>
-          <div class="col-numeric">
-            <div class="value">{{ formatCurrency(c.importe_fijo) }}</div>
-          </div>
+            <div style="width:38px;text-align:center">
+              <input type="checkbox" [checked]="selectedConceptos.has(c.id)" (change)="toggleSelect(c.id, $event.target.checked)" />
+            </div>
+            <div>
+              <div class="name">{{ c.nombre }}</div>
+              <div class="group">{{ c.grupo?.nombre || '' }}</div>
+            </div>
+            <div>{{ c.codigo }}</div>
+            <div>
+              <span class="type-badge" [ngClass]="badgeClass(c.tipo_concepto?.codigo)">
+                {{ badgeLabel(c.tipo_concepto) }}
+              </span>
+            </div>
+            <div>
+              <span class="formula-badge" [class.fixed-formula]="isFormulaFijo(c)">
+                {{ c.formula_tipo?.codigo || c.formula_tipo?.nombre || c.formula_tipo?.descripcion || c.formula_tipo_id || '-' }}
+              </span>
+            </div>
+            <div class="col-numeric">
+              <ng-container *ngIf="isFormulaFijo(c) && editingConceptoId === c.id; else unidadesView">
+                <input type="number" min="1" step="1" [(ngModel)]="editingUnidades" class="inline-input" />
+              </ng-container>
+              <ng-template #unidadesView>
+                <div class="value">{{ c.unidades ?? 1 }}</div>
+              </ng-template>
+            </div>
+            <div class="col-numeric">
+              <ng-container *ngIf="isFormulaFijo(c) && editingConceptoId === c.id; else importeView">
+                <input type="number" min="0" step="0.01" [(ngModel)]="editingImporte" class="inline-input" />
+              </ng-container>
+              <ng-template #importeView>
+                <div class="value">{{ formatCurrency(c.importe_fijo) }}</div>
+              </ng-template>
+            </div>
 
-          <div class="action-cell">
-
-           <!--
-           <button class="icon-btn small primary" title="Subir" (click)="moveUp(c)">
-              <i class="bi bi-arrow-up"></i>
-            </button>
-           <button class="icon-btn small primary" title="Bajar" (click)="moveDown(c)">
-              <i class="bi bi-arrow-down"></i>
-            </button>
-         -->
-               <button class="icon-btn danger" title="Quitar concepto" (click)="onQuitar({ empleadoId: empleadoId!, conceptoId: c.id })">
-              <i class="bi bi-trash"></i>
-            </button>
-          </div>
+            <div class="action-cell">
+                <ng-container *ngIf="isFormulaFijo(c)">
+                  <button *ngIf="editingConceptoId !== c.id" class="icon-btn small primary" title="Editar importes" (click)="startInlineEdit(c)">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button *ngIf="editingConceptoId === c.id" class="icon-btn small primary" title="Guardar" (click)="saveInlineEdit(c)">
+                    <i class="bi bi-check-lg"></i>
+                  </button>
+                  <button *ngIf="editingConceptoId === c.id" class="icon-btn small" title="Cancelar" (click)="cancelInlineEdit()">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </ng-container>
+              <button class="icon-btn danger" title="Quitar concepto" (click)="onQuitar({ empleadoId: empleadoId!, conceptoId: c.id })">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
           </div>
         </ng-container>
       </div>
-
-
     </section>
   </div>
 </div>

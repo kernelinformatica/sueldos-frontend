@@ -147,7 +147,9 @@
             </label>
           </div>
 
-          <div class="employee-select-bar employee-select-bar-compact">
+          
+        </div>
+<div class="employee-select-bar employee-select-bar-compact">
             <div class="active-filters-badges" *ngIf="filtrosActivos.length">
               <span class="filter-badge" *ngFor="let filtro of filtrosActivos">
                 <strong>{{ filtro.label }}</strong>
@@ -160,8 +162,6 @@
             </label>
             <span class="select-all-count">{{ empleadosVisibles.length }} empleados visibles</span>
           </div>
-        </div>
-
       
 
         <div class="employee-grid" *ngIf="empleadosVisibles.length; else noEmployees">

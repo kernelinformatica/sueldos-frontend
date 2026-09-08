@@ -3,7 +3,8 @@
 	min-height: 100vh;
 	background: #f4f7fb;
 	padding: 4.75rem 1.25rem 1.25rem;
-	transition: padding-left .18s ease;
+	width: auto;
+	transition: margin-left .18s ease;
 }
 
 .cargos-shell.collapsed {
@@ -21,5 +22,6 @@
 	.cargos-shell.collapsed {
 		margin-left: 0;
 		padding: 4rem 0.75rem 0.9rem;
+		width: auto;
 	}
 }

@@ -3,12 +3,13 @@ import { Component } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { NavbarComponent } from '../../core/layout/navbar.component';
 import { SidebarComponent } from '../../core/layout/sidebar.component';
+import { FloatingQuickAccessComponent } from '../../core/layout/floating-quick-access.component';
 import { AuthService } from '../../auth/auth.service';
 
 @Component({
   selector: 'app-sueldos-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, NavbarComponent, SidebarComponent],
+  imports: [CommonModule, RouterOutlet, NavbarComponent, SidebarComponent, FloatingQuickAccessComponent],
   templateUrl: './sueldos-layout.component.html',
   styleUrls: ['./sueldos-layout.component.scss']
 })

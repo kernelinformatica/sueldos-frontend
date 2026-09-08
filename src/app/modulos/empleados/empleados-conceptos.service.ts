@@ -78,8 +78,30 @@ export class EmpleadosConceptosService {
     );
   }
 
-  assignConceptos(empleadoId: number, conceptoIds: number[], usuarioOrigen = 'web') {
-    return this.http.post(`${environment.apiUrl}/api/empleados/${empleadoId}/conceptos`, { concepto_ids: conceptoIds, usuario_origen: usuarioOrigen });
+  assignConceptos(
+    empleadoId: number,
+    conceptos: Array<number | { concepto_id?: number; empleado_concepto_id?: number; importe?: number | null; importe_fijo?: number | null; unidades?: number | null }>,
+    usuarioOrigen = 'web',
+    options: { includeConceptoIds?: boolean } = { includeConceptoIds: true }
+  ) {
+    const normalized = conceptos.map((item) => {
+      if (typeof item === 'number') return { concepto_id: item };
+      const conceptoId = item.concepto_id ?? undefined;
+      const importe = item.importe ?? item.importe_fijo ?? null;
+      return {
+        ...(item.empleado_concepto_id != null ? { empleado_concepto_id: item.empleado_concepto_id } : {}),
+        ...(conceptoId != null ? { concepto_id: conceptoId } : {}),
+        ...(importe !== undefined ? { importe } : {}),
+        ...(item.unidades != null ? { unidades: item.unidades } : {})
+      };
+    });
+
+    const body: any = { conceptos: normalized, usuario_origen: usuarioOrigen };
+    if (options.includeConceptoIds !== false) {
+      body.concepto_ids = normalized.map((item: any) => item.concepto_id).filter((id: any) => id != null);
+    }
+
+    return this.http.post(`${environment.apiUrl}/api/empleados/${empleadoId}/conceptos`, body);
   }
 
   removeConcepto(empleadoId: number, conceptoId: number) {

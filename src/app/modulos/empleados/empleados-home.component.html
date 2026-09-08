@@ -1,0 +1,264 @@
+<div class="dashboard-page">
+  <div class="dashboard-hero">
+    <div>
+      <p class="eyebrow">Resumen de empleados</p>
+      <h1>Panel de Estadisticas</h1>
+      <p>Resumen ejecutivo con métricas clave, distribución por estado, género y sección.</p>
+    </div>
+    <div class="hero-chip" *ngIf="!loading && !error">
+      <span class="chip-label">Total</span>
+      <strong>{{ total }}</strong>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && error" class="state-card error">{{ error }}</div>
+
+  <ng-container *ngIf="!error">
+    <section class="kpi-grid">
+      <article class="kpi-card kpi-blue">
+        <span>Total empleados</span>
+        <strong>{{ total }}</strong>
+      </article>
+      <article class="kpi-card kpi-green">
+        <span>Activos</span>
+        <strong>{{ activos }}</strong>
+      </article>
+      <article class="kpi-card kpi-red">
+        <span>Inactivos</span>
+        <strong>{{ inactivos }}</strong>
+      </article>
+      <article class="kpi-card kpi-indigo">
+        <span>Edad promedio del personal</span>
+        <strong>{{ promedioEdad }}</strong>
+      </article>
+      <article class="kpi-card kpi-azure">
+        <span class="kpi-icon kpi-icon-male kpi-icon-corner" aria-hidden="true">
+          <svg viewBox="0 0 24 24" role="presentation" focusable="false">
+            <path d="M14 3h7v7h-2V6.41l-4.29 4.3a7 7 0 1 1-1.42-1.42L17.59 5H14V3ZM7 14a5 5 0 1 0 10 0 5 5 0 0 0-10 0Z" />
+          </svg>
+        </span>
+        <span>Hombres</span>
+        <strong>{{ hombres }}</strong>
+      </article>
+      <article class="kpi-card kpi-fuchsia">
+        <span class="kpi-icon kpi-icon-female kpi-icon-corner" aria-hidden="true">
+          <svg viewBox="0 0 24 24" role="presentation" focusable="false">
+            <path d="M12 2a6 6 0 0 0-3 11.22V16H7v2h2v4h2v-4h2v-2h-2v-2.78A6 6 0 1 0 12 2Zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z" />
+          </svg>
+        </span>
+        <span>Mujeres</span>
+        <strong>{{ mujeres }}</strong>
+      </article>
+    </section>
+
+    <section class="charts-grid">
+      <article class="chart-card animated-card">
+        <div class="chart-head">
+          <div>
+            <p>Estado</p>
+            <h3>Activos vs inactivos</h3>
+          </div>
+          <span class="chart-subtitle">{{ activeRate }}% activos</span>
+        </div>
+        <div class="donut-wrap">
+          <div class="donut" [style]="donutStyle('#22c55e', '#e5e7eb', activeSegmentPct)">
+            <div class="donut-center">
+              <strong>{{ total }}</strong>
+              <span>empleados</span>
+            </div>
+          </div>
+          <div class="legend-list">
+            <div><span class="dot dot-green"></span> Activos <strong>{{ activos }}</strong></div>
+            <div><span class="dot dot-gray"></span> Inactivos <strong>{{ inactivos }}</strong></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="chart-card animated-card">
+        <div class="chart-head">
+          <div>
+            <p>Género</p>
+            <h3>Hombres vs mujeres</h3>
+          </div>
+          <span class="chart-subtitle">{{ maleRate }}% hombres</span>
+        </div>
+        <div class="donut-wrap">
+          <div class="donut" [style]="donutStyle('#1d4ed8', '#d946ef', maleSegmentPct)">
+            <div class="donut-center">
+              <strong>{{ hombres + mujeres }}</strong>
+              <span>con dato</span>
+            </div>
+          </div>
+          <div class="legend-list">
+            <div><span class="dot dot-blue"></span> Hombres <strong>{{ hombres }}</strong></div>
+            <div><span class="dot dot-fuchsia"></span> Mujeres <strong>{{ mujeres }}</strong></div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="bottom-grid">
+      <article class="chart-card wide-chart animated-card">
+        <div class="chart-head">
+          <div>
+            <p>Secciones</p>
+            <h3>Dotación por sección</h3>
+          </div>
+          <span class="chart-subtitle">Top {{ topSections().length }}</span>
+        </div>
+
+        <div class="bar-list" *ngIf="porSeccion.length; else emptySections">
+          <div class="bar-row" *ngFor="let item of topSections()">
+            <div class="bar-meta">
+              <strong>{{ displaySectionName(item) }}</strong>
+              <span>{{ item.total || 0 }} empleados</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill" [style.width]="barWidth(item.total)" ></div>
+            </div>
+          </div>
+        </div>
+
+        <ng-template #emptySections>
+          <div class="state-card muted">No hay secciones para mostrar.</div>
+        </ng-template>
+      </article>
+
+      <article class="chart-card ranking-card animated-card">
+        <div class="chart-head">
+          <div>
+            <p>Ranking</p>
+            <h3>Secciones con más personal</h3>
+          </div>
+        </div>
+        <ol class="ranking-list" *ngIf="porSeccion.length; else emptyRanking">
+          <li *ngFor="let item of topSections(5); let i = index">
+            <span class="rank-index">{{ i + 1 }}</span>
+            <div>
+              <strong>{{ displaySectionName(item) }}</strong>
+              <span>{{ item.total || 0 }} empleados</span>
+            </div>
+          </li>
+        </ol>
+        <ng-template #emptyRanking>
+          <div class="state-card muted">Sin ranking disponible.</div>
+        </ng-template>
+      </article>
+    </section>
+
+    <section class="analytics-section">
+      <div class="chart-card analytics-card animated-card">
+        <div class="chart-head">
+          <div>
+            <p>Analítica salarial</p>
+            <h3>Metricas salarial</h3>
+          </div>
+          <span class="chart-subtitle" *ngIf="analyticsLoading">Consultando...</span>
+        </div>
+
+        <div *ngIf="!analyticsLoading && analyticsError" class="state-card error">{{ analyticsError }}</div>
+
+        <ng-container *ngIf="!analyticsError && liquidacionesAnalitica; else analyticsPendingState">
+          <div class="analytics-kpi-row">
+            <article class="kpi-card kpi-blue">
+                  <span>Monto promedio de liquidación</span>
+              <strong>{{ (liquidacionesAnalitica?.promedio || 0) | number:'1.2-2' }}</strong>
+            </article>
+            <article class="kpi-card kpi-green">
+                  <span>Mayor liquidación registrada</span>
+              <strong>{{ (liquidacionesAnalitica?.maximo || 0) | number:'1.2-2' }}</strong>
+            </article>
+            <article class="kpi-card kpi-red">
+                  <span>Menor liquidación registrada</span>
+              <strong>{{ (liquidacionesAnalitica?.minimo || 0) | number:'1.2-2' }}</strong>
+            </article>
+            <article class="kpi-card kpi-indigo">
+                  <span>Diferencia entre mayor y menor</span>
+              <strong>{{ (liquidacionesAnalitica?.diferencia || 0) | number:'1.2-2' }}</strong>
+            </article>
+          </div>
+
+          <div class="salary-bars-card">
+            <div class="chart-head compact-head">
+              <div>
+                <p>Acumulado global</p>
+                <h3>Distribución salarial acumulada por sector</h3>
+              </div>
+              <span class="chart-subtitle">% acumulado total</span>
+            </div>
+
+            <div class="salary-bars" *ngIf="accumulatedSectorItems().length; else emptySalaryBars">
+              <div class="salary-row" *ngFor="let item of accumulatedSectorItems(); let i = index">
+                <div class="salary-meta">
+                  <span class="salary-rank">#{{ i + 1 }}</span>
+                  <strong>{{ item.sector }}</strong>
+                  <span class="salary-value">{{ item.porcentaje_acumulado | number:'1.2-2' }}%</span>
+                </div>
+                <div class="salary-track">
+                    <div class="salary-fill" [style.width]="accumulatedSectorBarWidth(item.porcentaje_acumulado)" [style.animationDelay.ms]="i * 120"></div>
+                </div>
+              </div>
+            </div>
+
+            <ng-template #emptySalaryBars>
+              <div class="state-card muted">No hay sectores para graficar.</div>
+            </ng-template>
+          </div>
+        </ng-container>
+
+        <ng-template #analyticsPendingState>
+          <div *ngIf="analyticsLoading" class="analytics-loader-card">
+            <div class="analytics-loader-spinner" aria-hidden="true"></div>
+            <div>
+              <div class="loading-title">Cargando métrica salarial...</div>
+              <div class="loading-subtitle">Consultando el segundo endpoint.</div>
+            </div>
+          </div>
+          <div *ngIf="!analyticsLoading && !analyticsError" class="state-card muted">No hay métricas salariales para mostrar.</div>
+        </ng-template>
+      </div>
+    </section>
+
+    <section class="analytics-section">
+      <div class="chart-card analytics-card animated-card">
+        <div class="chart-head">
+          <div>
+            <p>Dotación</p>
+            <h3>Cantidad de empleados por sección y cargo</h3>
+          </div>
+          <span class="chart-subtitle" *ngIf="dotacionLoading">Consultando...</span>
+        </div>
+
+        <ng-container *ngIf="!dotacionLoading && dotacionSeccionCargo.length; else dotacionPendingState">
+          <div class="salary-bars" *ngIf="dotacionSeccionCargo.length; else emptyDotacionSeccionCargo">
+            <div class="salary-row" *ngFor="let item of dotacionSeccionCargo; let i = index">
+              <div class="salary-meta">
+                <span class="salary-rank">#{{ i + 1 }}</span>
+                <strong>{{ displaySeccionCargoLabel(item) }}</strong>
+                <span class="salary-value">{{ item.total > 0 ? item.total : '' }}{{ item.total > 0 ? ' empleados' : '' }}</span>
+              </div>
+              <div class="salary-track">
+                <div class="salary-fill employee-fill" [style.width]="dotacionSeccionCargoWidth(item.total)" [style.animationDelay.ms]="i * 120"></div>
+              </div>
+            </div>
+          </div>
+
+          <ng-template #emptyDotacionSeccionCargo>
+            <div class="state-card muted">No hay dotación por sección y cargo para mostrar.</div>
+          </ng-template>
+        </ng-container>
+
+        <ng-template #dotacionPendingState>
+          <div *ngIf="dotacionLoading" class="analytics-loader-card">
+            <div class="analytics-loader-spinner" aria-hidden="true"></div>
+            <div>
+              <div class="loading-title">Cargando dotación por sección y cargo...</div>
+              <div class="loading-subtitle">Agrupando empleados del listado general.</div>
+            </div>
+          </div>
+          <div *ngIf="!dotacionLoading && !dotacionSeccionCargo.length" class="state-card muted">No hay dotación por sección y cargo para mostrar.</div>
+        </ng-template>
+      </div>
+    </section>
+  </ng-container>
+</div>

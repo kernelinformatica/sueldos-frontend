@@ -5,10 +5,18 @@
   min-height: 100vh;
   background: #f4f7fb;
   padding: 4.75rem 1.25rem 1.25rem;
+  width: auto;
+  transition: margin-left 0.2s cubic-bezier(0.4,0,0.2,1);
 }
 
 .empleados-shell.collapsed {
   margin-left: 60px;
+}
+
+.empleados-shell > * {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
 }
 
 .empleados-hero {
@@ -63,6 +71,7 @@
   .empleados-shell.collapsed {
     margin-left: 0;
     padding: 4rem 0.75rem 0.9rem;
+    width: auto;
   }
 
   .empleados-hero {

@@ -39,6 +39,37 @@
         </ul>
       </div>
 
+      <div class="fixed-importe-panel" *ngIf="selectedConcepto && isFormulaFijo; else fixedImporteDisabled">
+        <label>Unidades por empleado</label>
+        <input
+          type="number"
+          min="1"
+          step="1"
+          [(ngModel)]="unidades"
+          [disabled]="!canEditUnidades"
+          placeholder="1"
+          class="form-control form-control-lg full elegant" />
+
+        <label class="mt-3">Importe fijo por empleado</label>
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          [(ngModel)]="importeFijo"
+          [disabled]="!canEditImporteFijo"
+          placeholder="0.00"
+          class="form-control form-control-lg full elegant" />
+
+        <div class="fixed-importe-helper">
+          Para conceptos con fórmula FIJO podés editar unidades e importe solo para este empleado.
+        </div>
+      </div>
+      <ng-template #fixedImporteDisabled>
+        <div class="fixed-importe-panel" *ngIf="selectedConcepto">
+          <div class="fixed-importe-helper disabled">Este concepto no permite unidades ni importe fijo individual.</div>
+        </div>
+      </ng-template>
+
       <button class="btn primary" (click)="onAsignar()" [disabled]="!seleccionId || !empleadoId">Asignar</button>
     </div>
 

@@ -3,11 +3,18 @@
 	min-height: 100vh;
 	background: #f4f7fb;
 	padding: 4.75rem 1.25rem 1.25rem;
-	transition: padding-left .18s ease;
+	width: auto;
+	transition: margin-left .18s ease;
 }
 
 .conceptos-shell.collapsed {
 	margin-left: 60px;
+}
+
+.conceptos-shell > * {
+	width: 100%;
+	max-width: 1600px;
+	margin: 0 auto;
 }
 
 .conceptos-hero {
@@ -50,6 +57,7 @@
 	.conceptos-shell.collapsed {
 		margin-left: 0;
 		padding: 4rem 0.75rem 0.9rem;
+		width: auto;
 	}
 
 	.conceptos-hero {

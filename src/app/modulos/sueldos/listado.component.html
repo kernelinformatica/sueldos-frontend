@@ -58,6 +58,7 @@
           <th>Totales</th>
           <th>Estado</th>
           <th>Revisión</th>
+          <th>PDF</th>
           <th></th>
         </tr>
       </thead>
@@ -97,12 +98,17 @@
           </td>
           <td><span class="review-badge" *ngIf="liq.requiere_revision || liq.tiene_observaciones">Revisión</span></td>
           <td>
+            <button type="button" class="icon-action-btn icon-action-pdf" (click)="descargarDetallePdf(liq)" aria-label="Descargar PDF" title="Descargar PDF">
+              <i class="bi bi-file-earmark-pdf"></i>
+            </button>
+          </td>
+          <td>
             <div class="row-actions">
               <button type="button" class="icon-action-btn icon-action-detail" (click)="openDetalle(liq)" aria-label="Ver detalle" title="Ver detalle">
                 <i class="bi bi-eye"></i>
               </button>
               <button type="button" class="icon-action-btn icon-action-recalculate" *ngIf="canRecalcular(liq)" (click)="recalcularLiquidacion(liq)" [disabled]="isRecalculating(liq)" aria-label="Recalcular liquidación" title="Recalcular liquidación">
-                <i class="bi" [ngClass]="isRecalculating(liq) ? 'bi-arrow-repeat icon-spin' : 'bi-calculator'"></i>
+                <i class="fa fa-sync" [ngClass]="{ 'icon-spin': isRecalculating(liq) }"></i>
               </button>
               <button type="button" class="icon-action-btn icon-action-review" *ngIf="canChangeToRevision(liq)" (click)="abrirCambioEstadoIndividual(liq, 'revision')" aria-label="Pasar a revisión" title="Pasar a revisión">
                 <i class="bi bi-arrow-right-circle"></i>
@@ -128,14 +134,42 @@
 
   <div class="empty-state" *ngIf="!loading && liquidaciones.length === 0">No hay liquidaciones para mostrar.</div>
 
-  <section class="detail-panel" *ngIf="detalleVisible">
-    <div class="detail-head">
-      <h2>Detalle de liquidación de {{ detalleNombreCompleto() }}</h2>
-      <button type="button" class="btn-secondary" (click)="detalleVisible = false">Cerrar</button>
+  <app-loading-spinner [visible]="loadingDetail" [centered]="true" text="Cargando detalle..." [size]="34" [ringColor]="'#0f766e'" [backdropOpacity]="0"></app-loading-spinner>
+
+  <div class="detail-modal-backdrop" *ngIf="detalleVisible && !loadingDetail" (click)="detalleVisible = false"></div>
+  <section class="detail-modal" *ngIf="detalleVisible && !loadingDetail" role="dialog" aria-modal="true" aria-labelledby="detail-modal-title">
+    <div class="detail-modal-shell" (click)="$event.stopPropagation()">
+      <div class="detail-head detail-head-modal">
+        <h2 id="detail-modal-title">Detalle de liquidación de {{ detalleNombreCompleto() }}</h2>
+        <div class="detail-head-actions">
+          <button type="button" class="icon-action-btn icon-action-print" (click)="imprimirDetalle()" [disabled]="loadingDetail || !detalle" aria-label="Imprimir" title="Imprimir">
+            <i class="bi bi-printer"></i>
+          </button>
+          <button type="button" class="icon-action-btn icon-action-pdf" (click)="descargarDetallePdf()" [disabled]="loadingDetail || !detalle" aria-label="Descargar PDF" title="Descargar PDF">
+            <i class="bi bi-file-earmark-pdf"></i>
+          </button>
+          <button type="button" class="icon-action-btn icon-action-delete" (click)="detalleVisible = false" aria-label="Cerrar" title="Cerrar">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="detail-modal-body">
+        <app-loading-spinner *ngIf="loadingDetail && !detalleLoadingError" [visible]="true" [centered]="true" text="Cargando detalle..." [size]="34" [ringColor]="'#0f766e'" [backdropOpacity]="0"></app-loading-spinner>
+        <div *ngIf="!loadingDetail && detalleLoadingError" class="alert-error">{{ detalleLoadingError }}</div>
+        <ng-container *ngIf="!loadingDetail && detalle && !detalleLoadingError">
+          <ng-container [ngTemplateOutlet]="detalleContent"></ng-container>
+        </ng-container>
+      </div>
     </div>
-    <div *ngIf="loadingDetail" class="detail-loading">Cargando detalle...</div>
-    <div *ngIf="!loadingDetail && detalleLoadingError" class="alert-error">{{ detalleLoadingError }}</div>
-    <ng-container *ngIf="!loadingDetail && detalle && !detalleLoadingError">
+  </section>
+
+  <section class="detail-panel" *ngIf="detalleVisible && !loadingDetail && detalle && !detalleLoadingError">
+    <ng-container [ngTemplateOutlet]="detalleContent"></ng-container>
+  </section>
+
+  <ng-template #detalleContent>
+     
       <div class="detail-employee-hero">
         <div class="employee-cell employee-cell-detail">
           <div class="employee-avatar employee-avatar-large" *ngIf="detalleFotoUrl; else detailFallbackAvatar">
@@ -156,7 +190,7 @@
 
       <div class="detail-summary-grid">
         <div class="summary-box"><span>Empleado</span><strong>{{ detalleNombreCompleto() }}</strong></div>
-        <div class="summary-box"><span>Período</span><strong>{{ detallePeriodo }}</strong></div>
+        <div class="summary-box"><span>Periodo de liquidación</span><strong>{{ detallePeriodo }}</strong></div>
         <div class="summary-box"><span>Estado</span><strong>{{ detalleEstado }}</strong></div>
         <div class="summary-box"><span>Revisión</span><strong>{{ detalleRequiereRevision ? 'Sí' : 'No' }}</strong></div>
       </div>
@@ -180,9 +214,11 @@
             <tr>
               <th>Concepto</th>
               <th>Fórmula</th>
-              <th class="align-right">Original</th>
+              <th>Tipo</th>
+            <!--<th class="align-right">Original</th>-->
+             <th class="align-right">Cantidad</th>
               <th class="align-right">Importe</th>
-              <th class="align-right">Cantidad</th>
+             
               <th>Tope / Observación</th>
             </tr>
           </thead>
@@ -195,9 +231,15 @@
               <td>
                 <span class="formula-badge">{{ item.formula_tipo || item.formula_tipo_id || '-' }}</span>
               </td>
-              <td class="align-right">{{ item.importe_original | number:'1.2-2' }}</td>
+              <td>
+                <span class="concept-flag" [ngClass]="(item.suma_resta === 'R' || item.suma_resta === 'r') ? 'concept-flag-resta' : 'concept-flag-suma'">
+                  {{ (item.suma_resta === 'R' || item.suma_resta === 'r') ? 'Resta' : 'Suma' }}
+                </span>
+              </td>
+            <!--<td class="align-right">{{ item.importe_original | number:'1.2-2' }}</td>-->
+             <td class="align-right">{{ (item.cantidad ?? 1) | number:'1.0-0' }}</td>
               <td class="align-right">{{ item.importe | number:'1.2-2' }}</td>
-              <td class="align-right">{{ item.cantidad ?? 1 }}</td>
+             
               <td>
                 <div class="detail-note" *ngIf="item.tope_aplicado_id">Tope {{ item.tope_aplicado_id }}</div>
                 <div class="detail-note warning" *ngIf="item.requiere_revision">Requiere revisión</div>
@@ -207,8 +249,7 @@
           </tbody>
         </table>
       </div>
-    </ng-container>
-  </section>
+  </ng-template>
 
   <app-modal-alerta
     [visible]="modalVisible"

@@ -549,99 +549,6 @@ export class ConceptoFormComponent implements OnInit {
   }
 
   async solicitarPreview() {
-    // allow preview only if importe is permitted by grupo/tipo
-    if (!this.permiteImporteFlag) {
-      // show informative modal/tooltip instead of calling backend
-      this.errorModalTitle = 'Preview no permitido';
-      this.errorModalMessage = 'El grupo no permite importe fijo. No es posible generar preview.';
-      this.errorModalIcon = 'bi bi-exclamation-circle-fill';
-      this.errorModalVisible = true;
-      try { this.cdr.detectChanges(); } catch {}
-      return;
-    }
-
-    // allow preview: for importe fijo calculate locally
-    if (this.permiteImporteFlag) {
-      // try form importe, fallback to originalValue.importe_fijo if available
-      let baseImporte = this.normalizeNumber(this.f['importe_fijo']?.value);
-      if (baseImporte === null || baseImporte === undefined) baseImporte = this.originalValue?.importe_fijo ?? null;
-      const multiplicador = this.normalizeNumber(this.f['multiplicador']?.value) ?? 1;
-      const divisor = this.normalizeNumber(this.f['divisor']?.value) ?? 100;
-      if (baseImporte === null) {
-        this.previewResult = { importe: null, source: 'Cálculo local', message: 'No hay importe base disponible para calcular.' };
-        this.showPreview = true;
-        try { this.cdr.detectChanges(); } catch {}
-        return;
-      }
-      const resultado = divisor !== 0 ? (baseImporte * multiplicador) / divisor : null;
-      this.previewResult = {
-        importe: resultado,
-        source: 'Cálculo local',
-        breakdown: { importe: baseImporte, multiplicador, divisor },
-        importeFormatted: resultado === null ? '—' : this.formatCurrency(resultado),
-        breakdownFormatted: {
-          importe: this.formatCurrency(baseImporte),
-          multiplicador: multiplicador.toString(),
-          divisor: divisor.toString()
-        }
-      };
-      // evaluate topes for computed importe
-      if (resultado !== null) {
-        const topeEval = this.evaluateTopesForImporte(resultado, 1);
-        if (topeEval.decision === 'reject') {
-          if (topeEval.requiresOverride && !this.canOverrideTopes) {
-            this.errorModalTitle = 'Acceso denegado';
-            this.errorModalMessage = 'Permiso requerido: topes_override. Contacte a RRHH.';
-            this.errorModalIcon = 'bi bi-lock-fill';
-            this.errorModalVisible = true;
-            try { this.cdr.detectChanges(); } catch {}
-            return;
-          }
-          if (topeEval.requiresOverride && this.canOverrideTopes) {
-            // request razon and re-call server preview with razon_override to validate
-            this.previewResult.top = topeEval.top;
-            this.previewResult.decision = 'reject-override';
-            this.showPreview = true;
-            try { this.cdr.detectChanges(); } catch {}
-            const razon = await this.askForRazon();
-            if (!razon) return; // user cancelled or invalid reason
-            const bodyOverride = { concepto_id: this.conceptoId, importe: resultado, unidades: 1, razon_override: razon };
-            this.loadingService.show();
-            this.svc.preview(bodyOverride).pipe(finalize(() => this.loadingService.hide())).subscribe((res: any) => {
-              this.previewResult = res;
-              this.showPreview = true;
-              try { this.cdr.detectChanges(); } catch {}
-            }, (err) => {
-              console.error('preview error after override', err);
-              this.errorModalTitle = 'Error al validar override';
-              this.errorModalMessage = err?.error?.message || err?.message || 'Error del servidor';
-              this.errorModalIcon = 'bi bi-x-circle-fill';
-              this.errorModalVisible = true;
-              try { this.cdr.detectChanges(); } catch {}
-            });
-            return;
-          }
-          // hard reject
-          this.errorModalTitle = 'Tope excedido';
-          this.errorModalMessage = `El importe supera el tope máximo ${topeEval.top?.valor}. Acción: ${topeEval.top?.accion}`;
-          this.errorModalIcon = 'bi bi-x-circle-fill';
-          this.errorModalVisible = true;
-          try { this.cdr.detectChanges(); } catch {}
-          return;
-        }
-        if (topeEval.decision === 'clamp') {
-          this.previewClamp = { adjustedImporte: topeEval.adjustedImporte, top: topeEval.top };
-          this.previewResult.top = topeEval.top;
-        }
-        if (topeEval.decision === 'warn') {
-          this.previewResult.warning = topeEval.message || (`Tope: ${topeEval.top?.valor} — acción: ${topeEval.top?.accion}`);
-        }
-      }
-      this.showPreview = true;
-      try { this.cdr.detectChanges(); } catch {}
-      return;
-    }
-
     if (!this.form.valid) return;
     const body: any = {
       concepto_id: this.conceptoId,
@@ -654,12 +561,11 @@ export class ConceptoFormComponent implements OnInit {
       this.previewResult = res;
       this.showPreview = true;
       try { this.cdr.detectChanges(); } catch {}
-      // if backend indicates a tope that requires override, and user can override, request razon and re-call preview
       const tope = res?.tope || res?.top || null;
       const requiere = tope?.requiere_override || tope?.requiereOverride || false;
       if (requiere && this.canOverrideTopes) {
         const razon = await this.askForRazon();
-        if (!razon) return; // user cancelled
+        if (!razon) return;
         const body2 = { ...body, razon_override: razon };
         this.loadingService.show();
         this.svc.preview(body2).pipe(finalize(() => this.loadingService.hide())).subscribe((res2: any) => {
@@ -825,6 +731,9 @@ export class ConceptoFormComponent implements OnInit {
     return payload;
   }
 
+  private calculatePreviewLocal() {
+    return null; // This method is no longer used
+  }
   private shouldRequireConfirm(payload: any): boolean {
     if (!this.originalValue) return false;
     const changedImporte = (payload.importe_fijo !== (this.originalValue.importe_fijo ?? null));
