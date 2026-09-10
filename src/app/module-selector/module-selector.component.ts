@@ -133,16 +133,19 @@ export class ModuleSelectorComponent implements OnInit {
       cargos: { label: 'CANTIDAD', aliases: ['cargos'] },
       secciones: { label: 'CANTIDAD', aliases: ['secciones'] },
       sucursales: { label: 'CANTIDAD', aliases: ['sucursales'] },
-      conceptos: { label: 'CANTIDAD', aliases: ['conceptos'] }
+      conceptos: { label: 'CANTIDAD', aliases: ['conceptos'] },
+      convenios: { label: 'CANTIDAD', aliases: ['convenios'] }
     };
 
     const resolved: Record<string, DashboardModuleEntry> = {};
     for (const [key, config] of Object.entries(mapping)) {
       const item = config.aliases.map((alias) => data?.[alias]).find(Boolean) || { count: 0, label: config.label };
+      // Resolve estados from whichever alias actually carried data (key or aliases)
+      const estadosSource = data?.[key] ?? config.aliases.map((alias) => data?.[alias]).find(Boolean);
       resolved[key] = {
         label: item?.label || config.label,
         count: Number(item?.count ?? 0) || 0,
-        estados: data?.[key]?.estados
+        estados: estadosSource?.estados
       };
     }
 
@@ -171,29 +174,43 @@ export class ModuleSelectorComponent implements OnInit {
   }
 
   private applyDashboardCountsToGroups(): void {
-    this.grupos = this.grupos.map((grupo) => ({
-      ...grupo,
-      permisos: grupo.permisos.map((permiso) => {
-        const normalizedAlias = String(permiso.alias || '').trim().toLowerCase();
-        const normalizedGrupo = String(permiso.grupo || '').trim().toLowerCase();
-        const normalizedModulo = String(permiso.modulo || '').trim().toLowerCase();
-        const normalizedNombre = String(permiso.nombre || '').trim().toLowerCase();
-        const badgeKey = Object.keys(this.dashboardCounts).find((key) => {
-          return normalizedAlias === key
-            || normalizedAlias.startsWith(`${key}_`)
-            || normalizedAlias.includes(key)
-            || normalizedGrupo === key
-            || normalizedGrupo.includes(key)
-            || normalizedModulo === key
-            || normalizedModulo.includes(key)
-            || normalizedNombre.includes(key)
-            || key.includes(normalizedNombre);
-        });
-        const badge = badgeKey ? this.dashboardCounts[badgeKey] : null;
-        return badge ? { ...permiso, itemCount: badge.count, itemLabel: badge.label } : permiso;
-      })
-    }));
-  }
+  this.grupos = this.grupos.map((grupo) => ({
+    ...grupo,
+    permisos: grupo.permisos.map((permiso) => {
+      const normalizedAlias = String(permiso.alias || '').trim().toLowerCase();
+      const normalizedGrupo = String(permiso.grupo || '').trim().toLowerCase();
+      const normalizedModulo = String(permiso.modulo || '').trim().toLowerCase();
+      const normalizedNombre = String(permiso.nombre || '').trim().toLowerCase();
+
+      const keys = Object.keys(this.dashboardCounts);
+      const candidates = [normalizedAlias, normalizedGrupo, normalizedModulo, normalizedNombre].filter(Boolean);
+
+      // 1) Match exacto (más fiable): clave === alias/grupo/modulo/nombre
+      let badgeKey = keys.find((key) => candidates.includes(key));
+
+      // 2) Match por prefijo con separador explícito (ej: "convenios_categorias" -> "convenios")
+      if (!badgeKey) {
+        badgeKey = keys.find((key) => candidates.some((value) => value.startsWith(`${key}_`)));
+      }
+
+      // 3) Match exacto del nombre de tarjeta contra clave ("convenios" === "convenios")
+      if (!badgeKey) {
+        badgeKey = keys.find((key) => normalizedNombre === key || (normalizedNombre && key.includes(normalizedNombre)));
+      }
+
+      // 4) Fallback bidireccional por contención (última opción, para casos como "gestion_convenios")
+      if (!badgeKey) {
+        badgeKey = keys.find((key) => candidates.some((value) => value.includes(key) || key.includes(value)));
+      }
+
+      const badge = badgeKey ? this.dashboardCounts[badgeKey] : null;
+      return badge
+        ? { ...permiso, itemCount: badge.count, itemLabel: badge.label }
+        : permiso;
+    })
+  }));
+}
+
 
   countFor(key: string): number {
     return Number(this.dashboardCounts?.[key]?.count ?? 0) || 0;

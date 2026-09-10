@@ -32,7 +32,8 @@
             <i *ngIf="permiso.icono" [ngClass]="permiso.icono"></i>
           </div>
           <h5 class="card-title employee-card-title">
-            {{ permiso.nombre }}
+            {{ permiso.nombre }}  
+            
             <span class="employee-title-count" *ngIf="shouldShowEmployeeStats(permiso) && countFor('empleados') > 0">
               {{ countFor('empleados') }}
             </span>
