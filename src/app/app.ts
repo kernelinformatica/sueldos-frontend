@@ -14,5 +14,7 @@ import { FloatingQuickAccessComponent } from './core/layout/floating-quick-acces
   styleUrl: './app.scss'
 })
 export class App {
+  
+  
   protected readonly title = signal('front-v1');
 }

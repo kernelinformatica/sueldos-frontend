@@ -165,7 +165,16 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+.employee-link {
+  cursor: pointer;        /* 👈 fuerza la manito */
+  text-decoration: none;  /* opcional, quita subrayado */
+  color: #007bff;         /* opcional, color azul estilo link */
+}
 
+.employee-link:hover {
+  color:#9ac8fa;
+  text-decoration: underline; /* efecto hover */
+}
 @media (max-width: 1080px) {
   .filters-card { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hero-card { flex-direction:column; }

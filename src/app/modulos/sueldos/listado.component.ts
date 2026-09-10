@@ -7,7 +7,7 @@ import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-sp
 import { ModalAlertaComponent } from '../../shared/modal-alerta.component';
 import { environment } from '../../environments/environment';
 import { LiquidacionesService } from './liquidaciones.service';
-
+import { Router } from '@angular/router';
 @Component({
   selector: 'app-sueldos-listado',
   standalone: true,
@@ -47,7 +47,7 @@ export class ListadoComponent implements OnInit {
   filtros = { periodo: '', empleado: '', tipo: '', estado: '' };
   private empleadoIdFiltro: string = '';
 
-  constructor(private svc: LiquidacionesService, private route: ActivatedRoute, private cdr: ChangeDetectorRef) {}
+  constructor(private svc: LiquidacionesService, private route: ActivatedRoute, private cdr: ChangeDetectorRef, private router: Router) {}
 
   ngOnInit(): void {
     this.loadEstados();
@@ -725,7 +725,7 @@ export class ListadoComponent implements OnInit {
   normalize(value: string): string {
     return String(value || '').toLowerCase().normalize('NFD').replace(/[^\w\s]/g, '').replace(/[\u0300-\u036f]/g, '').trim();
   }
-
+  
   openDetalle(liquidacion: any): void {
     const id = Number(liquidacion?.liquidacion_id ?? liquidacion?.id ?? 0);
     if (!id) return;
@@ -801,7 +801,11 @@ export class ListadoComponent implements OnInit {
   get detalleTotales(): any {
     return this.detalleNormalizado?.resumen || {};
   }
-
+  irAFichaEmpleado(empleadoId: number) {
+    if (empleadoId) {
+      this.router.navigate(['admin/empleados/editar', empleadoId]);
+    }
+  }
   get detalleFotoUrl(): string | null {
     return this.resolveEmployeePhoto({
       empleado_foto: this.detalleNormalizado?.empleado_foto,

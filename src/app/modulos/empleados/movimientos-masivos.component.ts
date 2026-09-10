@@ -9,7 +9,7 @@ import { catchError, finalize } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { LoadingService } from '../../shared/loading-spinner/loading.service';
 import { LiquidacionesAnaliticaService } from './liquidaciones-analitica.service';
-
+import { Router } from '@angular/router';
 @Component({
   selector: 'app-movimientos-masivos',
   standalone: true,
@@ -63,9 +63,10 @@ export class MovimientosMasivosComponent implements OnInit {
     private svc: EmpleadosConceptosService,
     private http: HttpClient,
     private cdr: ChangeDetectorRef,
-    private loadingService: LoadingService
-    , private auth: AuthService,
-    private analyticsSvc: LiquidacionesAnaliticaService
+    private loadingService: LoadingService,
+    private auth: AuthService,
+    private analyticsSvc: LiquidacionesAnaliticaService,
+    private router: Router
   ) {
     this.filterForm = this.fb.group({
       q: [''],
@@ -811,7 +812,12 @@ export class MovimientosMasivosComponent implements OnInit {
       }
     }, 1000);
   }
-
+  irAFichaEmpleado(empleadoId: number) {
+   
+    if (empleadoId) {
+      this.router.navigate(['admin/empleados/editar', empleadoId]);
+    }
+  }
   get canAssignConcepts(): boolean {
     try {
       const perms = this.auth.getPermissions() || [];

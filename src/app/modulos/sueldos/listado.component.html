@@ -74,11 +74,14 @@
               </div>
               <ng-template #employeeFallbackAvatar>
                 <div class="employee-avatar employee-avatar-fallback">
-                  <span>{{ (liq.empleado_apellido || liq.empleado?.apellido || liq.apellido || liq.empleado_nombre || liq.nombre || 'L').charAt(0) }}</span>
+                  <a (click)="irAFichaEmpleado(liq.empleado_id)" class="employee-link">
+                  <span>{{ (liq.empleado_apellido || liq.empleado?.apellido || liq.apellido || liq.empleado_nombre || liq.nombre || 'L').charAt(0) }} </span>
+                     </a>
                 </div>
+                
               </ng-template>
               <div>
-                <strong>{{ liq.empleado_apellido || liq.empleado?.apellido || liq.apellido || '' }} {{ liq.empleado_nombre || liq.empleado?.nombre || liq.nombre || 'Liquidación' }}</strong>
+                 <a  title="Ver Ficha de {{ liq.empleado_apellido || liq.empleado?.apellido || liq.apellido || '' }}, {{ liq.empleado_nombre || liq.empleado?.nombre || liq.nombre || 'Liquidación' }}" (click)="irAFichaEmpleado(liq.empleado_id)" class="employee-link"><strong>{{ liq.empleado_apellido || liq.empleado?.apellido || liq.apellido || '' }} {{ liq.empleado_nombre || liq.empleado?.nombre || liq.nombre || 'Liquidación' }}</strong></a>
                 <div class="muted">{{ liq.empleado?.legajo || liq.legajo || '' }}</div>
               </div>
             </div>

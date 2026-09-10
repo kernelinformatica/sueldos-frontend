@@ -388,6 +388,16 @@
   .podium-row { grid-template-columns: 34px minmax(0, 1fr); }
   .podium-values { grid-column: 2 / -1; }
 }
+.employee-link {
+  cursor: pointer;        /* 👈 fuerza la manito */
+  text-decoration: none;  /* opcional, quita subrayado */
+  color: #007bff;         /* opcional, color azul estilo link */
+}
+
+.employee-link:hover {
+  color:#9ac8fa;
+  text-decoration: underline; /* efecto hover */
+}
 
 /* Reusar estilos del listado para consistencia visual */
 @import './empleados-listado.component.scss';

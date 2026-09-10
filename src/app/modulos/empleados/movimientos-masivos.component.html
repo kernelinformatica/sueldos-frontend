@@ -87,7 +87,7 @@
                       </ng-template>
                       <div style="flex:1">
                         <div class="employee-name">
-                          {{ e.apellido }}, {{ e.nombre }}
+                          <a title="Ver Ficha de {{ e.apellido }}, {{ e.nombre }}"  (click)="irAFichaEmpleado(e.empleado_id)" class="employee-link">{{ e.apellido }}, {{ e.nombre }}</a>
                           <span class="employee-concepts-count" *ngIf="(e.conceptos || []).length">{{ (e.conceptos || []).length }}</span>
                         </div>
                         <div class="employee-meta">{{ e.legajo ? ('Legajo: ' + e.legajo) : '' }}</div>
