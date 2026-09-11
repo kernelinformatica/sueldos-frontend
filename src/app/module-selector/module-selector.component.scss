@@ -48,6 +48,12 @@
   position: relative;
   overflow: hidden;
 
+  // Animación de entrada escalonada (delay via --enter-delay)
+  &.module-card--enter {
+    animation: moduleCardEnter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: var(--enter-delay, 0ms);
+  }
+
   .module-count-badge {
     position: absolute;
     top: 12px;
@@ -267,6 +273,45 @@
 .module-row .module-card {
   flex: 0 0 auto;
   scroll-snap-align: start;
+}
+
+@keyframes moduleCardEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(28px) scale(0.92);
+    filter: blur(2px);
+  }
+  60% {
+    opacity: 1;
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes moduleGroupTitleEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.module-group {
+  animation: moduleGroupTitleEnter 0.45s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .module-card.module-card--enter,
+  .module-group {
+    animation: none !important;
+  }
 }
 
 @media (max-width: 768px) {

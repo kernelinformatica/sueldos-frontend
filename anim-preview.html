@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="utf-8">
+  <title>Preview anim</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: linear-gradient(135deg, #e8eaf6 0%, #283593 100%);
+      min-height: 100vh;
+    }
+
+    .module-groups-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 2rem;
+      padding: 3rem 1rem;
+    }
+
+    .module-group {
+      animation: moduleGroupTitleEnter 0.45s ease both;
+    }
+
+    .module-row {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: nowrap;
+    }
+
+    .module-card {
+      width: 220px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.92);
+      padding: 1.5rem;
+      text-align: center;
+      box-shadow: 0 1rem 3rem rgba(0, 0, 0, .175);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .module-card.module-card--enter {
+      animation: moduleCardEnter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+      animation-delay: var(--enter-delay, 0ms);
+    }
+
+    .module-icon {
+      font-size: 2.5rem;
+    }
+
+    @keyframes moduleCardEnter {
+      0% {
+        opacity: 0;
+        transform: translateY(28px) scale(0.92);
+        filter: blur(2px);
+      }
+
+      60% {
+        opacity: 1;
+        filter: blur(0);
+      }
+
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+      }
+    }
+
+    @keyframes moduleGroupTitleEnter {
+      0% {
+        opacity: 0;
+        transform: translateY(-12px);
+      }
+
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="module-groups-grid">
+    <section class="module-group" style="animation-delay:0ms">
+      <div class="module-row">
+        <div class="module-card module-card--enter" style="--enter-delay:0ms">
+          <div class="module-icon">1</div>
+          <h5>Empleados</h5>
+        </div>
+        <div class="module-card module-card--enter" style="--enter-delay:70ms">
+          <div class="module-icon">2</div>
+          <h5>Cargos</h5>
+        </div>
+        <div class="module-card module-card--enter" style="--enter-delay:140ms">
+          <div class="module-icon">3</div>
+          <h5>Secciones</h5>
+        </div>
+      </div>
+    </section>
+    <section class="module-group" style="animation-delay:60ms">
+      <div class="module-row">
+        <div class="module-card module-card--enter" style="--enter-delay:90ms">
+          <div class="module-icon">4</div>
+          <h5>Convenios</h5>
+        </div>
+        <div class="module-card module-card--enter" style="--enter-delay:160ms">
+          <div class="module-icon">5</div>
+          <h5>Conceptos</h5>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="utf-8">
+  <title>Sidebar Logo Preview</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #f8fafc;
+    }
+
+    .sidebar {
+      width: 220px;
+      min-height: 100vh;
+      background:
+        linear-gradient(135deg, #e8eaf6 0%, #283593 100%),
+        url('data:image/svg+xml;utf8,<svg width="100%25" height="100%25" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 800 Q480 900 960 800 T1920 800 V1080 H0 Z" fill="%231a237e" fill-opacity="0.16"/><path d="M0 600 Q480 700 960 600 T1920 600 V1080 H0 Z" fill="%233947ab" fill-opacity="0.12"/></svg>');
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar .sidebar-brand {
+      min-height: 72px;
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sidebar .sidebar-logo,
+    .sidebar img.sidebar-logo {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 10px;
+      padding: 6px 12px;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+      max-width: 175px;
+      max-height: 56px;
+      height: auto;
+      width: auto;
+      object-fit: contain;
+      margin: 0 auto;
+      display: block;
+    }
+
+    .sidebar-divider {
+      border-top: 1px solid rgba(255, 255, 255, 0.18);
+      margin: 0.5rem 0;
+    }
+
+    .sidebar-section-title {
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.85em;
+      padding-left: 18px;
+      margin-top: 1rem;
+      letter-spacing: 1px;
+    }
+
+    .preview-container {
+      display: flex;
+      gap: 2rem;
+      padding: 1.5rem;
+    }
+
+    .sidebar.collapsed {
+      width: 60px;
+    }
+
+    .sidebar.collapsed .sidebar-logo {
+      max-width: 42px;
+      max-height: 42px;
+      padding: 4px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="preview-container">
+    <!-- Expandido -->
+    <div class="sidebar">
+      <div class="sidebar-brand">
+        <img src="src/assets/logos/app.png" alt="Logo" class="sidebar-logo" />
+      </div>
+      <hr class="sidebar-divider" />
+      <div class="sidebar-section-title">SUS OPCIONES</div>
+    </div>
+
+    <!-- Colapsado -->
+    <div class="sidebar collapsed">
+      <div class="sidebar-brand">
+        <img src="src/assets/logos/10-1-icono.png" alt="Logo" class="sidebar-logo" />
+      </div>
+      <hr class="sidebar-divider" />
+    </div>
+  </div>
+</body>
+
+</html>

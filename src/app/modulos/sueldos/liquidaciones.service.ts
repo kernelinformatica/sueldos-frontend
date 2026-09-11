@@ -45,7 +45,7 @@ export class LiquidacionesService {
   changeEstado(liquidacionId: number, estadoLiquidacionId: number, razon?: string): Observable<any> {
     const body: any = { estado_liquidacion_id: estadoLiquidacionId };
     if (razon && String(razon).trim()) body.razon_override = String(razon).trim();
-    return this.http.patch<any>(`${environment.apiUrl}/api/liquidaciones/${liquidacionId}/estado`, body, { headers: this.headers() }).pipe(catchError((err) => of({ error: err, data: null })));
+    return this.http.put<any>(`${environment.apiUrl}/api/liquidaciones/${liquidacionId}/estado`, body, { headers: this.headers() }).pipe(catchError((err) => of({ error: err, data: null })));
   }
 
   cambiarEstado(liquidacionId: number, estadoLiquidacionId: number, razon?: string): Observable<any> {

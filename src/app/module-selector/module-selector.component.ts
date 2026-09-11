@@ -174,42 +174,42 @@ export class ModuleSelectorComponent implements OnInit {
   }
 
   private applyDashboardCountsToGroups(): void {
-  this.grupos = this.grupos.map((grupo) => ({
-    ...grupo,
-    permisos: grupo.permisos.map((permiso) => {
-      const normalizedAlias = String(permiso.alias || '').trim().toLowerCase();
-      const normalizedGrupo = String(permiso.grupo || '').trim().toLowerCase();
-      const normalizedModulo = String(permiso.modulo || '').trim().toLowerCase();
-      const normalizedNombre = String(permiso.nombre || '').trim().toLowerCase();
+    this.grupos = this.grupos.map((grupo) => ({
+      ...grupo,
+      permisos: grupo.permisos.map((permiso) => {
+        const normalizedAlias = String(permiso.alias || '').trim().toLowerCase();
+        const normalizedGrupo = String(permiso.grupo || '').trim().toLowerCase();
+        const normalizedModulo = String(permiso.modulo || '').trim().toLowerCase();
+        const normalizedNombre = String(permiso.nombre || '').trim().toLowerCase();
 
-      const keys = Object.keys(this.dashboardCounts);
-      const candidates = [normalizedAlias, normalizedGrupo, normalizedModulo, normalizedNombre].filter(Boolean);
+        const keys = Object.keys(this.dashboardCounts);
+        const candidates = [normalizedAlias, normalizedGrupo, normalizedModulo, normalizedNombre].filter(Boolean);
 
-      // 1) Match exacto (más fiable): clave === alias/grupo/modulo/nombre
-      let badgeKey = keys.find((key) => candidates.includes(key));
+        // 1) Match exacto (más fiable): clave === alias/grupo/modulo/nombre
+        let badgeKey = keys.find((key) => candidates.includes(key));
 
-      // 2) Match por prefijo con separador explícito (ej: "convenios_categorias" -> "convenios")
-      if (!badgeKey) {
-        badgeKey = keys.find((key) => candidates.some((value) => value.startsWith(`${key}_`)));
-      }
+        // 2) Match por prefijo con separador explícito (ej: "convenios_categorias" -> "convenios")
+        if (!badgeKey) {
+          badgeKey = keys.find((key) => candidates.some((value) => value.startsWith(`${key}_`)));
+        }
 
-      // 3) Match exacto del nombre de tarjeta contra clave ("convenios" === "convenios")
-      if (!badgeKey) {
-        badgeKey = keys.find((key) => normalizedNombre === key || (normalizedNombre && key.includes(normalizedNombre)));
-      }
+        // 3) Match exacto del nombre de tarjeta contra clave ("convenios" === "convenios")
+        if (!badgeKey) {
+          badgeKey = keys.find((key) => normalizedNombre === key || (normalizedNombre && key.includes(normalizedNombre)));
+        }
 
-      // 4) Fallback bidireccional por contención (última opción, para casos como "gestion_convenios")
-      if (!badgeKey) {
-        badgeKey = keys.find((key) => candidates.some((value) => value.includes(key) || key.includes(value)));
-      }
+        // 4) Fallback bidireccional por contención (última opción, para casos como "gestion_convenios")
+        if (!badgeKey) {
+          badgeKey = keys.find((key) => candidates.some((value) => value.includes(key) || key.includes(value)));
+        }
 
-      const badge = badgeKey ? this.dashboardCounts[badgeKey] : null;
-      return badge
-        ? { ...permiso, itemCount: badge.count, itemLabel: badge.label }
-        : permiso;
-    })
-  }));
-}
+        const badge = badgeKey ? this.dashboardCounts[badgeKey] : null;
+        return badge
+          ? { ...permiso, itemCount: badge.count, itemLabel: badge.label }
+          : permiso;
+      })
+    }));
+  }
 
 
   countFor(key: string): number {

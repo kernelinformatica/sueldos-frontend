@@ -1,4 +1,4 @@
- 
+
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -30,20 +30,73 @@ export class SidebarComponent implements OnChanges {
   @Output() crearPagina = new EventEmitter<void>();
   @Output() collapsedChange = new EventEmitter<boolean>();
 
+  readonly defaultLogo = 'assets/logos/app.png';
+  readonly defaultLogoIcono = 'assets/logos/10-1-icono.png';
+
   get logoSrc(): string {
-    const empresaStr = localStorage.getItem('empresa');
-    if (empresaStr) {
-      try {
-        const empresa = JSON.parse(empresaStr);
-        if (empresa && empresa.codigo_empresa) {
-          return `assets/logos/${empresa.codigo_empresa}-1.png`;
-        }
-        if (empresa && empresa.codigo) {
-          return `assets/logos/${empresa.codigo}-1.png`;
-        }
-      } catch {}
+    // 1) Si está colapsado y existe un icono reducido
+    if (this.collapsed) {
+      const codigo = this.obtenerCodigoEmpresa();
+      if (codigo) {
+        return `assets/logos/${codigo}-1-icono.png`;
+      }
+      return this.defaultLogoIcono;
     }
-    return '';
+
+    // 2) Buscar código de empresa en varias fuentes
+    const codigo = this.obtenerCodigoEmpresa();
+    if (codigo) {
+      return `assets/logos/${codigo}-1.png`;
+    }
+
+    // 3) Fallback por defecto si no hay empresa definida
+    return this.defaultLogo;
+  }
+
+  onLogoError(event: Event): void {
+    const target = event.target as HTMLImageElement | null;
+    if (target && target.src && !target.src.includes(this.defaultLogo)) {
+      // Si falló el logo específico o el icono, recurrir al logo estándar
+      target.src = this.defaultLogo;
+    }
+  }
+
+  private obtenerCodigoEmpresa(): string | null {
+    // a) Desde localStorage 'empresa'
+    try {
+      const empresaStr = localStorage.getItem('empresa');
+      if (empresaStr) {
+        const empresa = JSON.parse(empresaStr);
+        const cod = empresa?.codigo_empresa || empresa?.codigo || empresa?.cod;
+        if (cod) return String(cod).trim();
+      }
+    } catch {}
+
+    // b) Desde localStorage 'user'
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        const cod = user?.empresa?.codigo_empresa
+          || user?.empresa?.codigo
+          || user?.codigo_empresa
+          || user?.empresa_codigo
+          || user?.empresa_id;
+        if (cod) return String(cod).trim();
+      }
+    } catch {}
+
+    // c) Desde localStorage 'sitioActual' o 'sitios'
+    try {
+      const sitioStr = localStorage.getItem('sitioActual');
+      if (sitioStr) {
+        const sitio = JSON.parse(sitioStr);
+        const cod = sitio?.codigo_empresa || sitio?.codigo;
+        if (cod) return String(cod).trim();
+      }
+    } catch {}
+
+    return null;
   }
 
   ngOnChanges(changes: SimpleChanges) {

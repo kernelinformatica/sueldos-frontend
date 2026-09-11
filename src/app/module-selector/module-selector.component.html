@@ -20,10 +20,11 @@
     No hay módulos principales habilitados para este usuario.
   </div>
   <div *ngIf="!loading && !error" class="w-100 module-groups-grid">
-    <section *ngFor="let grupo of grupos" class="module-group">
+    <section *ngFor="let grupo of grupos; let gi = index" class="module-group" [style.animation-delay]="gi * 60 + 'ms'">
       <div class="d-flex flex-nowrap justify-content-start gap-4 module-row">
-        <div *ngFor="let permiso of grupo.permisos"
-             class="module-card card text-center p-4 shadow"
+        <div *ngFor="let permiso of grupo.permisos; let i = index"
+             class="module-card card text-center p-4 shadow module-card--enter"
+             [style.--enter-delay]="(gi * 90 + i * 70) + 'ms'"
              (click)="seleccionar(permiso)">
           <span class="module-count-badge" *ngIf="permiso.itemCount !== undefined && permiso.itemCount !== null && permiso.itemCount > 0 && !shouldShowEmployeeStats(permiso)">
             {{ permiso.itemCount }}
@@ -32,8 +33,8 @@
             <i *ngIf="permiso.icono" [ngClass]="permiso.icono"></i>
           </div>
           <h5 class="card-title employee-card-title">
-            {{ permiso.nombre }}  
-            
+            {{ permiso.nombre }}
+
             <span class="employee-title-count" *ngIf="shouldShowEmployeeStats(permiso) && countFor('empleados') > 0">
               {{ countFor('empleados') }}
             </span>

@@ -1,6 +1,6 @@
 <nav [ngClass]="{'sidebar': true, 'd-flex': true, 'flex-column': true, 'collapsed': collapsed}" >
   <div class="sidebar-brand d-flex align-items-center justify-content-center py-3 position-relative">
-    <img [src]="logoSrc" alt="" height="60" class="sidebar-logo" />
+    <img [src]="logoSrc" (error)="onLogoError($event)" alt="Logo" class="sidebar-logo" />
     <!-- Botón de colapsar menú eliminado -->
   </div>
   <hr class="sidebar-divider my-2" />
@@ -11,7 +11,7 @@
         <span *ngIf="!collapsed">{{ tituloModulo }}</span>
       </a>
     </span>
-   
+
     <span class="sidebar-icons" style="position: absolute; right: 18px; top: 50%; transform: translateY(-50%); display: flex; align-items: center;">
       <a routerLink="/modulos" title="Selector de módulos" style="color: #fff; opacity: 0.85; display: flex; align-items: center;">
         <i class="fas fa-th-large"></i>
@@ -56,5 +56,5 @@
       </ul>
     </div>
   </li>
- 
+
 </nav>
