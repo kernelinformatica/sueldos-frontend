@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { AuthService } from '../../auth/auth.service';
 
@@ -68,5 +68,14 @@ export class LiquidacionesService {
 
   anularLiquidacion(liquidacionId: number, razon: string): Observable<any> {
     return this.http.post<any>(`${environment.apiUrl}/api/liquidaciones/${liquidacionId}/anular`, { razon_override: String(razon || '').trim() }, { headers: this.headers() }).pipe(catchError((err) => of({ error: err, data: null })));
+  }
+
+  /** Obtiene el PDF de la liquidación/recibo como blob junto con headers */
+  getPdf(liquidacionId: number): Observable<{ blob: Blob | null; headers: any }> {
+    return this.http.get(`${environment.apiUrl}/api/liquidaciones/${liquidacionId}/pdf`, { headers: this.headers(), responseType: 'blob' as 'json', observe: 'response' as 'body' }).pipe(
+      map((resp: any) => ({ blob: resp?.body || null, headers: resp?.headers || {} })),
+      // on error return null blob so callers manejen el fallo
+      catchError(() => of({ blob: null as any, headers: {} }))
+    );
   }
 }

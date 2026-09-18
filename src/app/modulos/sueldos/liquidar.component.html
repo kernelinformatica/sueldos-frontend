@@ -30,7 +30,7 @@
         </span>
       </div>
 
-      
+
 
       <div class="grid-form">
         <label class="field-type">
@@ -79,9 +79,9 @@
     </div>
 
     <div class="wizard-section">
-      
 
-      
+
+
 
       <div *ngIf="loadingEmpleados" class="loading-box">Cargando empleados...</div>
 
@@ -92,7 +92,7 @@
           </div>
           <div class="employee-section-actions">
             <span class="select-all-count">{{ empleadosVisibles.length }} empleados visibles</span>
-      
+
             <button type="button" class="icon-toggle-btn" (click)="toggleFiltrosBusqueda()" [attr.aria-label]="filtrosBusquedaColapsados ? 'Mostrar filtros' : 'Ocultar filtros'">
               <i class="bi chevron-icon" [ngClass]="filtrosBusquedaColapsados ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
             </button>
@@ -147,7 +147,7 @@
             </label>
           </div>
 
-          
+
         </div>
 <div class="employee-select-bar employee-select-bar-compact">
             <div class="active-filters-badges" *ngIf="filtrosActivos.length">
@@ -162,7 +162,7 @@
             </label>
             <span class="select-all-count">{{ empleadosVisibles.length }} empleados visibles</span>
           </div>
-      
+
 
         <div class="employee-grid" *ngIf="empleadosVisibles.length; else noEmployees">
           <article class="employee-card" *ngFor="let empleado of empleadosVisibles; trackBy: trackByEmpleadoId" [class.employee-card-selected]="isSelected(empleado)">
@@ -192,16 +192,16 @@
               </div>
             </div>
           </article>
-          
+
         </div>
-     
+
         <ng-template #noEmployees>
           <div class="empty-employees">
            <i class="bi bi-exclamation-triangle-fill"></i> No hay empleados que coincidan con los filtros.
           </div>
         </ng-template>
       </div>
-     
+
     </div>
 
     <div class="wizard-section">
@@ -227,7 +227,7 @@
       <h2>4. Ejecutar</h2>
       <div class="command-row">
         <button *ngIf="totalSeleccionados > 0" type="button" class="btn-primary" (click)="abrirConfirmacion()" [disabled]="saving || loadingTipos || !liquidacionTipoId || !estadoLiquidacionId || !estadoPermiteEdicion">Confirmar y ejecutar</button>
-        
+
         <button type="button" class="btn-secondary" routerLink="/sueldos/listado">Ver listado</button>
       </div>
     </div>
@@ -247,7 +247,12 @@
       <div class="summary-box"><span>Errores</span><strong>{{ resumenResultado.errores.length }}</strong></div>
     </div>
     <div class="result-list" *ngIf="resumenResultado.idsGenerados.length">
-      <a class="result-pill" *ngFor="let id of resumenResultado.idsGenerados" routerLink="/sueldos/listado" [queryParams]="{ liquidacion_id: id }">#{{ id }}</a>
+      <div class="result-pill" *ngFor="let id of resumenResultado.idsGenerados" style="display:inline-flex;align-items:center;gap:8px;margin:4px;">
+        <a routerLink="/sueldos/listado" [queryParams]="{ liquidacion_id: id }">#{{ id }}</a>
+        <button type="button" class="btn-link" (click)="abrirPdf(id)" [disabled]="isDownloading(id)" title="Ver PDF en nueva pestaña">{{ isDownloading(id) ? 'Cargando...' : 'Ver' }}</button>
+        <button type="button" class="btn-link" (click)="descargarPdf(id)" [disabled]="isDownloading(id)" title="Descargar recibo">{{ isDownloading(id) ? '...' : 'Descargar' }}</button>
+        <span style="color:crimson;font-size:0.85em;" *ngIf="downloadErrors[id]">{{ downloadErrors[id] }}</span>
+      </div>
     </div>
     <div class="result-block" *ngIf="resumenResultado.advertencias.length">
       <h3>Advertencias</h3>

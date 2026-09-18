@@ -7,6 +7,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { catchError, finalize, of } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { ModalFotos } from '../../shared/modal-fotos/modal-fotos';
 
 interface EmpleadoItem {
   id: number;
@@ -98,7 +99,7 @@ interface EstadoEmpleadoValue {
 @Component({
   selector: 'app-empleados-listado',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, LoadingSpinnerComponent],
+  imports: [CommonModule, FormsModule, RouterLink, LoadingSpinnerComponent, ModalFotos],
   templateUrl: './empleados-listado.component.html',
   styleUrls: ['./empleados-listado.component.scss']
 })
@@ -108,6 +109,9 @@ export class EmpleadosListadoComponent implements OnInit {
   secciones: CatalogoItem[] = [];
   estadosEmpleados: CatalogoItem[] = [];
   avatarsSinImagen = new Set<number>();
+  fotoAmpliada: string | null = null;
+  mostrarModalFoto = false;
+  empleadoSeleccionado: any;
   filtros = {
     legajoDesde: '',
     legajoHasta: '',
@@ -120,7 +124,7 @@ export class EmpleadosListadoComponent implements OnInit {
   loadingCatalogos = false;
   error = '';
 
-  constructor(private http: HttpClient, private cdr: ChangeDetectorRef, private loadingService: LoadingService) {}
+  constructor(private http: HttpClient, private cdr: ChangeDetectorRef, private loadingService: LoadingService) { }
 
   ngOnInit(): void {
     this.cargarEmpleados();
@@ -285,6 +289,21 @@ export class EmpleadosListadoComponent implements OnInit {
     const estadoNombre = this.estadoNombre(empleado.estado).toLowerCase();
 
     return estadoNombre !== 'activo';
+  }
+
+
+  ampliarFoto(empleado: EmpleadoItem): void {
+
+    if (this.tieneFoto(empleado)) {
+      this.empleadoSeleccionado = empleado;
+      this.fotoAmpliada = this.fotoUrl(empleado);
+      this.mostrarModalFoto = true;
+    }
+  }
+
+  cerrarFoto(): void {
+    this.fotoAmpliada = null;
+    this.mostrarModalFoto = false;
   }
 
   estadoNombre(estado: string | number | EstadoEmpleadoValue | undefined): string {

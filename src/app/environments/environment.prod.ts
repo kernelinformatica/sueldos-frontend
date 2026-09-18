@@ -1,6 +1,5 @@
 export const environment = {
-  production: false,
-
+  production: true,
   apiUrl: 'http://192.168.254.15:3501',
   googleMapsApiKey: '',
 

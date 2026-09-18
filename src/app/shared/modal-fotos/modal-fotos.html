@@ -1,0 +1,22 @@
+@if (visible) {
+  <div class="modal-overlay" (click)="cerrarModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <h3>{{ titulo }}</h3>
+
+        <button
+          type="button"
+          class="btn-close"
+          (click)="cerrarModal()">
+        <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <ng-content></ng-content>
+      </div>
+
+    </div>
+  </div>
+}

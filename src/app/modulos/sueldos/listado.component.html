@@ -43,7 +43,7 @@
       </button>
     </div>
   </div>
-
+ 
   <app-loading-spinner [visible]="loading" [centered]="true" text="Cargando liquidaciones..."></app-loading-spinner>
   <div *ngIf="errorMsg" class="alert-error">{{ errorMsg }}</div>
 
@@ -70,7 +70,9 @@
           <td>
             <div class="employee-cell">
               <div class="employee-avatar" *ngIf="employeePhotoUrl(liq); else employeeFallbackAvatar">
-                <img [src]="employeePhotoUrl(liq)!" alt="Foto del empleado" />
+                <div class="modal-body foto-container">
+                <img [src]="employeePhotoUrl(liq)!" class="foto-empleado" alt="Foto del empleado" (click)="ampliarFoto(liq)" />
+                </div>
               </div>
               <ng-template #employeeFallbackAvatar>
                 <div class="employee-avatar employee-avatar-fallback">
@@ -253,7 +255,15 @@
         </table>
       </div>
   </ng-template>
+ <app-modal-fotos
+  [visible]="mostrarModalFoto"
+  titulo="{{ tituloModalFoto }}" 
+  (cerrar)="cerrarFoto()">
+  <img
+    [src]="fotoAmpliada"  
+    class="foto-modal">
 
+</app-modal-fotos>
   <app-modal-alerta
     [visible]="modalVisible"
     [titulo]="modalTitle"

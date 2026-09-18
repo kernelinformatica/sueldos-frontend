@@ -5,13 +5,91 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize, timeout, catchError, of } from 'rxjs';
 import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
 import { ModalAlertaComponent } from '../../shared/modal-alerta.component';
+
 import { environment } from '../../environments/environment';
 import { LiquidacionesService } from './liquidaciones.service';
 import { Router } from '@angular/router';
+import { ModalFotos } from '../../shared/modal-fotos/modal-fotos';
+interface EstadoEmpleadoValue {
+  id?: number;
+  estado_id?: number;
+  estado_empleado_id?: number;
+  nombre?: string;
+  descripcion?: string;
+  es_activo?: number | boolean;
+}
+interface EmpleadoItem {
+  id: number;
+  empleado_id?: number;
+  empresa_id?: number;
+  sucursal_id?: number;
+  seccion_id?: number;
+  cargo_id?: number;
+  usuario_id?: number;
+  legajo?: string;
+  tipo_documento?: string;
+  numero_documento?: string;
+  apellido?: string;
+  nombre?: string;
+  fecha_nacimiento?: string | null;
+  sexo?: string;
+  estado_civil?: string;
+  nacionalidad?: string;
+  direccion?: string;
+  localidad?: string;
+  provincia?: string;
+  email?: string;
+  telefono?: string;
+  fecha_ingreso?: string | null;
+  fecha_egreso?: string | null;
+  foto?: string | null;
+  habilitado?: number;
+  estado?: string | number | EstadoEmpleadoValue;
+  foto_url_publica?: string | null;
+  url_publica?: string | null;
+  empresa?: {
+    nombre?: string;
+    nombre_fantasia?: string;
+    cuit?: string;
+  };
+  cargo?: {
+    cargo_id?: number;
+    nombre?: string;
+    descripcion?: string | null;
+  };
+  seccion?: {
+    seccion_id?: number;
+    nombre?: string;
+    orden?: number;
+    estado?: number;
+  };
+  sucursal?: {
+    nombre?: string;
+  };
+  contratacion_tipo?: {
+    nombre?: string;
+  };
+  convenio_categoria?: {
+    nombre?: string;
+  };
+  convenio?: {
+    nombre?: string;
+  };
+  forma_pago?: {
+    nombre?: string;
+  };
+  cuenta_bancaria_principal?: {
+    alias_cbu?: string;
+    banco?: {
+      nombre?: string;
+    };
+  };
+}
+
 @Component({
   selector: 'app-sueldos-listado',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, LoadingSpinnerComponent, ModalAlertaComponent],
+  imports: [CommonModule, FormsModule, RouterLink, LoadingSpinnerComponent, ModalAlertaComponent, ModalFotos],
   templateUrl: './listado.component.html',
   styleUrls: ['./listado.component.scss']
 })
@@ -29,6 +107,7 @@ export class ListadoComponent implements OnInit {
   detalleLoadingError = '';
   detalleVisible = false;
   modalVisible = false;
+  avatarsSinImagen = new Set<number>();
   modalTitle = '';
   modalMessage = '';
   modalIcon = '';
@@ -36,6 +115,10 @@ export class ListadoComponent implements OnInit {
   modalSpinner = false;
   modalReason = '';
   modalReasonRequired = false;
+  fotoAmpliada: string | null = null;
+  mostrarModalFoto = false;
+  tituloModalFoto: any = null;
+
   private pendingAction:
     | { kind: 'bulk-state'; estadoId: number; tipo: 'revision' | 'cerrada' }
     | { kind: 'single-state'; liquidacionId: number; estadoId: number; tipo: 'revision' | 'cerrada' }
@@ -47,7 +130,7 @@ export class ListadoComponent implements OnInit {
   filtros = { periodo: '', empleado: '', tipo: '', estado: '' };
   private empleadoIdFiltro: string = '';
 
-  constructor(private svc: LiquidacionesService, private route: ActivatedRoute, private cdr: ChangeDetectorRef, private router: Router) {}
+  constructor(private svc: LiquidacionesService, private route: ActivatedRoute, private cdr: ChangeDetectorRef, private router: Router) { }
 
   ngOnInit(): void {
     this.loadEstados();
@@ -59,6 +142,33 @@ export class ListadoComponent implements OnInit {
       }
       this.load();
     });
+  }
+
+  getEmpleadoId(empleado: EmpleadoItem): number | null {
+    return empleado.empleado_id ?? empleado.id ?? null;
+  }
+
+  fotoUrl(empleado: EmpleadoItem): string {
+    return this.resolvePublicUrl(empleado.foto_url_publica || empleado.url_publica || empleado.foto || '');
+  }
+
+  tieneFoto(empleado: EmpleadoItem): boolean {
+    const empleadoId = this.getEmpleadoId(empleado);
+    return !!this.fotoUrl(empleado) && !!empleadoId && !this.avatarsSinImagen.has(empleadoId);
+  }
+  ampliarFoto(empleado: any): void {
+   
+debugger
+   if (empleado.empleado_foto) {
+      this.tituloModalFoto = empleado.empleado_nombre+", "+empleado.empleado_apellido;
+      this.fotoAmpliada = empleado?.empleado_foto || empleado?.url_publica || empleado?.foto_url_publica || empleado?.foto || '';
+      this.mostrarModalFoto = true;
+    }
+  }
+
+  cerrarFoto(): void {
+    this.fotoAmpliada = null;
+    this.mostrarModalFoto = false;
   }
 
   loadEstados(): void {
@@ -78,7 +188,7 @@ export class ListadoComponent implements OnInit {
   load(): void {
     this.loading = true;
     this.errorMsg = '';
-    try { this.cdr.detectChanges(); } catch {}
+    try { this.cdr.detectChanges(); } catch { }
 
     const params: Record<string, string> = {
       periodo: this.filtros.periodo,
@@ -95,14 +205,14 @@ export class ListadoComponent implements OnInit {
       }),
       finalize(() => {
         this.loading = false;
-        try { this.cdr.detectChanges(); } catch {}
+        try { this.cdr.detectChanges(); } catch { }
       })
     ).subscribe({
       next: (res: any) => {
         if (res && res.error) {
           this.errorMsg = this.extractHttpErrorMessage(res.error, 'No se pudieron cargar las liquidaciones.');
           this.liquidaciones = [];
-          try { this.cdr.detectChanges(); } catch {}
+          try { this.cdr.detectChanges(); } catch { }
           return;
         }
 
@@ -110,12 +220,12 @@ export class ListadoComponent implements OnInit {
         this.liquidaciones = this.applyClientFilters(items);
         this.syncSelectionWithCurrentList();
         this.errorMsg = '';
-        try { this.cdr.detectChanges(); } catch {}
+        try { this.cdr.detectChanges(); } catch { }
       },
       error: (err) => {
         this.errorMsg = this.extractHttpErrorMessage(err, 'No se pudieron cargar las liquidaciones.');
         this.liquidaciones = [];
-        try { this.cdr.detectChanges(); } catch {}
+        try { this.cdr.detectChanges(); } catch { }
       }
     });
   }
@@ -725,7 +835,7 @@ export class ListadoComponent implements OnInit {
   normalize(value: string): string {
     return String(value || '').toLowerCase().normalize('NFD').replace(/[^\w\s]/g, '').replace(/[\u0300-\u036f]/g, '').trim();
   }
-  
+
   openDetalle(liquidacion: any): void {
     const id = Number(liquidacion?.liquidacion_id ?? liquidacion?.id ?? 0);
     if (!id) return;
@@ -734,7 +844,7 @@ export class ListadoComponent implements OnInit {
     this.detalleLoadingError = '';
     this.detalle = null;
     this.detalleNormalizado = null;
-    try { this.cdr.detectChanges(); } catch {}
+    try { this.cdr.detectChanges(); } catch { }
 
     this.svc.detalleBasico(id).pipe(
       timeout(15000),
@@ -743,7 +853,7 @@ export class ListadoComponent implements OnInit {
       }),
       finalize(() => {
         this.loadingDetail = false;
-        try { this.cdr.detectChanges(); } catch {}
+        try { this.cdr.detectChanges(); } catch { }
       })
     ).subscribe({
       next: (res: any) => {
@@ -752,7 +862,7 @@ export class ListadoComponent implements OnInit {
           this.detalleLoadingError = this.extractHttpErrorMessage(res.error, 'No se pudo cargar el detalle.');
           this.detalle = null;
           this.detalleVisible = true;
-          try { this.cdr.detectChanges(); } catch {}
+          try { this.cdr.detectChanges(); } catch { }
           return;
         }
 
@@ -760,7 +870,7 @@ export class ListadoComponent implements OnInit {
         this.detalleNormalizado = this.normalizeDetalle(this.detalle, liquidacion);
         this.detalleLoadingError = '';
         this.detalleVisible = true;
-        try { this.cdr.detectChanges(); } catch {}
+        try { this.cdr.detectChanges(); } catch { }
       },
       error: (err) => {
         this.detalle = null;
@@ -768,7 +878,7 @@ export class ListadoComponent implements OnInit {
         this.detalleLoadingError = this.extractHttpErrorMessage(err, 'No se pudo cargar el detalle.');
         this.loadingDetail = false;
         this.detalleVisible = true;
-        try { this.cdr.detectChanges(); } catch {}
+        try { this.cdr.detectChanges(); } catch { }
       }
     });
   }
@@ -972,7 +1082,67 @@ export class ListadoComponent implements OnInit {
   }
 
   descargarDetallePdf(liquidacion?: any): void {
-    this.openDetalleEnVentana('pdf', liquidacion);
+    // Si se pasa la liquidación, usamos su id, si no intentamos obtenerla desde el detalle cargado
+    const id = liquidacion ? this.liquidacionId(liquidacion) : Number(this.detalle?.liquidacion_id ?? this.detalle?.liquidacion?.id ?? this.detalleNormalizado?.liquidacion_id ?? this.detalleNormalizado?.id ?? 0);
+    debugger
+    if (!id) {
+      // Fallback: generar la versión HTML/PDF en ventana como antes
+      this.openDetalleEnVentana('pdf', liquidacion);
+      return;
+    }
+
+    this.loadingDetail = true;
+    this.detalleLoadingError = '';
+    try { this.cdr.detectChanges(); } catch { }
+
+    this.svc.getPdf(id).pipe(
+      timeout(30000),
+      catchError((err) => {
+        this.detalleLoadingError = this.extractHttpErrorMessage(err, 'No se pudo descargar el PDF.');
+        return of({ blob: null, headers: {} });
+      }),
+      finalize(() => { this.loadingDetail = false; try { this.cdr.detectChanges(); } catch { } })
+    ).subscribe((res: any) => {
+      const blob: Blob | null = res?.blob ?? null;
+      const headers = res?.headers || {};
+      if (!blob) return;
+
+      // Leer headers: Content-Type y Content-Disposition (si existen)
+      const getHeader = (name: string) => {
+        if (!headers) return null;
+        if (typeof headers.get === 'function') return headers.get(name) || headers.get(name.toLowerCase()) || null;
+        return headers[name] || headers[name.toLowerCase()] || null;
+      };
+
+      const contentType = String(getHeader('content-type') || getHeader('Content-Type') || '').trim();
+      const disposition = String(getHeader('content-disposition') || getHeader('Content-Disposition') || '').trim();
+      const fnMatch = disposition ? disposition.match(/filename\*=UTF-8''(.+)|filename="?([^\"]+)"?/) : null;
+      const filename = fnMatch ? decodeURIComponent(fnMatch[1] || fnMatch[2]) : `recibo_${id}.pdf`;
+
+      const blobUrl = URL.createObjectURL(new Blob([blob], { type: contentType || 'application/pdf' }));
+
+      // Si el backend responde PDF, intentamos abrir en nueva pestaña para visualizarlo, sino forzamos descarga
+      if (contentType && contentType.toLowerCase().includes('application/pdf')) {
+        // Abrir en nueva pestaña de forma segura usando un enlace con rel="noopener noreferrer"
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        // No establecer download para que el navegador muestre en visor si puede
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } else {
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    });
   }
 
   private openDetalleEnVentana(mode: 'print' | 'pdf', liquidacion?: any): void {
@@ -1083,5 +1253,19 @@ export class ListadoComponent implements OnInit {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+  private resolvePublicUrl(url: string): string {
+    const value = (url || '').trim();
+    if (!value) {
+      return '';
+    }
+
+    if (/^https?:\/\//i.test(value) || value.startsWith('data:')) {
+      return value;
+    }
+
+    const baseUrl = (environment.apiUrl || '').replace(/\/$/, '');
+    const path = value.startsWith('/') ? value : `/${value}`;
+    return `${baseUrl}${path}`;
   }
 }

@@ -290,6 +290,8 @@ tr.is-disabled .employee-status-note {
   color: #b42318;
 }
 
+
+
 @media (max-width: 768px) {
   .listado-top {
     flex-direction: column;
@@ -315,4 +317,25 @@ tr.is-disabled .employee-status-note {
   .empleados-table {
     font-size: 0.9rem;
   }
+
+  
+
+}
+
+
+.foto-container {
+    display: inline-block;
+    transition: all 0.3s ease;
+    border-radius: 10px;
+}
+
+.foto-container:hover {
+    transform: scale(1.08) translateY(-5px);
+    box-shadow: 0 12px 25px rgba(0,0,0,.25);
+}
+.foto-empleado {
+    display: block;
+    max-width: 100%;
+    cursor: pointer;
+    border-radius: 8px;
 }

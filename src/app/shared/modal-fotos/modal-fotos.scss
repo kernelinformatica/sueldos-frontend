@@ -1,0 +1,161 @@
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .75);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  z-index: 9999;
+
+  animation: fadeIn .25s ease;
+}
+
+.modal-content {
+  display: inline-flex;
+  flex-direction: column;
+
+  width: auto;
+  height: auto;
+
+  max-width: 90vw;
+  max-height: 90vh;
+
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 1rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.modal-body {
+  padding: 1rem;
+}
+
+.btn-close {
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes zoomIn {
+  from {
+    transform: scale(.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+
+
+.modal-body {
+  height: calc(90vh - 70px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+:host ::ng-deep img {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+  display: block !important;
+}
+.modal-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modal-header h3 i {
+  color: var(--primary-color);
+  font-size: 0.95rem;
+}.modal-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+
+  color: var(--primary-color);
+}
+
+.modal-header h3 i {
+  color: var(--primary-color);
+}
+
+
+
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .75);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  z-index: 9999;
+
+  animation: fadeIn .25s ease;
+}
+
+.modal-content {
+  animation: zoomIn .25s ease;
+}
+
+.modal-overlay.closing {
+  animation: fadeOut .25s ease forwards;
+}
+
+.modal-overlay.closing .modal-content {
+  animation: zoomOut .25s ease forwards;
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes zoomOut {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  to {
+    transform: scale(.8);
+    opacity: 0;
+  }
+}

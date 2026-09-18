@@ -63,11 +63,11 @@ export class ConceptosComponent implements OnInit {
         (this.conceptos || []).forEach((c: any) => {
           const id = Number(c.concepto_id ?? c.id ?? c.conceptoId);
           if (!id) return;
-          this.svc.getTopes(id).subscribe((topes: any[]) => {
+          /*this.svc.getTopes(id).subscribe((topes: any[]) => {
             c.topes = toplesOrEmpty(topes);
             c.topeSummary = computeTopesSummary(c.topes, c);
             try { this.cdr.detectChanges(); } catch {}
-          });
+          });*/
         });
       }, (err) => { console.error('Error cargando conceptos', err); });
   }

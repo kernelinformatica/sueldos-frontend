@@ -113,6 +113,8 @@ export class LiquidarComponent implements OnInit {
   confirmTitle = 'Confirmar liquidación';
   confirmMessage = '¿Desea ejecutar la liquidación mensual?';
   confirmSpinner = false;
+  downloadingIds = new Set<number>();
+  downloadErrors: Record<number, string> = {};
 
   constructor(private svc: LiquidacionesService, private http: HttpClient, private cdr: ChangeDetectorRef) {}
 
@@ -121,6 +123,61 @@ export class LiquidarComponent implements OnInit {
     this.cargarEstadosLiquidaciones();
     this.cargarCatalogos();
     this.cargarEmpleados();
+  }
+
+  isDownloading(id: number): boolean {
+    return this.downloadingIds.has(Number(id));
+  }
+
+  abrirPdf(id: number): void {
+    this.fetchPdfAndHandle(id, true);
+  }
+
+  descargarPdf(id: number): void {
+    this.fetchPdfAndHandle(id, false);
+  }
+
+  private fetchPdfAndHandle(id: number, openInNewTab: boolean): void {
+    const lid = Number(id);
+    if (!lid) return;
+    this.downloadErrors[lid] = '';
+    this.downloadingIds.add(lid);
+    this.cdr.detectChanges();
+
+    this.svc.getPdf(lid).pipe(finalize(() => {
+      this.downloadingIds.delete(lid);
+      this.cdr.detectChanges();
+    })).subscribe({
+      next: (res: any) => {
+        const blob: Blob | null = res?.blob ?? null;
+        if (!blob) {
+          this.downloadErrors[lid] = 'No se pudo descargar el PDF.';
+          return;
+        }
+        const blobUrl = URL.createObjectURL(new Blob([blob], { type: (res?.headers?.get ? res.headers.get('content-type') : res?.headers?.['content-type']) || 'application/pdf' }));
+        if (openInNewTab) {
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+          return;
+        }
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `recibo_${lid}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      },
+      error: (err) => {
+        this.downloadErrors[lid] = err?.message || 'Error al descargar el PDF.';
+      }
+    });
   }
 
   cargarEstadosLiquidaciones(): void {
@@ -524,7 +581,7 @@ export class LiquidarComponent implements OnInit {
       this.confirmVisible = false;
       return;
     }
-    
+
     // Si ya terminó y es un mensaje de éxito, solo cerramos el modal
     if (this.resultado) {
       this.confirmVisible = false;
@@ -608,7 +665,7 @@ export class LiquidarComponent implements OnInit {
           advertencias: this.advertencias,
           errores: Array.isArray(responseData?.errores) ? responseData.errores : []
         };
-        
+
         // Mostrar modal de éxito
         this.confirmTitle = 'Liquidación exitosa';
         this.confirmMessage = this.resultadoMensaje + (this.idsGenerados.length ? ` (IDs creados: ${this.idsGenerados.join(', ')})` : '');

@@ -77,7 +77,15 @@
   <div *ngIf="!loading && !error && loadingCatalogos" class="loading-box">
     Cargando catálogos de secciones y cargos...
   </div>
+ <app-modal-fotos
+  [visible]="mostrarModalFoto"
+  titulo="{{ empleadoSeleccionado?.apellido }}, {{ empleadoSeleccionado?.nombre }}, Legajo: {{ empleadoSeleccionado?.legajo }}, Puesto: {{ empleadoSeleccionado?.cargo.nombre }}" 
+  (cerrar)="cerrarFoto()">
+  <img
+    [src]="fotoAmpliada"  
+    class="foto-modal">
 
+</app-modal-fotos>
   <div *ngIf="!loading && !error && empleadosFiltrados.length > 0" class="table-wrap">
     <table class="empleados-table">
       <thead>
@@ -97,10 +105,15 @@
       </thead>
       <tbody>
         <tr *ngFor="let empleado of empleadosFiltrados" [class.is-inactive]="esEmpleadoInactivo(empleado)" [class.is-disabled]="isUsuarioNoHabilitado(empleado)">
+          
           <td>
             <div class="employee-cell">
-              <div class="employee-avatar" [title]="nombreCompleto(empleado)">
-                <img *ngIf="tieneFoto(empleado); else employeeAvatarIcon" [src]="fotoUrl(empleado)" [alt]="nombreCompleto(empleado)" (error)="avatarError(empleado)" />
+              <div class="employee-avatar avatar-clickable" [title]="nombreCompleto(empleado)" >
+                <div class="modal-body foto-container" >
+                <img *ngIf="tieneFoto(empleado); else employeeAvatarIcon" [src]="fotoUrl(empleado)"  class="foto-empleado" (click)="ampliarFoto(empleado)" [alt]="nombreCompleto(empleado)"
+               
+                 (error)="avatarError(empleado)" />
+                </div>
                 <ng-template #employeeAvatarIcon>
                   <i class="bi bi-person-fill"></i>
                 </ng-template>
