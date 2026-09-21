@@ -23,7 +23,15 @@
       </button>
     </div>
   </header>
+ <app-modal-fotos
+  [visible]="mostrarModalFoto"
+  titulo="{{ empleadoSeleccionado?.apellido }}, {{ empleadoSeleccionado?.nombre }}, Legajo: {{ empleadoSeleccionado?.legajo }}, Puesto: {{ empleadoSeleccionado?.cargo.nombre }}" 
+  (cerrar)="cerrarFoto()">
+  <img
+    [src]="fotoAmpliada"  
+    class="foto-modal">
 
+</app-modal-fotos>
   <section class="ficha-body">
     <div class="left-col">
       <div class="panel">
@@ -74,13 +82,17 @@
               </tr>
             </thead>
             <tbody>
+              
               <ng-container *ngFor="let e of empleadosFiltrados">
                 <tr [class.is-inactive]="esEmpleadoInactivo(e)">
                   <td><input type="checkbox" [checked]="isEmployeeSelected(e)" (change)="toggleEmployee(e)" /></td>
                   <td>
                     <div class="employee-cell">
                       <div class="employee-avatar" *ngIf="tieneFoto(e); else initials">
-                        <img [src]="fotoUrl(e)" (error)="avatarError(e)" alt="foto" />
+                        
+                        <div class="foto-container">
+                          <img [src]="fotoUrl(e)" (click)="ampliarFoto(e)" class="foto-empleado" (error)="avatarError(e)" alt="foto" />
+                        </div>
                       </div>
                       <ng-template #initials>
                         <div class="employee-avatar"><i>{{ iniciales(e) }}</i></div>

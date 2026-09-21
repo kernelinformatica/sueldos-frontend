@@ -74,8 +74,8 @@ export class LoginComponent implements OnInit {
       this.error = 'Por favor ingresa el código de cliente.';
       return;
     }
-    if (!/^[A-Za-z0-9]{11}$/.test(this.codigoCliente)) {
-      this.error = 'El código de cliente debe tener exactamente 11 caracteres alfanuméricos.';
+    if (!/^[A-Za-z0-9]{5,}$/.test(this.codigoCliente)) {
+      this.error = 'El código de cliente debe tener un minimo de 5 caracteres.';
       return;
     }
     if (this.rememberMe) {

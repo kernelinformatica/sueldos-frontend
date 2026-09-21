@@ -398,6 +398,21 @@
   color:#9ac8fa;
   text-decoration: underline; /* efecto hover */
 }
+.foto-container {
+    display: inline-block;
+    transition: all 0.3s ease;
+    border-radius: 10px;
+}
 
+.foto-container:hover {
+    transform: scale(1.08) translateY(-5px);
+    box-shadow: 0 12px 25px rgba(0,0,0,.25);
+}
+.foto-empleado {
+    display: block;
+    max-width: 100%;
+    cursor: pointer;
+    border-radius: 8px;
+}
 /* Reusar estilos del listado para consistencia visual */
 @import './empleados-listado.component.scss';

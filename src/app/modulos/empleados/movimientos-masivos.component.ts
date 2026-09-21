@@ -8,12 +8,90 @@ import { of } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { LoadingService } from '../../shared/loading-spinner/loading.service';
+import { ModalFotos } from '../../shared/modal-fotos/modal-fotos';
 import { LiquidacionesAnaliticaService } from './liquidaciones-analitica.service';
 import { Router } from '@angular/router';
+
+interface EmpleadoItem {
+  id: number;
+  empleado_id?: number;
+  empresa_id?: number;
+  sucursal_id?: number;
+  seccion_id?: number;
+  cargo_id?: number;
+  usuario_id?: number;
+  legajo?: string;
+  tipo_documento?: string;
+  numero_documento?: string;
+  apellido?: string;
+  nombre?: string;
+  fecha_nacimiento?: string | null;
+  sexo?: string;
+  estado_civil?: string;
+  nacionalidad?: string;
+  direccion?: string;
+  localidad?: string;
+  provincia?: string;
+  email?: string;
+  telefono?: string;
+  fecha_ingreso?: string | null;
+  fecha_egreso?: string | null;
+  foto?: string | null;
+  habilitado?: number;
+  estado?: string | number | EstadoEmpleadoValue;
+  foto_url_publica?: string | null;
+  url_publica?: string | null;
+  empresa?: {
+    nombre?: string;
+    nombre_fantasia?: string;
+    cuit?: string;
+  };
+  cargo?: {
+    cargo_id?: number;
+    nombre?: string;
+    descripcion?: string | null;
+  };
+  seccion?: {
+    seccion_id?: number;
+    nombre?: string;
+    orden?: number;
+    estado?: number;
+  };
+  sucursal?: {
+    nombre?: string;
+  };
+  contratacion_tipo?: {
+    nombre?: string;
+  };
+  convenio_categoria?: {
+    nombre?: string;
+  };
+  convenio?: {
+    nombre?: string;
+  };
+  forma_pago?: {
+    nombre?: string;
+  };
+  cuenta_bancaria_principal?: {
+    alias_cbu?: string;
+    banco?: {
+      nombre?: string;
+    };
+  };
+}
+interface EstadoEmpleadoValue {
+  id?: number;
+  estado_id?: number;
+  estado_empleado_id?: number;
+  nombre?: string;
+  descripcion?: string;
+  es_activo?: number | boolean;
+}
+
 @Component({
   selector: 'app-movimientos-masivos',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ModalFotos],
   templateUrl: './movimientos-masivos.component.html',
   styleUrls: ['./movimientos-masivos.component.scss']
 })
@@ -57,7 +135,9 @@ export class MovimientosMasivosComponent implements OnInit {
   avatarsSinImagen = new Set<number>();
   // track which employees have their conceptos list expanded
   expandedEmployeeIds = new Set<number>();
-
+  fotoAmpliada: string | null = null;
+  mostrarModalFoto = false;
+  empleadoSeleccionado: any;
   constructor(
     private fb: FormBuilder,
     private svc: EmpleadosConceptosService,
@@ -818,6 +898,20 @@ export class MovimientosMasivosComponent implements OnInit {
       this.router.navigate(['admin/empleados/editar', empleadoId]);
     }
   }
+   ampliarFoto(empleado: EmpleadoItem): void {
+
+    if (this.tieneFoto(empleado)) {
+      this.empleadoSeleccionado = empleado;
+      this.fotoAmpliada = this.fotoUrl(empleado);
+      this.mostrarModalFoto = true;
+    }
+  }
+
+  cerrarFoto(): void {
+    this.fotoAmpliada = null;
+    this.mostrarModalFoto = false;
+  }
+
   get canAssignConcepts(): boolean {
     try {
       const perms = this.auth.getPermissions() || [];
