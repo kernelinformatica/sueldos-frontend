@@ -1,0 +1,272 @@
+Tengo un sistema de Sueldos y Jornales que ya está funcionando.
+
+IMPORTANTE: **NO quiero rediseñar el sistema ni la base de datos completa.**
+
+El sistema ya tiene:
+
+* empleados
+* convenios
+* categorías
+* conceptos
+* conceptos asignados a empleados
+* concepto protegido "Sueldo Básico"
+* motor de liquidación
+* liquidaciones funcionando correctamente
+
+Actualmente, al liquidar un empleado, el sistema obtiene el importe del concepto protegido **"Sueldo Básico"** a partir de la categoría del empleado.
+
+Por ejemplo:
+
+```text
+Empleado
+   ↓
+Categoría: AUXILIAR B
+   ↓
+Básico categoría: $150.000
+   ↓
+Concepto: Sueldo Básico
+   ↓
+Liquidación: $150.000
+```
+
+Esto debe seguir funcionando exactamente igual para los empleados que no tengan una personalización.
+
+### Nuevo requerimiento
+
+Necesito agregar una posibilidad de **básico personalizado por empleado**.
+
+Ejemplo:
+
+```text
+Categoría: AUXILIAR B
+Básico de categoría: $150.000
+
+Empleado Juan  → básico personalizado $180.000
+Empleado Pedro → básico personalizado $195.000
+Empleado Dario → básico personalizado $210.000
+Empleado Carlos → sin básico personalizado
+```
+
+Al liquidar:
+
+```text
+Juan   → Sueldo Básico $180.000
+Pedro  → Sueldo Básico $195.000
+Dario  → Sueldo Básico $210.000
+Carlos → Sueldo Básico $150.000
+```
+
+### Regla fundamental
+
+Modificar ÚNICAMENTE la determinación del importe del concepto **Sueldo Básico**.
+
+La regla debe ser:
+
+```text
+SI existe un básico personalizado vigente para el empleado
+    usar ese importe
+SINO
+    usar exactamente la lógica actual
+    que obtiene el básico desde la categoría
+```
+
+Es decir:
+
+```text
+básico_liquidación =
+    básico_personalizado_vigente
+    ?? básico_actual_de_categoria
+```
+
+### NO modificar
+
+No modificar:
+
+* concepto "Sueldo Básico"
+* código del concepto protegido
+* categorías
+* convenios
+* estructura general de conceptos
+* fórmulas existentes
+* motor general de liquidación
+* demás conceptos
+* descuentos
+* aportes
+* cargas patronales
+* cálculos posteriores
+
+El único cambio debe afectar la fuente del importe del concepto "Sueldo Básico".
+
+### Sobre la base de datos
+
+Antes de crear una tabla nueva, analizá la estructura actual.
+
+Quiero que determines si ya existe alguna tabla/campo que pueda utilizarse para almacenar un importe personalizado por empleado.
+
+Si NO existe, proponé la modificación mínima necesaria.
+
+Preferentemente quiero algo que permita mantener historial, por ejemplo:
+
+```text
+empleado_basico
+-------------------------
+id
+empleado_id
+importe
+fecha_desde
+fecha_hasta
+activo
+motivo
+created_at
+updated_at
+```
+
+Pero **no crees esta tabla automáticamente sin antes revisar mi base existente**.
+
+### Vigencia
+
+El básico personalizado debe poder tener vigencia.
+
+Por ejemplo:
+
+```text
+Empleado Dario
+
+01/08/2026 → $1.450.000
+01/09/2026 → $1.550.000
+01/10/2026 → $1.650.000
+```
+
+Si estoy liquidando septiembre:
+
+```text
+Sueldo Básico = $1.550.000
+```
+
+Si no existe un registro personalizado vigente para el período liquidado:
+
+```text
+Sueldo Básico = básico de categoría
+```
+
+### MUY IMPORTANTE: liquidaciones existentes
+
+El sistema ya realiza liquidaciones.
+
+No quiero que este cambio altere liquidaciones históricas que ya fueron realizadas.
+
+Analizá cómo actualmente se guarda el importe de cada concepto dentro de una liquidación.
+
+Si la liquidación ya guarda el importe calculado, debemos mantener ese comportamiento.
+
+El básico personalizado debe intervenir únicamente durante el cálculo de nuevas liquidaciones/reliquidaciones donde corresponda.
+
+### Administración
+
+Más adelante voy a necesitar una pantalla para administrar los básicos personalizados.
+
+Quiero poder ver:
+
+```text
+Empleado       Categoría       Básico categoría    Básico personalizado
+-----------------------------------------------------------------------
+Juan Pérez     AUXILIAR B      $150.000            $180.000
+Pedro Gómez    AUXILIAR B      $150.000            $195.000
+Dario Quiroga  AUXILIAR B      $150.000            $210.000
+Carlos López   AUXILIAR B      $150.000            -
+```
+
+Y poder asignar o modificar el básico personalizado.
+
+También quiero poder hacer modificaciones masivas a varios empleados.
+
+Pero por ahora el objetivo principal es:
+
+**Integrar el básico personalizado en el cálculo existente de la liquidación.**
+
+### Forma de trabajo
+
+Antes de modificar código:
+
+1. Buscá dónde se calcula actualmente el concepto "Sueldo Básico".
+2. Mostrame el código actual responsable de obtener su importe.
+3. Identificá de dónde obtiene actualmente el básico de la categoría.
+4. Identificá cómo se identifica al empleado durante la liquidación.
+5. Identificá cómo se determina el período de liquidación.
+6. Identificá cómo se guardan los conceptos calculados de la liquidación.
+7. Revisá si ya existe alguna estructura para guardar importes personalizados.
+
+Después proponé el cambio mínimo.
+
+Quiero que mantengas toda la lógica existente y agregues solamente:
+
+```text
+básico personalizado vigente
+        ↓
+si existe → usarlo
+        ↓
+si no existe → ejecutar lógica actual
+```
+
+No quiero que reescribas el motor de liquidación.
+
+No quiero que dupliques el concepto "Sueldo Básico".
+
+No quiero crear categorías nuevas para cada empleado.
+
+La categoría debe continuar representando el básico convencional.
+
+El básico personalizado es solamente una **excepción individual al importe utilizado por el concepto protegido "Sueldo Básico"**.
+
+Primero analizá el código existente y explicame exactamente dónde harías el cambio. Después implementalo.
+
+
+esta se la tabla de la base que tenes que usar 
+-- --------------------------------------------------------
+-- Host:                         192.168.254.47
+-- Versión del servidor:         10.6.23-MariaDB-0ubuntu0.22.04.1 - Ubuntu 22.04
+-- SO del servidor:              debian-linux-gnu
+-- HeidiSQL Versión:             12.17.0.7270
+-- --------------------------------------------------------
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET NAMES utf8 */;
+/*!50503 SET NAMES utf8mb4 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+
+-- Volcando estructura de base de datos para c4_sueldos_db
+CREATE DATABASE IF NOT EXISTS `c4_sueldos_db` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci */;
+USE `c4_sueldos_db`;
+
+-- Volcando estructura para tabla c4_sueldos_db.empleado_basico
+CREATE TABLE IF NOT EXISTS `empleado_basico` (
+  `empleado_basico_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `empresa_id` int(11) NOT NULL,
+  `empleado_id` int(11) NOT NULL,
+  `basico_personalizado` decimal(15,2) NOT NULL,
+  `fecha_desde` date NOT NULL,
+  `fecha_hasta` date DEFAULT NULL,
+  `activo` tinyint(1) NOT NULL DEFAULT 1,
+  `motivo` varchar(255) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`empleado_basico_id`),
+  KEY `idx_empleado_basico_empresa` (`empresa_id`) USING BTREE,
+  KEY `idx_empleado_basico_empleado` (`empleado_id`) USING BTREE,
+  KEY `idx_empleado_basico_vigencia` (`empresa_id`,`empleado_id`,`activo`,`fecha_desde`,`fecha_hasta`) USING BTREE,
+  CONSTRAINT `FK_empleado_basico_empleados` FOREIGN KEY (`empleado_id`) REFERENCES `empleados` (`empleado_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `FK_empleado_basico_empresas` FOREIGN KEY (`empresa_id`) REFERENCES `empresas` (`empresa_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Volcando datos para la tabla c4_sueldos_db.empleado_basico: ~0 rows (aproximadamente)
+
+/*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
+/*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
+/*!40014 SET FOREIGN_KEY_CHECKS=IFNULL(@OLD_FOREIGN_KEY_CHECKS, 1) */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40111 SET SQL_NOTES=IFNULL(@OLD_SQL_NOTES, 1) */;

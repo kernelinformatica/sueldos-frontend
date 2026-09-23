@@ -421,6 +421,13 @@ export class MovimientosMasivosComponent implements OnInit {
       const empleadoSeccionId = this.parseCatalogoId(empleado.seccion_id ?? empleado.seccion?.seccion_id ?? null);
       if (seccionId !== null && empleadoSeccionId !== null && empleadoSeccionId !== seccionId) return false;
 
+
+      // Solo estados con estado_id = 1
+      if (Number(empleado.estado?.estado_id) !== 1) {
+        return false;
+      }
+
+
       return true;
     });
   }

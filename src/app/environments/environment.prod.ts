@@ -1,6 +1,7 @@
 export const environment = {
   production: true,
-  apiUrl: 'http://192.168.254.15:3501',
+  apiUrl: 'https://sueldos.kernelinformatica.com.ar/rest',
+  apiUrlImagenes: 'https://sueldos.kernelinformatica.com.ar/rest',
   googleMapsApiKey: '',
 
 };

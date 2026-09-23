@@ -17,7 +17,7 @@
   position: relative;
   min-width: 0;
   .slogan-container {
-    background: whitesmoke;
+    background: transparent;
 opacity: 0.8;
     padding: 2.5rem 2rem;
     border-radius: 1.5rem;
@@ -66,6 +66,82 @@ opacity: 0.8;
   }
 }
 
+
+
+/* Estilo hero para las features */
+  .feature-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2.6rem 2rem; /* más espacio vertical entre filas */
+    margin-top: 1.2rem;
+  }
+
+  .feature-list li { /* asegurar separación en dispositivos que no respeten gap */
+    margin-bottom: 1rem;
+  }
+
+  .feature-card {
+    background: rgba(255,255,255,0.65); /* más translúcido, menos blanco sólido */
+    border: 1px solid rgba(111,66,193,0.08); /* borde con matiz púrpura sutil */
+    padding: 1.6rem 1.4rem;
+    border-radius: 16px;
+    align-items: center;
+    gap: 1rem;
+    transition: transform 0.14s ease, box-shadow 0.14s ease;
+    min-height: 120px;
+    position: relative;
+    z-index: 10; /* seguro por encima de la superposición */
+    box-shadow: 0 8px 24px rgba(2,6,23,0.06);
+  }
+  .feature-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 28px 80px rgba(2,6,23,0.12);
+    border-color: rgba(111,66,193,0.26);
+  }
+  .feature-card strong {
+    color: #000000; /* texto en negro */
+    display: block;
+    font-size: 1.18rem;
+    line-height: 1.06;
+    text-align: end;
+  }
+  .feature-card .small,
+  .feature-card .text-muted {
+    color: rgba(2,6,23,0.68) !important;
+    font-size: 0.92rem;
+     text-align: end;
+  }
+  .feature-list .me-3 {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: transparent;
+    box-shadow: none;
+    color: inherit;
+    font-size: 1.05rem;
+    color: var(--color-primario);
+
+  }
+  .icon-circle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.98);
+    box-shadow: 0 10px 26px rgba(2,6,23,0.08);
+    color: var(--primary-color); /* usar color primario púrpura */
+    font-size: 1.6rem; /* iconos más grandes */
+  }
+  .icon-circle i {
+    color: var(--primary-color);
+    color: black;
+    font-size: 2.4rem;
+  }
 @media (max-width: 991.98px) {
   .login-split {
     flex-direction: column;
