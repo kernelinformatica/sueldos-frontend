@@ -1,0 +1,379 @@
+<div class="listado-empleados text-sm bp-shell">
+  <app-loading-spinner [visible]="loading"></app-loading-spinner>
+
+  <section class="form-card form-card-hero" style="margin-bottom:1rem">
+    <div class="module-breadcrumb">
+      <a href="#" (click)="goTo('/modulos'); $event.preventDefault()">Módulos</a>
+      <span>/</span>
+      <a href="#" (click)="goTo('/admin/empleados'); $event.preventDefault()">Empleados</a>
+      <span>/</span>
+      <span>Básicos personalizados</span>
+    </div>
+    <div class="hero-grid">
+      <div class="hero-main">
+        <span class="hero-badge">Gestión</span>
+        <div class="hero-name-row">
+          <div>
+            <h4>Básicos Personalizados</h4>
+            <p>Administración de básicos personalizados por empleado</p>
+          </div>
+        </div>
+      </div>
+      <div class="hero-meta">
+        <div>
+          <div class="listado-actions">
+            <button type="button" class="btn-action btn-icon" (click)="abrirNuevo()" title="Nuevo básico"
+              [disabled]="procesando">
+              <i class="bi bi-plus-lg"></i>
+            </button>
+            <button type="button" class="btn-action btn-icon" (click)="abrirAltaMasiva()" title="Alta masiva"
+              [disabled]="procesando">
+              <i class="bi bi-check-square"></i>
+            </button>
+          </div>
+          <div>
+            <span>Total</span>
+            <strong>{{ registros.length }}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cargo-list-card">
+    <div class="filtros-panel">
+      <div class="filtro-item">
+        <label>Empleado</label>
+        <input type="text" [(ngModel)]="filtros.q" placeholder="Legajo, apellido, nombre o documento" />
+      </div>
+      <div class="filtro-item">
+  <label>Tipo de Contratacion</label>
+
+  <select
+  [(ngModel)]="filtros.contratacion_tipo_id"
+>
+  <option value="">Todos</option>
+
+  <option
+    *ngFor="let c of contrataciones"
+    [value]="c.contratacion_tipo_id"
+  >
+    {{ c.nombre }}
+  </option>
+</select>
+</div>
+      <div class="filtro-item">
+        <label>Sucursal</label>
+        <select [(ngModel)]="filtros.sucursal_id" (ngModelChange)="onSucursalChange()">
+          <option value="">Todas</option>
+          <option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</option>
+        </select>
+      </div>
+      <div class="filtro-item">
+        <label>Sección</label>
+        <select [(ngModel)]="filtros.seccion_id" (ngModelChange)="onSeccionChange()">
+          <option value="">Todas</option>
+          <option *ngFor="let s of secciones" [value]="s.id">{{ s.nombre }}</option>
+        </select>
+      </div>
+      <div class="filtro-item">
+        <label>Puesto</label>
+        <select [(ngModel)]="filtros.cargo_id">
+          <option value="">Todos</option>
+          <option *ngFor="let c of cargos" [value]="c.id">{{ c.nombre }}</option>
+        </select>
+      </div>
+      <div class="filtro-item">
+        <!-- <label>Estado</label>
+        <select [(ngModel)]="filtros.estado" (ngModelChange)="onEstadoChange()">
+          <option value="">Todos</option>
+          <option value="1">Activos</option>
+          <option value="2">Inactivos</option>
+        </select>-->
+
+
+        <label>Estado</label>
+        <select [(ngModel)]="filtros.estado" (ngModelChange)="onEstadoChange()">
+          <option [ngValue]="''">Todos</option>
+          <option *ngFor="let estado of estados" [ngValue]="estado.estado_id">{{ estado.nombre }} </option>
+        </select>
+      </div>
+      <div class="filtro-actions">
+        <button type="button" class="btn-action btn-icon" (click)="limpiarFiltros()" title="Limpiar filtros">
+          <i class="bi bi-eraser-fill"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Barra de acciones masivas -->
+    <div *ngIf="totalSeleccion > 0" class="seleccion-bar">
+      <span class="seleccion-count"><i class="bi bi-check-square"></i> {{ totalSeleccion }} seleccionados</span>
+      <div class="seleccion-actions">
+        <button type="button" class="btn-action" (click)="abrirModifMasiva()" [disabled]="procesando">
+          <i class="bi bi-pencil-square"></i> Modificar seleccionados
+        </button>
+        <button type="button" class="btn-action btn-danger" (click)="pedirBajaMasiva()" [disabled]="procesando">
+          <i class="bi bi-trash"></i> Dar de baja seleccionados
+        </button>
+      </div>
+    </div>
+
+
+
+    <div *ngIf="!loading && registrosFiltrados.length > 0" class="table-wrap">
+      <table class="empleados-table">
+        <thead>
+          <tr>
+            <th class="check-col">
+              <input type="checkbox" [checked]="todosSeleccionados"
+                (change)="toggleSeleccionTodos($any($event.target).checked)" title="Seleccionar todos" />
+            </th>
+            <th>Legajo</th>
+            <th>Empleado</th>
+            <th style="text-align: right;">Básico personalizado</th>
+            <th>Desde</th>
+            <th>Hasta</th>
+            <th>Estado</th>
+            <th style="text-align: right;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of registrosFiltrados" [class.row-inactivo]="r.activo == 2"
+            [class.row-baja]="r.activo == 3">
+            <td class="check-col">
+              <input type="checkbox" [checked]="seleccion.has(r.empleado_basico_id)"
+                (change)="toggleSeleccion(r.empleado_basico_id, $any($event.target).checked)" />
+            </td>
+            <td>{{ r.legajo || '-' }}</td>
+            <td>{{ empleadoNombre(r) }}</td>
+
+            <td class="text-end">
+              <span class="badge bg-success px-2 py-1" style="font-size: 0.95rem;">
+                {{ formatImporte(r.basico_personalizado) }}
+              </span>
+            </td>
+            <td>{{ formatFecha(r.fecha_desde) }}</td>
+            <td>{{ formatFecha(r.fecha_hasta) }}</td>
+            <td>
+              <span class="state-badge" [ngClass]="{
+    'activo': r.activo == 1,
+    'inactivo': r.activo == 2,
+    'baja': r.activo == 3
+  }">
+                {{
+                r.activo == 1 ? 'Activo'
+                : r.activo == 2 ? 'Inactivo'
+                : 'Baja'
+                }}
+              </span>
+            </td>
+            <td class="actions-col">
+              <div class="row-actions row-actions-right">
+                <a (click)="abrirEditar(r)" class="btn-action btn-icon" title="Editar">
+                  <i class="bi bi-pencil-square"></i>
+                </a>
+                <a (click)="pedirBaja(r)" class="btn-action btn-icon btn-danger-icon" title="Dar de baja"
+                  *ngIf="esActivo(r.activo)">
+                  <i class="bi bi-trash"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="!loading && !registrosFiltrados.length" class="empty-state-panel" style="color:red">
+      No hay básicos personalizados para mostrar.
+    </div>
+  </section>
+
+  <!-- ===================== Modal formulario individual ===================== -->
+  <div class="modal-backdrop" *ngIf="modalVisible && modalModo === 'form'" (click)="cerrarModal()"></div>
+  <div class="modal-container" *ngIf="modalVisible && modalModo === 'form'">
+    <div class="modal-content bp-modal">
+      <div class="modal-header">
+        <span class="modal-title">{{ modalTitulo }}</span>
+        <button class="modal-close" (click)="cerrarModal()" [disabled]="guardando">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-field form-field-full">
+            <label>Empleado *</label>
+            <input type="text" [(ngModel)]="form.empleadoBusqueda" (ngModelChange)="onBuscarEmpleadoChange()"
+              placeholder="Buscar por legajo, apellido, nombre o documento" [disabled]="guardando" />
+            <div class="hint" *ngIf="form.empleado_id">Seleccionado: {{ empleadoSeleccionadoLabel() }}</div>
+            <ul class="empleado-sugerencias" *ngIf="!form.empleado_id && empleadosFiltrados.length">
+              <li *ngFor="let e of empleadosFiltrados.slice(0, 8)" (click)="form.empleado_id = empleadoId(e)">
+                {{ empleadoLabel(e) }}
+              </li>
+            </ul>
+          </div>
+          <div class="form-field">
+            <label>Básico personalizado *</label>
+            <input type="number" min="0.01" step="0.01" [(ngModel)]="form.basico_personalizado"
+              [disabled]="guardando" />
+          </div>
+          <div class="form-field">
+            <label>Fecha desde *</label>
+            <input type="date" [(ngModel)]="form.fecha_desde" [disabled]="guardando" />
+          </div>
+          <div class="form-field">
+            <label>Fecha hasta</label>
+            <input type="date" [(ngModel)]="form.fecha_hasta" [disabled]="guardando" />
+          </div>
+          <div class="form-field">
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="form.activo" [disabled]="guardando" /> Activo
+            </label>
+          </div>
+        </div>
+        <div class="form-error" *ngIf="formError">{{ formError }}</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="modal-btn-ok" (click)="guardarForm()" [disabled]="guardando">
+          <i class="bi bi-save"></i> {{ guardando ? 'Guardando...' : 'Guardar' }}
+        </button>
+        <button type="button" class="modal-btn-cancel" (click)="cerrarModal()" [disabled]="guardando">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== Modal alta masiva ===================== -->
+  <div class="modal-backdrop" *ngIf="modalVisible && modalModo === 'alta-masiva'" (click)="cerrarModal()"></div>
+  <div class="modal-container" *ngIf="modalVisible && modalModo === 'alta-masiva'">
+    <div class="modal-content bp-modal bp-modal-wide">
+      <div class="modal-header">
+        <span class="modal-title">{{ modalTitulo }}</span>
+        <button class="modal-close" (click)="cerrarModal()" [disabled]="guardando">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="masiva-filtros">
+          <div class="form-field masiva-filtro-busqueda">
+            <label>Buscar empleados</label>
+            <input type="text" [(ngModel)]="masivaBusqueda" (ngModelChange)="filtrarEmpleadosMasiva()"
+              placeholder="Legajo, apellido, nombre o documento" [disabled]="guardando" />
+          </div>
+          <div class="form-field">
+            <label>Sucursal</label>
+            <select [(ngModel)]="masivaFiltros.sucursal_id" (ngModelChange)="onMasivaSucursalChange()"
+              [disabled]="guardando">
+              <option value="">Todas</option>
+              <option *ngFor="let s of sucursales" [value]="s.sucursal_id">{{ s.sucursal_id }} - {{ s.nombre }}</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Sección</label>
+            <select [(ngModel)]="masivaFiltros.seccion_id" (ngModelChange)="onMasivaSeccionChange()"
+              [disabled]="guardando">
+              <option value="">Todas</option>
+              <option *ngFor="let s of masivaSecciones" [value]="s.id">{{ s.nombre }}</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Puesto</label>
+            <select [(ngModel)]="masivaFiltros.cargo_id" (ngModelChange)="filtrarEmpleadosMasiva()"
+              [disabled]="guardando">
+              <option value="">Todos</option>
+              <option *ngFor="let c of masivaCargos" [value]="c.id">{{ c.nombre }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="empleado-lista">
+          <label class="empleado-lista-item" *ngFor="let e of empleadosFiltrados">
+            <input type="checkbox" [checked]="masivaSeleccion.has(empleadoId(e))"
+              (change)="toggleMasiva(empleadoId(e), $any($event.target).checked)" [disabled]="guardando" />
+            <span class="empleado-avatar" *ngIf="fotoUrlEmp(e) as furl; else inicialesTpl">
+              <img [src]="furl" [alt]="empleadoLabel(e)" (error)="onAvatarErrorEmp(e)" />
+            </span>
+            <ng-template #inicialesTpl>
+              <span class="empleado-avatar empleado-avatar-iniciales">{{ inicialesEmp(e) }}</span>
+            </ng-template>
+            <span>{{ empleadoLabel(e) }}</span>
+          </label>
+          <div *ngIf="!empleadosFiltrados.length" class="empty-state-panel">No hay empleados que coincidan con la
+            búsqueda.</div>
+        </div>
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Básico personalizado *</label>
+            <input type="number" min="0.01" step="0.01" [(ngModel)]="masivaForm.basico_personalizado"
+              [disabled]="guardando" />
+          </div>
+          <div class="form-field">
+            <label>Fecha desde *</label>
+            <input type="date" [(ngModel)]="masivaForm.fecha_desde" [disabled]="guardando" />
+          </div>
+          <div class="form-field">
+            <label>Fecha hasta</label>
+            <input type="date" [(ngModel)]="masivaForm.fecha_hasta" [disabled]="guardando" />
+          </div>
+          <div class="form-field">
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="masivaForm.activo" [disabled]="guardando" /> Activo
+            </label>
+          </div>
+        </div>
+        <div class="form-error" *ngIf="masivaError">{{ masivaError }}</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="modal-btn-ok" (click)="guardarAltaMasiva()" [disabled]="guardando">
+          <i class="bi bi-save"></i> {{ guardando ? 'Procesando...' : 'Asignar (' + masivaSeleccion.size + ')' }}
+        </button>
+        <button type="button" class="modal-btn-cancel" (click)="cerrarModal()" [disabled]="guardando">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== Modal modificación masiva ===================== -->
+  <div class="modal-backdrop" *ngIf="modalVisible && modalModo === 'modif-masiva'" (click)="cerrarModal()"></div>
+  <div class="modal-container" *ngIf="modalVisible && modalModo === 'modif-masiva'">
+    <div class="modal-content bp-modal">
+      <div class="modal-header">
+        <span class="modal-title">{{ modalTitulo }}</span>
+        <button class="modal-close" (click)="cerrarModal()" [disabled]="guardando">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-hint">Complete solo los campos que desea modificar en los {{ totalSeleccion }} registro(s)
+          seleccionados.</p>
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Básico personalizado</label>
+            <input type="number" min="0.01" step="0.01" [(ngModel)]="modifForm.basico_personalizado"
+              [disabled]="guardando" />
+          </div>
+          <div class="form-field">
+            <label>Fecha desde</label>
+            <input type="date" [(ngModel)]="modifForm.fecha_desde" [disabled]="guardando" />
+          </div>
+          <div class="form-field">
+            <label>Fecha hasta</label>
+            <input type="date" [(ngModel)]="modifForm.fecha_hasta" [disabled]="guardando" />
+          </div>
+          <div class="form-field">
+            <select [(ngModel)]="modifForm.activo" disabled>
+              <option value="">No cambiar</option>
+               
+              <option *ngFor="let estado of estados" [value]="estado.estado_id">
+                {{ estado.nombre }}
+              </option>
+            </select>
+          </div>
+        </div>
+        <div class="form-error" *ngIf="modifError">{{ modifError }}</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="modal-btn-ok" (click)="guardarModifMasiva()" [disabled]="guardando">
+          <i class="bi bi-save"></i> {{ guardando ? 'Procesando...' : 'Guardar cambios' }}
+        </button>
+        <button type="button" class="modal-btn-cancel" (click)="cerrarModal()" [disabled]="guardando">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmación de baja (individual o masiva) -->
+  <app-modal-alerta [visible]="confirmVisible" [titulo]="confirmTitulo" [mensaje]="confirmMensaje"
+    [icono]="'bi bi-exclamation-triangle-fill'" [esConfirmacion]="true" [accentColor]="'#d32f2f'"
+    [buttonColor]="'#d32f2f'" (cerrar)="onConfirmClose($event)">
+  </app-modal-alerta>
+</div>

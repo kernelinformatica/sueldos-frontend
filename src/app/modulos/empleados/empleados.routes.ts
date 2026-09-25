@@ -5,6 +5,7 @@ import { EmpleadosListadoComponent } from './empleados-listado.component';
 import { EmpleadosConceptosComponent } from './empleados-conceptos.component';
 import { MovimientosMasivosComponent } from './movimientos-masivos.component';
 import { EmpleadosFormComponent } from './empleados-form.component';
+import { BasicosPersonalizadosComponent } from './basicos-personalizados/basicos-personalizados.component';
 
 export const empleadosRoutes: Routes = [
   {
@@ -16,7 +17,8 @@ export const empleadosRoutes: Routes = [
       { path: 'alta', component: EmpleadosFormComponent },
       { path: 'editar/:id', component: EmpleadosFormComponent },
       { path: 'conceptos', component: MovimientosMasivosComponent },
-      { path: 'conceptos/:id', component: EmpleadosConceptosComponent }
+      { path: 'conceptos/:id', component: EmpleadosConceptosComponent },
+      { path: 'basicos-personalizados', component: BasicosPersonalizadosComponent }
     ]
   }
 ];

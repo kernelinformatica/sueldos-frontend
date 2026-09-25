@@ -195,6 +195,7 @@ export class ConceptoFormComponent implements OnInit {
     // load tipos and grupos in parallel
     this.svc.tiposList().pipe(catchError(() => of([]))).subscribe((t: any) => { this.tipos = t || []; if (this.form.value.tipo_concepto_id) this.onTipoChange(this.form.value.tipo_concepto_id); this.updatePermiteImporteFlag(); });
     this.svc.formulaTiposList().pipe(catchError(() => of([]))).subscribe((ft: any) => {
+      
       this.formulaTipos = ft || [];
       this.syncSelectedFormulaTipo(this.form.value.formula_tipo_id);
     });

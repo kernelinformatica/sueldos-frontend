@@ -1,0 +1,700 @@
+Necesito implementar en mi frontend Angular una pantalla completa para administrar los **Básicos Personalizados de Empleados**.
+
+IMPORTANTE: NO rediseñar la arquitectura existente del proyecto. Adaptarse al patrón, estilos, componentes, servicios, modales, tablas, formularios y manejo de errores que ya utiliza el proyecto.
+
+## Objetivo
+
+Crear una pantalla CRUD para administrar los registros de `empleado_basico`.
+creala en modulos/empleados/basicos-personalizados
+La pantalla debe permitir:
+
+* Listar básicos personalizados.
+* Buscar/filtrar empleados.
+* Crear un básico personalizado para un empleado.
+* Modificar un básico existente.
+* Dar de baja un básico personalizado.
+* Seleccionar varios empleados y realizar alta masiva.
+* Seleccionar varios registros y realizar modificación masiva.
+* Seleccionar varios registros y realizar baja masiva.
+* Mostrar claramente si el registro está activo o dado de baja.
+* Manejar fechas de vigencia.
+
+## MUY IMPORTANTE: EMPRESA
+
+El backend obtiene la empresa desde el JWT:
+
+```ts
+req.user.empresa_id
+```
+
+Por lo tanto:
+
+**EL FRONTEND NO DEBE ENVIAR `empresa_id` NUNCA.**
+
+No agregar `empresa_id`:
+
+* ni como campo del formulario,
+* ni como query parameter,
+* ni dentro del body,
+* ni como parámetro manual del usuario.
+
+El token JWT ya contiene la empresa y el backend se encarga de determinarla.
+
+Por ejemplo, para listar:
+
+```http
+GET /api/empleado-basico
+```
+
+NO:
+
+```http
+GET /api/empleado-basico?empresa_id=1
+```
+
+El `Authorization: Bearer <token>` debe ser manejado por el mecanismo de autenticación/interceptor existente del proyecto.
+
+---
+
+# ENDPOINTS DISPONIBLES
+
+Usar estos endpoints:
+
+### Listar
+
+```http
+GET /api/empleado-basico
+```
+
+Opcionalmente:
+
+```http
+GET /api/empleado-basico?activo=1
+```
+
+Respuesta esperada:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "empleado_basico_id": 1,
+      "empresa_id": 1,
+      "empleado_id": 25,
+      "basico_personalizado": 850000,
+      "fecha_desde": "2026-10-01",
+      "fecha_hasta": null,
+      "activo": 1,
+      "apellido": "Pérez",
+      "nombre": "Juan",
+      "documento": "30111222",
+      "legajo": "125"
+    }
+  ]
+}
+```
+
+Aunque el backend devuelve `empresa_id`, el frontend solamente lo puede mostrar si es necesario. NO debe utilizarlo para construir requests.
+
+### Obtener un registro
+
+```http
+GET /api/empleado-basico/:id
+```
+
+### Obtener básicos de un empleado
+
+```http
+GET /api/empleado-basico/empleado/:empleadoId
+```
+
+### Crear
+
+```http
+POST /api/empleado-basico
+```
+
+Body:
+
+```json
+{
+  "empleado_id": 25,
+  "basico_personalizado": 850000,
+  "fecha_desde": "2026-10-01",
+  "fecha_hasta": null,
+  "activo": 1
+}
+```
+
+### Modificar
+
+```http
+PUT /api/empleado-basico/:id
+```
+
+Body:
+
+```json
+{
+  "empleado_id": 25,
+  "basico_personalizado": 900000,
+  "fecha_desde": "2026-10-01",
+  "fecha_hasta": null,
+  "activo": 1
+}
+```
+
+### Baja individual
+
+```http
+DELETE /api/empleado-basico/:id
+```
+
+La baja es lógica. El backend establece:
+
+```text
+activo = 0
+```
+
+No eliminar físicamente el registro desde el frontend.
+
+### Alta masiva
+
+```http
+POST /api/empleado-basico/masivo
+```
+
+Body:
+
+```json
+{
+  "items": [
+    {
+      "empleado_id": 10,
+      "basico_personalizado": 800000,
+      "fecha_desde": "2026-10-01",
+      "fecha_hasta": null,
+      "activo": 1
+    },
+    {
+      "empleado_id": 11,
+      "basico_personalizado": 900000,
+      "fecha_desde": "2026-10-01",
+      "fecha_hasta": null,
+      "activo": 1
+    }
+  ]
+}
+```
+
+### Modificación masiva
+
+```http
+PUT /api/empleado-basico/masivo
+```
+
+Body:
+
+```json
+{
+  "items": [
+    {
+      "empleado_basico_id": 15,
+      "basico_personalizado": 950000
+    },
+    {
+      "empleado_basico_id": 16,
+      "basico_personalizado": 1000000
+    }
+  ]
+}
+```
+
+### Baja masiva
+
+```http
+DELETE /api/empleado-basico/masivo
+```
+
+Body:
+
+```json
+{
+  "items": [
+    15,
+    16,
+    17
+  ]
+}
+```
+
+---
+
+# PANTALLA
+
+Crear una pantalla similar al resto del sistema.
+
+La estructura debería ser:
+
+## Cabecera
+
+Título:
+
+**Básicos Personalizados**
+
+Subtítulo:
+
+**Administración de básicos personalizados por empleado**
+
+Botones:
+
+* Nuevo básico
+* Alta masiva
+
+---
+
+# TABLA
+
+Mostrar una tabla con:
+
+| Columna              | Información            |
+| -------------------- | ---------------------- |
+| Selección            | checkbox               |
+| Legajo               | `legajo`               |
+| Empleado             | `apellido + nombre`    |
+| Documento            | `documento`            |
+| Básico personalizado | `basico_personalizado` |
+| Desde                | `fecha_desde`          |
+| Hasta                | `fecha_hasta`          |
+| Estado               | Activo / Inactivo      |
+| Acciones             | Editar / Dar de baja   |
+
+Formatear correctamente las fechas como:
+
+```text
+yyyy-MM-dd
+```
+
+El importe debe mostrarse como importe monetario utilizando el formato que ya utiliza el proyecto.
+
+---
+
+# FILTROS
+
+Agregar filtros arriba de la tabla:
+
+* Empleado
+* Estado
+
+Estado:
+
+```text
+Todos
+Activos
+Inactivos
+```
+
+El filtro de estado puede utilizar:
+
+```http
+GET /api/empleado-basico?activo=1
+```
+
+para activos.
+
+Si se selecciona "Todos":
+
+```http
+GET /api/empleado-basico
+```
+
+---
+
+# FORMULARIO INDIVIDUAL
+
+Crear un modal o formulario utilizando el componente/modal que ya utiliza el proyecto.
+
+Campos:
+
+### Empleado
+
+Select/autocomplete.
+
+Debe utilizar el servicio existente de empleados del proyecto.
+
+Mostrar:
+
+```text
+Legajo - Apellido, Nombre - Documento
+```
+
+Guardar solamente:
+
+```ts
+empleado_id
+```
+
+### Básico personalizado
+
+Campo numérico.
+
+Debe aceptar valores mayores a cero.
+
+### Fecha desde
+
+Campo de fecha.
+
+Formato:
+
+```text
+yyyy-MM-dd
+```
+
+Debe ser obligatorio.
+
+### Fecha hasta
+
+Campo de fecha.
+
+Opcional.
+
+Permitir dejarlo vacío/null.
+
+### Activo
+
+Checkbox o switch.
+
+Por defecto:
+
+```ts
+true
+```
+
+---
+
+# VALIDACIONES
+
+Antes de enviar:
+
+* Empleado obligatorio.
+* Básico personalizado obligatorio.
+* Básico personalizado > 0.
+* Fecha desde obligatoria.
+* Fecha hasta opcional.
+* Si se informa fecha hasta, no debería ser anterior a fecha desde.
+
+Mostrar mensajes claros al usuario.
+
+---
+
+# EDICIÓN
+
+Al presionar editar:
+
+1. Obtener el registro.
+2. Cargar los valores en el formulario.
+3. Permitir modificar:
+
+   * empleado
+   * básico
+   * fecha desde
+   * fecha hasta
+   * activo
+4. Ejecutar:
+
+```http
+PUT /api/empleado-basico/:id
+```
+
+Después de guardar correctamente:
+
+* cerrar modal,
+* mostrar mensaje de éxito,
+* recargar la tabla.
+
+---
+
+# BAJA
+
+Al presionar "Dar de baja":
+
+Mostrar confirmación:
+
+```text
+¿Desea dar de baja el básico personalizado de este empleado?
+```
+
+Si confirma:
+
+```http
+DELETE /api/empleado-basico/:id
+```
+
+No eliminar el registro de la tabla de forma permanente.
+
+Actualizar la lista después de la respuesta.
+
+---
+
+# OPERACIONES MASIVAS
+
+Agregar checkbox en cada fila.
+
+Agregar checkbox en el encabezado para seleccionar todos los registros visibles.
+
+Cuando haya registros seleccionados, mostrar una barra de acciones:
+
+```text
+X seleccionados
+
+[Modificar seleccionados]
+[Dar de baja seleccionados]
+```
+
+## Alta masiva
+
+El usuario debe poder seleccionar múltiples empleados desde un selector y definir:
+
+* básico personalizado
+* fecha desde
+* fecha hasta
+* activo
+
+Luego enviar:
+
+```http
+POST /api/empleado-basico/masivo
+```
+
+con:
+
+```json
+{
+  "items": [...]
+}
+```
+
+NO enviar `empresa_id`.
+
+## Modificación masiva
+
+Permitir modificar el importe y/o datos comunes de los registros seleccionados.
+
+Construir:
+
+```json
+{
+  "items": [
+    {
+      "empleado_basico_id": 15,
+      "basico_personalizado": 950000
+    }
+  ]
+}
+```
+
+NO enviar `empresa_id`.
+
+## Baja masiva
+
+Al seleccionar varios registros:
+
+```http
+DELETE /api/empleado-basico/masivo
+```
+
+Body:
+
+```json
+{
+  "items": [
+    15,
+    16,
+    17
+  ]
+}
+```
+
+NO enviar `empresa_id`.
+
+Antes de ejecutar, mostrar confirmación indicando cuántos registros serán dados de baja.
+
+---
+
+# SERVICIO ANGULAR
+
+Crear o adaptar:
+
+```text
+empleado-basico.service.ts
+```
+
+Utilizar `HttpClient` y el sistema de autenticación/interceptor existente.
+
+No implementar manualmente el JWT si el proyecto ya posee un interceptor.
+
+Métodos:
+
+```ts
+list(activo?: number)
+getById(id: number)
+getByEmpleado(empleadoId: number)
+create(data: any)
+update(id: number, data: any)
+remove(id: number)
+createMasivo(items: any[])
+updateMasivo(items: any[])
+removeMasivo(ids: number[])
+```
+
+Ningún método debe agregar:
+
+```ts
+empresa_id
+```
+
+---
+
+# MODELOS / INTERFACES
+
+Crear una interface similar a:
+
+```ts
+export interface EmpleadoBasico {
+  empleado_basico_id: number;
+  empresa_id: number;
+  empleado_id: number;
+  basico_personalizado: number;
+  fecha_desde: string;
+  fecha_hasta: string | null;
+  activo: number;
+
+  apellido?: string;
+  nombre?: string;
+  documento?: string;
+  legajo?: string;
+}
+```
+
+Y una interface para las respuestas:
+
+```ts
+export interface EmpleadoBasicoResponse {
+  success: boolean;
+  data: EmpleadoBasico[];
+}
+```
+
+Adaptar los nombres si el proyecto ya tiene convenciones diferentes.
+
+---
+
+# EXPERIENCIA DE USUARIO
+
+Utilizar los mismos componentes visuales que ya utiliza el proyecto.
+
+No agregar una librería nueva si ya existe una solución equivalente.
+
+Utilizar:
+
+* loading mientras se consulta,
+* mensaje cuando no existen registros,
+* confirmación antes de bajas,
+* mensaje de éxito después de guardar,
+* mensaje de error si falla la API,
+* deshabilitar botones mientras se procesa una operación,
+* evitar doble click/doble envío.
+
+Si el proyecto utiliza Font Awesome, utilizar los iconos existentes.
+
+Por ejemplo:
+
+* Nuevo: `fa-plus`
+* Editar: `fa-edit`
+* Baja: `fa-trash`
+* Guardar: `fa-save`
+* Selección masiva: `fa-check-square`
+* Búsqueda: `fa-search`
+
+No utilizar iconos de otra librería si Font Awesome ya está instalado.
+
+---
+
+# IMPORTANTE SOBRE SEGURIDAD
+
+El backend está protegido por:
+
+```ts
+router.use(authenticateToken);
+```
+
+El JWT contiene:
+
+```ts
+empresa_id
+```
+
+y el backend obtiene la empresa mediante:
+
+```ts
+req.user.empresa_id
+```
+
+Por lo tanto:
+
+**NO implementar ningún selector de empresa en esta pantalla.**
+
+El usuario solamente administra los empleados pertenecientes a la empresa determinada por su sesión/token.
+
+No intentar obtener la empresa desde:
+
+```text
+localStorage
+query params
+URL
+formulario
+body
+```
+
+para enviarla a la API.
+
+El backend es la autoridad para determinar la empresa.
+
+---
+
+# RESTRICCIONES
+
+No modificar:
+
+* el motor de liquidación,
+* empleados,
+* empleados_salarios,
+* convenios,
+* categorías,
+* conceptos,
+* autenticación,
+* JWT.
+
+Esta pantalla solamente debe administrar:
+
+```text
+empleado_basico
+```
+
+y consumir los endpoints indicados.
+
+Antes de crear archivos nuevos, revisar la estructura actual del proyecto y reutilizar servicios/componentes existentes cuando sea posible.
+
+Entregar la implementación completa y funcional, indicando exactamente:
+
+1. Archivos creados.
+2. Archivos modificados.
+3. Rutas Angular agregadas.
+4. Servicio Angular.
+5. Componente TypeScript.
+6. HTML.
+7. SCSS/CSS.
+8. Interfaces necesarias.
+
+No inventar endpoints diferentes a los especificados.

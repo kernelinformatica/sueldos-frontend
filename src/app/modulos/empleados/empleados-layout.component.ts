@@ -41,7 +41,8 @@ export class EmpleadosLayoutComponent {
       label: 'Movimientos Masivos',
       route: '/admin/empleados/conceptos',
       icon: 'bi bi-ui-checks-grid'
-    }
+    },
+    
   ];
 
   constructor(private auth: AuthService) {
@@ -64,10 +65,20 @@ export class EmpleadosLayoutComponent {
       }
     ];
 
-    const perms = this.auth.getPermissions() || [];
+   const perms = this.auth.getPermissions() || [];
+
+    const getPerm = (...aliases: string[]) => perms.find((p: any) => aliases.includes(p.alias));
+    const conceptosMasivosPerm = getPerm( 'empleados_conceptos_masivos');
+    const sueldoEspecialPerm = getPerm( 'sueldo_especial');
+    alert(conceptosMasivosPerm.router)
     const has = (alias: string) => Array.isArray(perms) && perms.some((p: any) => (typeof p === 'string' ? p === alias : (p?.alias === alias)));
-    if (has('conceptos_asigna') || has('conceptos')) {
-      base.push({ label: 'Movimientos Masivos', route: '/admin/empleados/conceptos', icon: 'bi bi-ui-checks-grid' });
+    if (has('empleados_conceptos_masivos') || has('empleados')) {
+    
+      base.push({ label: 'Movimientos Masivos', route: `/${conceptosMasivosPerm.router}`, icon: 'bi bi-ui-checks-grid' });
+    }
+   
+    if (has('sueldo_especial') || has('sueldo_especial_agregar')) {
+      base.push({ label: 'Sueldo Basico Especial', route: `/${sueldoEspecialPerm.router}`, icon: 'bi bi-sliders2' });
     }
     this.menu = base;
   }

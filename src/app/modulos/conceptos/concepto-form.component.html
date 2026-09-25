@@ -1,6 +1,6 @@
 <div class="form-shell" *ngIf="!loading; else loadingTpl">
   <app-loading-spinner></app-loading-spinner>
-    <div class="form-header">
+  <div class="form-header">
     <div>
       <p class="kicker">Gestión de Conceptos</p>
       <h3>{{ conceptoId ? 'Editar concepto' : 'Nuevo concepto' }}</h3>
@@ -8,16 +8,18 @@
     </div>
     <br>
     <div class="header-actions">
-      <a routerLink="/admin/conceptos" class="btn-action btn-icon" title="Volver al listado" aria-label="Volver al listado">
+      <a routerLink="/admin/conceptos" class="btn-action btn-icon" title="Volver al listado"
+        aria-label="Volver al listado">
         <i class="bi bi-arrow-left"></i>
       </a>
-      <button class="btn-action btn-icon" (click)="submit()" [disabled]="saving" [title]="(conceptoId ? 'Actualizar' : 'Crear')" aria-label="Guardar concepto">
+      <button class="btn-action btn-icon" (click)="submit()" [disabled]="saving"
+        [title]="(conceptoId ? 'Actualizar' : 'Crear')" aria-label="Guardar concepto">
         <i class="bi bi-floppy"></i>
       </button>
     </div>
   </div>
 
-<!--  <div class="debug-box" *ngIf="true" style="padding:8px;margin:8px;border:1px dashed #888;background:#fafafa">
+  <!--  <div class="debug-box" *ngIf="true" style="padding:8px;margin:8px;border:1px dashed #888;background:#fafafa">
     <strong>DEBUG:</strong>
     <div>selectedTipo id: {{ form.value.tipo_concepto_id }}</div>
     <div>permiteImporteFlag: {{ permiteImporteFlag }}</div>
@@ -30,7 +32,10 @@
 
   <form [formGroup]="form">
     <section class="form-card">
-      <div class="section-title"><h4>Datos básicos</h4><p>Código, descripción, tipo y motor de fórmula.</p></div>
+      <div class="section-title">
+        <h4>Datos básicos</h4>
+        <p>Código, descripción, tipo y motor de fórmula.</p>
+      </div>
       <br>
       <div class="grid-3">
         <div class="field">
@@ -46,14 +51,17 @@
         <div class="field">
           <label>Descripción <span class="required-mark">*</span></label>
           <input formControlName="descripcion" placeholder="Descripción del concepto" />
-          <div class="field-error" *ngIf="f['descripcion'].invalid && (f['descripcion'].dirty || f['descripcion'].touched)">{{ f['descripcion'].errors | json }}</div>
+          <div class="field-error"
+            *ngIf="f['descripcion'].invalid && (f['descripcion'].dirty || f['descripcion'].touched)">{{
+            f['descripcion'].errors | json }}</div>
         </div>
         <div class="field">
           <label>Tipo <span class="required-mark">*</span></label>
           <select formControlName="tipo_concepto_id">
             <option [ngValue]="null">Seleccione</option>
             <option *ngFor="let t of tipos" [ngValue]="t.tipo_concepto_id ?? t.conceptos_tipos_id ?? t.id">
-              {{ t.nombre || t.descripcion || t.label || t.codigo || ('Tipo ' + (t.tipo_concepto_id ?? t.conceptos_tipos_id ?? t.id)) }}
+              {{ t.nombre || t.descripcion || t.label || t.codigo || ('Tipo ' + (t.tipo_concepto_id ??
+              t.conceptos_tipos_id ?? t.id)) }}
             </option>
           </select>
         </div>
@@ -61,12 +69,16 @@
           <label>Fórmula</label>
           <select formControlName="formula_tipo_id" (change)="onFormulaTipoChange($any($event.target).value)">
             <option [ngValue]="null">Sin seleccionar</option>
-            <option *ngFor="let ft of formulaTipos" [ngValue]="ft.id ?? ft.formula_tipo_id ?? ft.id">
-              {{ (ft.codigo ? (ft.codigo + ' - ') : '') + (ft.nombre || ft.descripcion || ('Tipo ' + (ft.id ?? ft.formula_tipo_id ?? ''))) }}
+            <option *ngFor="let ft of formulaTipos" [value]="ft.id ?? ft.formula_tipo_id">
+              {{ (ft.codigo ? ft.codigo + ' - ' : '') +
+              (ft.nombre || ft.descripcion || ('Tipo ' + (ft.id ?? ft.formula_tipo_id))) }}
             </option>
           </select>
-          <div class="help-text" *ngIf="selectedFormulaTipo">
-            Seleccionado: {{ selectedFormulaTipo.codigo || '-' }} · {{ selectedFormulaTipo.nombre || selectedFormulaTipo.descripcion || '-' }}
+
+
+          <div *ngIf="selectedFormulaTipo" class="group-comment-badge" style="margin-top:0.5rem">
+            <i class="bi bi-patch-check-fill" style="margin-right:0.45rem"></i>
+            {{ selectedFormulaTipo.descripcion }}
           </div>
         </div>
 
@@ -74,13 +86,17 @@
     </section>
     <!-- Topes admin: visible solo si el usuario tiene permiso 'topes' y estamos editando (conceptoId) -->
     <section *ngIf="canViewTopes && conceptoId" class="form-card">
-      <div class="section-title"><h4>Topes aplicables</h4><p>Reglas que limitan importes por concepto/grupo.</p></div>
-        <div *ngIf="loadingTopes" class="help-text loading-topes">
-          <app-loading-spinner></app-loading-spinner>
-          <span style="margin-left:0.6rem">Cargando topes...</span>
+      <div class="section-title">
+        <h4>Topes aplicables</h4>
+        <p>Reglas que limitan importes por concepto/grupo.</p>
+      </div>
+      <div *ngIf="loadingTopes" class="help-text loading-topes">
+        <app-loading-spinner></app-loading-spinner>
+        <span style="margin-left:0.6rem">Cargando topes...</span>
       </div>
 
-      <div *ngIf="!loadingTopes && topes.length === 0" class="help-text">No hay topes configurados para este concepto.</div>
+      <div *ngIf="!loadingTopes && topes.length === 0" class="help-text">No hay topes configurados para este concepto.
+      </div>
       <br>
       <div *ngIf="!loadingTopes && topes.length > 0" class="topes-list">
         <div *ngFor="let t of topes; trackBy: trackByTope" class="tope-box" [ngClass]="t.cssClass">
@@ -93,7 +109,8 @@
             </div>
           </div>
           <div class="tope-actions">
-            <button *ngIf="canDeleteTope" class="btn-delete" (click)="deleteTope(t)" title="Eliminar tope" [disabled]="deletingTopeId === (t.tope_id ?? t.id)">
+            <button *ngIf="canDeleteTope" class="btn-delete" (click)="deleteTope(t)" title="Eliminar tope"
+              [disabled]="deletingTopeId === (t.tope_id ?? t.id)">
               <span *ngIf="deletingTopeId === (t.tope_id ?? t.id)" class="spinner-sm" aria-hidden="true"></span>
               <i *ngIf="deletingTopeId !== (t.tope_id ?? t.id)" class="bi bi-trash"></i>
             </button>
@@ -126,12 +143,15 @@
           </div>
           <div class="field">
             <label>Valor</label>
-            <input name="newTopeValor"  [(ngModel)]="newTope.valor" [ngModelOptions]="{standalone: true}" />
+            <input name="newTopeValor" [(ngModel)]="newTope.valor" [ngModelOptions]="{standalone: true}" />
           </div>
         </div>
         <div style="margin-top:0.5rem; display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap">
-          <label style="display:flex;align-items:center;gap:0.5rem"><input type="checkbox" name="newTopeRequiere" [(ngModel)]="newTope.requiere_override" [ngModelOptions]="{standalone: true}" /> Requiere override</label>
-          <div class="tope-legend" *ngIf="canOverrideTopes"><i>Te permite que se saltee o acepte una regla de tope cuando un importe viola ese tope (p. ej. supera un máximo). Se activa cuando el tope aplicable tiene "requiere_override" y el cálculo de preview detecta que el importe excede el tope.</i></div>
+          <label style="display:flex;align-items:center;gap:0.5rem"><input type="checkbox" name="newTopeRequiere"
+              [(ngModel)]="newTope.requiere_override" [ngModelOptions]="{standalone: true}" /> Requiere override</label>
+          <div class="tope-legend" *ngIf="canOverrideTopes"><i>Te permite que se saltee o acepte una regla de tope
+              cuando un importe viola ese tope (p. ej. supera un máximo). Se activa cuando el tope aplicable tiene
+              "requiere_override" y el cálculo de preview detecta que el importe excede el tope.</i></div>
           <button class="btn-primary" (click)="createTope()" [disabled]="creatingTope">
             <span *ngIf="creatingTope" class="spinner-sm" aria-hidden="true"></span>
             <span *ngIf="!creatingTope">Crear Regla</span>
@@ -139,9 +159,12 @@
         </div>
       </div>
     </section>
- <!-- Advanced box: hidden when tipo permite importe fijo -->
+    <!-- Advanced box: hidden when tipo permite importe fijo -->
     <section *ngIf="selectedTipo" class="form-card">
-      <div class="section-title"><h4>Agrupaciones</h4><p>Opciones adicionales.</p></div><br>
+      <div class="section-title">
+        <h4>Agrupaciones</h4>
+        <p>Opciones adicionales.</p>
+      </div><br>
       <div class="grid-3">
         <div class="field">
           <label>Grupo</label>
@@ -149,31 +172,35 @@
             <option [ngValue]="null">Ninguno</option>
             <option *ngFor="let g of grupos" [ngValue]="g">{{ g.nombre }}</option>
           </select>
-          </div>
-          <div *ngIf="form.value.grupo_id?.comentario" class="group-comment-badge" style="margin-top:0.5rem">
-            <i class="bi bi-patch-check-fill" style="margin-right:0.45rem"></i>
-            {{ form.value.grupo_id.comentario }}
-          </div>
+        </div>
+        <div *ngIf="form.value.grupo_id?.comentario" class="group-comment-badge" style="margin-top:0.5rem">
+          <i class="bi bi-patch-check-fill" style="margin-right:0.45rem"></i>
+          {{ form.value.grupo_id.comentario }}
+        </div>
 
 
       </div>
-       <div class="field">
-          <label>Detalle</label>
-          <input formControlName="detalle" />
-        </div>
+      <div class="field">
+        <label>Detalle</label>
+        <input formControlName="detalle" />
+      </div>
     </section>
     <!-- Calculation box: hidden until a tipo is selected -->
     <section *ngIf="selectedTipo" class="form-card">
-      <div class="section-title"><h4>Cálculo</h4><p *ngIf="permiteImporteFlag">Importe y reglas de cálculo.</p></div>
+      <div class="section-title">
+        <h4>Cálculo</h4>
+        <p *ngIf="permiteImporteFlag">Importe y reglas de cálculo.</p>
+      </div>
       <p *ngIf="!permiteImporteFlag">Importe calculado segun agrupaciones defindas en Avanzado.</p>
       <div class="grid-4">
         <div class="field" *ngIf="permiteImporteFlag">
           <label>Importe fijo</label>
-           <input formControlName="importe_fijo" placeholder="0.00" inputmode="decimal" pattern="[0-9,.]*" class="numeric-input"  style="text-align:right" />
+          <input formControlName="importe_fijo" placeholder="0.00" inputmode="decimal" pattern="[0-9,.]*"
+            class="numeric-input" style="text-align:right" />
         </div>
         <div class="field">
           <label>Multiplicador</label>
-          <input formControlName="multiplicador" type="number" class="numeric-input" style="text-align:right"  />
+          <input formControlName="multiplicador" type="number" class="numeric-input" style="text-align:right" />
         </div>
         <div class="field">
           <label>Divisor</label>
@@ -192,23 +219,28 @@
         </div>
         <div class="field">
           <label><input type="checkbox" formControlName="es_sueldo_basico" /> Es sueldo básico</label>
-          <p class="help-text" *ngIf="f['es_sueldo_basico'].value">Activa cadena de cálculo por convenio/sueldo_actual/empleados_salarios.</p>
+          <p class="help-text" *ngIf="f['es_sueldo_basico'].value">Activa cadena de cálculo por
+            convenio/sueldo_actual/empleados_salarios.</p>
         </div>
       </div>
       <div><br></div>
-        <div class="field"  *ngIf="(selectedTipo?.permite_formula == 1 || selectedTipo?.permite_formula == '1') && permiteImporteFlag">
-          <label>Fórmula personalizada</label>
-          <textarea formControlName="formula" placeholder="Ingrese fórmula matemática" rows="3"></textarea>
-          <p class="help-text">Use campos como <code>importe</code> y operadores matemáticos.</p>
-        </div>
+      <div class="field"
+        *ngIf="(selectedTipo?.permite_formula == 1 || selectedTipo?.permite_formula == '1') && permiteImporteFlag">
+        <label>Fórmula personalizada</label>
+        <textarea formControlName="formula" placeholder="Ingrese fórmula matemática" rows="3"></textarea>
+        <p class="help-text">Use campos como <code>importe</code> y operadores matemáticos.</p>
+      </div>
 
-        <div class="form-actions" style="margin-top:1rem" *ngIf="selectedTipo">
-          <button type="button" class="btn-secondary preview-btn" (click)="solicitarPreview()" [disabled]="saving || !form.valid || !permiteImporteFlag" [title]="!permiteImporteFlag ? 'El grupo no permite importe fijo' : 'Preview cálculo'">
-            <i class="bi bi-calculator"></i>
-            Preview cálculo
-          </button>
-          <div *ngIf="!permiteImporteFlag" class="help-text" style="margin-left:0.6rem;align-self:center;color:#7b8794">Este grupo no permite importe fijo.</div>
-        </div>
+      <div class="form-actions" style="margin-top:1rem" *ngIf="selectedTipo">
+        <button type="button" class="btn-secondary preview-btn" (click)="solicitarPreview()"
+          [disabled]="saving || !form.valid || !permiteImporteFlag"
+          [title]="!permiteImporteFlag ? 'El grupo no permite importe fijo' : 'Preview cálculo'">
+          <i class="bi bi-calculator"></i>
+          Preview cálculo
+        </button>
+        <div *ngIf="!permiteImporteFlag" class="help-text" style="margin-left:0.6rem;align-self:center;color:#7b8794">
+          Este grupo no permite importe fijo.</div>
+      </div>
     </section>
 
 
@@ -216,33 +248,45 @@
   </form>
 
   <div *ngIf="showPreview" class="form-card preview-card">
-    <div class="section-title"><h4>Preview de cálculo</h4></div>
+    <div class="section-title">
+      <h4>Preview de cálculo</h4>
+    </div>
     <div class="preview-body">
-        <div *ngIf="previewResult" class="preview-result">
-          <div class="preview-main">
-            <div class="preview-value">{{ previewResult.importeFormatted || (previewResult.importe | number:'1.2-2') }}</div>
-            <div class="preview-source">({{ previewResult.source || 'Servidor' }})</div>
+      <div *ngIf="previewResult" class="preview-result">
+        <div class="preview-main">
+          <div class="preview-value">{{ previewResult.importeFormatted || (previewResult.importe | number:'1.2-2') }}
           </div>
-          <div class="preview-breakdown">
-            <div>Importe base: <strong>{{ previewResult.breakdownFormatted?.importe || (previewResult.breakdown?.importe | number:'1.2-2') }}</strong></div>
-            <div>Multiplicador: <strong>{{ previewResult.breakdownFormatted?.multiplicador || previewResult.breakdown?.multiplicador }}</strong></div>
-            <div>Divisor: <strong>{{ previewResult.breakdownFormatted?.divisor || previewResult.breakdown?.divisor }}</strong></div>
-          </div>
-          <div *ngIf="previewResult.warning" class="banner warning">{{ previewResult.warning }}</div>
-          <div *ngIf="previewClamp" class="banner info">Importe ajustado a {{ previewClamp.adjustedImporte | number:'1.2-2' }} por tope. <button class="btn-link" (click)="(importeAceptado());">Aceptar ajuste</button> <button class="btn-link" (click)="previewClamp=null;">Cancelar</button></div>
+          <div class="preview-source">({{ previewResult.source || 'Servidor' }})</div>
         </div>
-        <div *ngIf="!previewResult" class="preview-empty">No hay resultado de preview.</div>
+        <div class="preview-breakdown">
+          <div>Importe base: <strong>{{ previewResult.breakdownFormatted?.importe || (previewResult.breakdown?.importe |
+              number:'1.2-2') }}</strong></div>
+          <div>Multiplicador: <strong>{{ previewResult.breakdownFormatted?.multiplicador ||
+              previewResult.breakdown?.multiplicador }}</strong></div>
+          <div>Divisor: <strong>{{ previewResult.breakdownFormatted?.divisor || previewResult.breakdown?.divisor
+              }}</strong></div>
+        </div>
+        <div *ngIf="previewResult.warning" class="banner warning">{{ previewResult.warning }}</div>
+        <div *ngIf="previewClamp" class="banner info">Importe ajustado a {{ previewClamp.adjustedImporte |
+          number:'1.2-2' }} por tope. <button class="btn-link" (click)="(importeAceptado());">Aceptar ajuste</button>
+          <button class="btn-link" (click)="previewClamp=null;">Cancelar</button></div>
+      </div>
+      <div *ngIf="!previewResult" class="preview-empty">No hay resultado de preview.</div>
     </div>
   </div>
 
-  <app-modal-alerta [visible]="showConfirmModal" [titulo]="'Confirmar cambio que afecta sueldos'" [icono]="'bi bi-exclamation-triangle-fill'" [esConfirmacion]="true" [bloquearCierre]="false" (cerrar)="onConfirmModalClose($event)">
+  <app-modal-alerta [visible]="showConfirmModal" [titulo]="'Confirmar cambio que afecta sueldos'"
+    [icono]="'bi bi-exclamation-triangle-fill'" [esConfirmacion]="true" [bloquearCierre]="false"
+    (cerrar)="onConfirmModalClose($event)">
     <p>Este cambio puede modificar sueldos actuales. Ingrese motivo para registro:</p>
-    <textarea class="confirm-textarea" [(ngModel)]="confirmReason" placeholder="Motivo de la modificación" rows="4"></textarea>
+    <textarea class="confirm-textarea" [(ngModel)]="confirmReason" placeholder="Motivo de la modificación"
+      rows="4"></textarea>
     <div *ngIf="showConfirmError" class="field-error">Ingrese un motivo antes de confirmar.</div>
   </app-modal-alerta>
 
   <!-- Error modal for server failures -->
-  <app-modal-alerta [visible]="errorModalVisible" [titulo]="errorModalTitle" [mensaje]="errorModalMessage" [icono]="errorModalIcon" (cerrar)="onErrorModalClose()"></app-modal-alerta>
+  <app-modal-alerta [visible]="errorModalVisible" [titulo]="errorModalTitle" [mensaje]="errorModalMessage"
+    [icono]="errorModalIcon" (cerrar)="onErrorModalClose()"></app-modal-alerta>
 
 </div>
 
