@@ -29,19 +29,28 @@
       <input type="number" [(ngModel)]="filtros.legajoHasta" placeholder="Hasta" />
     </div>
     <div class="filtro-item">
-      <label>Sección</label>
-      <select [(ngModel)]="filtros.seccion">
+      <label>Sucursal</label>
+      <select [(ngModel)]="filtros.sucursal" (ngModelChange)="onSucursalChange()">
         <option value="">Todas</option>
-        <option *ngFor="let seccion of secciones; trackBy: trackByCatalogoId" [value]="seccion.seccion_id || seccion.id">
+        <option *ngFor="let s of sucursales; trackBy: trackByCatalogoId" [value]="s.sucursal_id || s.id">
+          {{ s.nombre }}
+        </option>
+      </select>
+    </div>
+    <div class="filtro-item">
+      <label>Sección</label>
+      <select [(ngModel)]="filtros.seccion" (ngModelChange)="onSeccionChange()" [disabled]="!filtros.sucursal">
+        <option value="">Todas</option>
+        <option *ngFor="let seccion of seccionesFiltro" [value]="seccion.id">
           {{ seccion.nombre }}
         </option>
       </select>
     </div>
     <div class="filtro-item">
       <label>Cargo</label>
-      <select [(ngModel)]="filtros.cargo">
+      <select [(ngModel)]="filtros.cargo" [disabled]="!filtros.seccion">
         <option value="">Todos</option>
-        <option *ngFor="let cargo of cargos; trackBy: trackByCatalogoId" [value]="cargo.cargo_id || cargo.id">
+        <option *ngFor="let cargo of cargosFiltro" [value]="cargo.id">
           {{ cargo.nombre }}
         </option>
       </select>

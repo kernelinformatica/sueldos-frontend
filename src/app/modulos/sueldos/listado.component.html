@@ -11,14 +11,70 @@
     </div>
   </div>
 
-  <div class="filters-card">
-    <label><span>Período</span><input [(ngModel)]="filtros.periodo" placeholder="2026-08" /></label>
-    <label><span>Empleado</span><input [(ngModel)]="filtros.empleado" placeholder="Apellido, nombre o legajo" /></label>
-    <label><span>Tipo</span><input [(ngModel)]="filtros.tipo" placeholder="Tipo de liquidación" /></label>
-    <label><span>Estado</span><input [(ngModel)]="filtros.estado" placeholder="Edición, Cerrada, etc." /></label>
-    <div class="filter-actions">
-      <button type="button" class="btn-primary" (click)="load()" [disabled]="loading">Filtrar</button>
-      <button type="button" class="btn-secondary" (click)="filtros={periodo:'',empleado:'',tipo:'',estado:''}; load()">Limpiar</button>
+  <div class="filters-card" [class.filters-card--collapsed]="filtrosPlegados">
+    <button type="button" class="filters-toggle" (click)="toggleFiltros()"
+      [attr.aria-expanded]="!filtrosPlegados" aria-controls="filtros-body"
+      [title]="filtrosPlegados ? 'Desplegar filtros' : 'Plegar filtros'">
+      <!-- <span>Filtros</span> -->
+      <span class="filters-toggle-count" *ngIf="filtrosActivos > 0">{{ filtrosActivos }}</span>
+      <i class="bi" [ngClass]="filtrosPlegados ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
+    </button>
+
+    <div class="filters-body" id="filtros-body" *ngIf="!filtrosPlegados">
+    <label>
+      <span>Período</span>
+      <input [(ngModel)]="filtros.periodo" placeholder="2026-08" />
+    </label>
+    <label>
+      <span>Tipo de liquidación</span>
+      <select [(ngModel)]="filtros.tipo">
+        <option value="">Todos</option>
+        <option *ngFor="let t of liquidacionTipos" [value]="t.id">{{ t.nombre }}</option>
+      </select>
+    </label>
+      <label>
+        <span>Empleado</span>
+        <input [(ngModel)]="filtros.empleado" placeholder="Apellido, nombre o legajo" (keyup.enter)="load()" />
+      </label>
+    <label>
+      <span>Estado</span>
+      <select [(ngModel)]="filtros.estado">
+        <option value="">Todos</option>
+        <option *ngFor="let e of estadosLiquidaciones" [value]="e.nombre">{{ e.nombre }}</option>
+      </select>
+    </label>
+
+    <div class="filters-row-secondary">
+      <label>
+        <span>Sucursal</span>
+        <select [(ngModel)]="filtros.sucursal" (ngModelChange)="onSucursalChange()">
+          <option value="">Todas</option>
+          <option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</option>
+        </select>
+      </label>
+      <label>
+        <span>Sección</span>
+        <select [(ngModel)]="filtros.seccion" (ngModelChange)="onSeccionChange()" [disabled]="!filtros.sucursal">
+          <option value="">Todas</option>
+          <option *ngFor="let s of seccionesFiltro" [value]="s.id">{{ s.nombre }}</option>
+        </select>
+      </label>
+      <label>
+        <span>Cargo</span>
+        <select [(ngModel)]="filtros.cargo" [disabled]="!filtros.seccion">
+          <option value="">Todos</option>
+          <option *ngFor="let c of cargosFiltro" [value]="c.id">{{ c.nombre }}</option>
+        </select>
+      </label>
+      <div class="filters-row-secondary-actions">
+        <label class="solo-ultima-toggle">
+          <input type="checkbox" [checked]="mostrarSoloUltima" (change)="onCambiarSoloUltima($any($event.target).checked); load()" />
+          <span>Solo el último período</span>
+        </label>
+        <button type="button" class="btn-primary" (click)="load()" [disabled]="loading">Filtrar</button>
+        <button type="button" class="btn-secondary" (click)="limpiarFiltros(); load()">Limpiar</button>
+      </div>
+    </div>
     </div>
   </div>
 

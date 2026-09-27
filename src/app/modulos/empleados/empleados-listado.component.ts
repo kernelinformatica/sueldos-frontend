@@ -55,6 +55,8 @@ interface EmpleadoItem {
     estado?: number;
   };
   sucursal?: {
+    sucursal_id?: number;
+    id?: number;
     nombre?: string;
   };
   contratacion_tipo?: {
@@ -81,10 +83,17 @@ interface CatalogoItem {
   id?: number;
   cargo_id?: number;
   seccion_id?: number;
+  sucursal_id?: number;
   estado_empleado_id?: number;
   nombre?: string;
   descripcion?: string;
   estado?: number;
+}
+
+/** Opción normalizada de catálogo (id + nombre), igual que en básicos personalizados. */
+interface CatalogoOpcion {
+  id: number;
+  nombre: string;
 }
 
 interface EstadoEmpleadoValue {
@@ -107,15 +116,22 @@ export class EmpleadosListadoComponent implements OnInit {
   empleados: EmpleadoItem[] = [];
   cargos: CatalogoItem[] = [];
   secciones: CatalogoItem[] = [];
+  sucursales: CatalogoItem[] = [];
   estadosEmpleados: CatalogoItem[] = [];
   avatarsSinImagen = new Set<number>();
   fotoAmpliada: string | null = null;
   mostrarModalFoto = false;
   empleadoSeleccionado: any;
+  // Cascada: los dropdowns dependientes se cargan del backend al elegir el padre.
+  seccionesFiltro: CatalogoOpcion[] = [];
+  cargosFiltro: CatalogoOpcion[] = [];
+  private seccionesCache = new Map<number, CatalogoOpcion[]>();
+  private cargosCache = new Map<number, CatalogoOpcion[]>();
   filtros = {
     legajoDesde: '',
     legajoHasta: '',
     nombre: '',
+    sucursal: '',
     seccion: '',
     cargo: '',
     estado: ''
@@ -133,6 +149,14 @@ export class EmpleadosListadoComponent implements OnInit {
 
   cargarCatalogos(): void {
     this.loadingCatalogos = true;
+
+    this.http.get<CatalogoItem[] | { data?: CatalogoItem[]; sucursales?: CatalogoItem[] }>(`${environment.apiUrl}/api/sucursales`)
+      .pipe(
+        catchError(() => of([] as CatalogoItem[]))
+      )
+      .subscribe((res) => {
+        this.sucursales = Array.isArray(res) ? res : (res?.sucursales || res?.data || []);
+      });
 
     this.http.get<CatalogoItem[] | { data?: CatalogoItem[]; cargos?: CatalogoItem[] }>(`${environment.apiUrl}/api/cargos/all`)
       .pipe(
@@ -188,6 +212,7 @@ export class EmpleadosListadoComponent implements OnInit {
 
   get empleadosFiltrados(): EmpleadoItem[] {
     const nombre = this.normalizarTexto(this.filtros.nombre);
+    const sucursalId = this.parseCatalogoId(this.filtros.sucursal);
     const seccionId = this.parseCatalogoId(this.filtros.seccion);
     const cargoId = this.parseCatalogoId(this.filtros.cargo);
     const legajoDesde = this.parseLegajo(this.filtros.legajoDesde);
@@ -197,6 +222,7 @@ export class EmpleadosListadoComponent implements OnInit {
     return this.empleados.filter((empleado) => {
       const legajo = this.parseLegajo(empleado.legajo);
       const nombreCompleto = this.normalizarTexto(this.nombreCompleto(empleado));
+      const sucursalEmpleadoId = this.parseCatalogoId(empleado.sucursal_id ?? empleado.sucursal?.sucursal_id ?? null);
       const seccionEmpleadoId = this.parseCatalogoId(empleado.seccion_id ?? empleado.seccion?.seccion_id ?? null);
       const cargoEmpleadoId = this.parseCatalogoId(empleado.cargo_id ?? empleado.cargo?.cargo_id ?? null);
       const estadoEmpleadoNombre = this.normalizarTexto(this.estadoNombre(empleado.estado) || this.estadoLabel(empleado.estado));
@@ -210,6 +236,10 @@ export class EmpleadosListadoComponent implements OnInit {
       }
 
       if (nombre && !nombreCompleto.includes(nombre)) {
+        return false;
+      }
+
+      if (sucursalId !== null && sucursalEmpleadoId !== null && sucursalEmpleadoId !== sucursalId) {
         return false;
       }
 
@@ -234,10 +264,79 @@ export class EmpleadosListadoComponent implements OnInit {
       legajoDesde: '',
       legajoHasta: '',
       nombre: '',
+      sucursal: '',
       seccion: '',
       cargo: '',
       estado: ''
     };
+    this.seccionesFiltro = [];
+    this.cargosFiltro = [];
+  }
+
+  // ---------- Cascada de filtros: sucursal → sección → cargo ----------
+
+  /** Normaliza cualquier respuesta de catálogo a { id, nombre }. */
+  private normalizarCatalogo(data: any, ...idKeys: string[]): CatalogoOpcion[] {
+    if (!Array.isArray(data)) return [];
+    return data.map((x: any) => {
+      let id = 0;
+      for (const key of [...idKeys, 'id']) {
+        const valor = x?.[key];
+        if (valor != null && Number(valor) > 0) { id = Number(valor); break; }
+      }
+      return { id, nombre: String(x?.nombre ?? x?.descripcion ?? x?.name ?? '') };
+    }).filter((x: CatalogoOpcion) => x.id > 0 && x.nombre);
+  }
+
+  onSucursalChange(): void {
+    this.filtros.seccion = '';
+    this.filtros.cargo = '';
+    this.cargosFiltro = [];
+
+    const sucursalId = this.parseCatalogoId(this.filtros.sucursal);
+    if (sucursalId === null) {
+      this.seccionesFiltro = [];
+      return;
+    }
+
+    const cacheado = this.seccionesCache.get(sucursalId);
+    if (cacheado) {
+      this.seccionesFiltro = cacheado;
+      return;
+    }
+
+    this.seccionesFiltro = [];
+    this.http.get<any>(`${environment.apiUrl}/api/secciones/by-sucursal`, { params: { sucursal_id: String(sucursalId) } })
+      .pipe(catchError(() => of([] as any[])))
+      .subscribe((res) => {
+        const data = Array.isArray(res) ? res : (res?.secciones || res?.data || []);
+        this.seccionesFiltro = this.normalizarCatalogo(data, 'seccion_id');
+        this.seccionesCache.set(sucursalId, this.seccionesFiltro);
+        try { this.cdr.detectChanges(); } catch { /* ignore */ }
+      });
+  }
+
+  onSeccionChange(): void {
+    this.filtros.cargo = '';
+    this.cargosFiltro = [];
+
+    const seccionId = this.parseCatalogoId(this.filtros.seccion);
+    if (seccionId === null) return;
+
+    const cacheado = this.cargosCache.get(seccionId);
+    if (cacheado) {
+      this.cargosFiltro = cacheado;
+      return;
+    }
+
+    this.http.get<any>(`${environment.apiUrl}/api/cargos/by-seccion`, { params: { seccion_id: String(seccionId) } })
+      .pipe(catchError(() => of([] as any[])))
+      .subscribe((res) => {
+        const data = Array.isArray(res) ? res : (res?.cargos || res?.data || []);
+        this.cargosFiltro = this.normalizarCatalogo(data, 'cargo_id');
+        this.cargosCache.set(seccionId, this.cargosFiltro);
+        try { this.cdr.detectChanges(); } catch { /* ignore */ }
+      });
   }
 
   nombreCompleto(empleado: EmpleadoItem): string {

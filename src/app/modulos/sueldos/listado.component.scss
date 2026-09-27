@@ -3,16 +3,36 @@
 .hero-card { display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; }
 .hero-actions { display:flex; gap:0.75rem; flex-wrap:wrap; }
 .eyebrow { margin:0 0 0.25rem; text-transform:uppercase; letter-spacing:0.12em; font-weight:700; color:#2563eb; font-size:0.78rem; }
-.filters-card { display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap:0.75rem; align-items:end; }
+.filters-card { position:relative; display:grid; grid-template-columns: repeat(4, 210px); gap:0.6rem 0.75rem; align-items:end; justify-content:start; }
+.filters-toggle { position:absolute; top:0.9rem; right:1.2rem; display:flex; align-items:center; gap:0.4rem; background:transparent; border:0; padding:0.2rem 0.3rem; cursor:pointer; color:#334155; font-weight:700; font-size:0.9rem; border-radius:8px; }
+.filters-toggle:hover { color:#2563eb; background:#f1f5f9; }
+.filters-toggle i { font-size:0.85rem; }
+.filters-toggle-count { display:inline-flex; align-items:center; justify-content:center; min-width:1.25rem; height:1.25rem; padding:0 0.35rem; border-radius:999px; background:#2563eb; color:#fff; font-size:0.72rem; font-weight:700; }
+.filters-card--collapsed { gap:0; }
+.filters-body { display:contents; }
+.filters-card:not(.filters-card--collapsed) { padding-top:3.1rem; }
+.filters-card > label { min-width:0; }
+.filter-actions { justify-content:flex-end; align-self:end; }
 .bulk-actions-card { display:flex; justify-content:space-between; gap:1rem; align-items:center; flex-wrap:wrap; }
 .select-all-toggle { display:inline-flex; align-items:center; gap:0.65rem; font-weight:700; color:#1e293b; }
 .select-all-toggle input { width:1rem; height:1rem; accent-color:#09408d; }
 .bulk-actions-right { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; }
 .bulk-selected-count { font-weight:700; color:#475569; padding-right:0.35rem; }
-.filters-card label { display:grid; gap:0.35rem; }
+.filters-card label { display:grid; gap:0.2rem; min-width:0; }
 .filters-card span { font-size:0.82rem; font-weight:700; color:#1e293b; }
-.filters-card input { border:1px solid #d6dae8; border-radius:12px; padding:0.72rem 0.85rem; }
-.filter-actions, .row-actions { display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; }
+.filters-card input, .filters-card select { border:1px solid #d6dae8; border-radius:12px; padding:0.72rem 0.85rem; width:100%; min-width:0; }
+.filters-card input:focus, .filters-card select:focus { outline:2px solid rgba(37,99,235,0.35); outline-offset:0; }
+.filters-card select { background:#fff; cursor:pointer; }
+.filters-card select:disabled { background:#f1f5f9; cursor:not-allowed; opacity:0.65; }
+.filters-row-secondary { display:grid; grid-template-columns: repeat(3, 210px) max-content; gap:0.6rem 0.75rem; grid-column: 1 / -1; justify-content:start; margin-top:0.15rem; padding-top:0.7rem; border-top:1px solid #eef1f7; }
+.filters-row-secondary-actions { display:flex; align-items:center; justify-content:flex-end; gap:0.4rem; flex-wrap:wrap; align-self:end; }
+.filters-row-secondary label { grid-column: span 1; }
+.solo-ultima-toggle { display:flex !important; align-items:center; gap:0.4rem; cursor:pointer; white-space:nowrap; padding:0 0.2rem; }
+.solo-ultima-toggle input { width:auto; margin:0; cursor:pointer; }
+.solo-ultima-toggle span { font-size:0.85rem !important; color:#475569 !important; font-weight:600 !important; }
+@media (max-width: 1080px) { .filters-row-secondary { grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content:stretch; } .filters-row-secondary label { grid-column: span 1; } }
+@media (max-width: 768px) { .filters-row-secondary { grid-template-columns: 1fr; } .filters-row-secondary label { grid-column: span 1; } }
+.filter-actions, .row-actions { display:flex; gap:0.4rem; flex-wrap:wrap; align-items:center; }
 .btn-primary, .btn-secondary, .btn-link { border:0; border-radius:12px; padding:0.7rem 1rem; font-weight:700; cursor:pointer; }
 .btn-primary { background:#09408d; color:#fff; }
 .btn-secondary { background:#e8eaf6; color:#283593; }
@@ -176,7 +196,8 @@
   text-decoration: underline; /* efecto hover */
 }
 @media (max-width: 1080px) {
-  .filters-card { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .filters-card { grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content:stretch; }
+  .filter-actions { grid-column: span 2; justify-content:flex-start; }
   .hero-card { flex-direction:column; }
   .bulk-actions-card { align-items:flex-start; }
   .detail-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

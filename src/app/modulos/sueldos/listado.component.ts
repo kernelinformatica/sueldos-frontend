@@ -10,6 +10,8 @@ import { environment } from '../../environments/environment';
 import { LiquidacionesService } from './liquidaciones.service';
 import { Router } from '@angular/router';
 import { ModalFotos } from '../../shared/modal-fotos/modal-fotos';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { AuthService } from '../../auth/auth.service';
 interface EstadoEmpleadoValue {
   id?: number;
   estado_id?: number;
@@ -127,13 +129,26 @@ export class ListadoComponent implements OnInit {
     | { kind: 'reopen'; liquidacionId: number }
     | { kind: 'annul'; liquidacionId: number }
     | null = null;
-  filtros = { periodo: '', empleado: '', tipo: '', estado: '' };
+  filtros = { periodo: '', empleado: '', tipo: '', estado: '', sucursal: '', seccion: '', cargo: '' };
   private empleadoIdFiltro: string = '';
+  /** Por defecto solo se muestra la última liquidación; se desactiva para ver el historial completo. */
+  mostrarSoloUltima = true;
+  private readonly soloUltimaKey = 'listado_liquidaciones_solo_ultima';
 
-  constructor(private svc: LiquidacionesService, private route: ActivatedRoute, private cdr: ChangeDetectorRef, private router: Router) { }
+  // Catálogos para los filtros
+  liquidacionTipos: Array<{ id: number; nombre: string }> = [];
+  sucursales: Array<{ id: number; nombre: string }> = [];
+  seccionesFiltro: Array<{ id: number; nombre: string }> = [];
+  cargosFiltro: Array<{ id: number; nombre: string }> = [];
+  private seccionesCache = new Map<number, Array<{ id: number; nombre: string }>>();
+  private cargosCache = new Map<number, Array<{ id: number; nombre: string }>>();
+
+  constructor(private svc: LiquidacionesService, private route: ActivatedRoute, private cdr: ChangeDetectorRef, private router: Router, private http: HttpClient, private auth: AuthService) { }
 
   ngOnInit(): void {
     this.loadEstados();
+    this.loadCatalogosFiltros();
+    this.restaurarPreferenciaUltima();
     this.route.queryParamMap.subscribe((params) => {
       this.empleadoIdFiltro = String(params.get('empleado_id') || '').trim();
       const empleado = String(params.get('empleado') || '').trim();
@@ -157,9 +172,7 @@ export class ListadoComponent implements OnInit {
     return !!this.fotoUrl(empleado) && !!empleadoId && !this.avatarsSinImagen.has(empleadoId);
   }
   ampliarFoto(empleado: any): void {
-   
-debugger
-   if (empleado.empleado_foto) {
+      if (empleado.empleado_foto) {
       this.tituloModalFoto = empleado.empleado_nombre+", "+empleado.empleado_apellido;
       this.fotoAmpliada = empleado?.empleado_foto || empleado?.url_publica || empleado?.foto_url_publica || empleado?.foto || '';
       this.mostrarModalFoto = true;
@@ -185,6 +198,93 @@ debugger
     });
   }
 
+  loadCatalogosFiltros(): void {
+    // Tipos de liquidación (existe el endpoint /api/liquidacion-tipos)
+    this.svc.liquidacionTipos().pipe(
+      timeout(15000),
+      catchError(() => of({ data: [] }))
+    ).subscribe((res: any) => {
+      const items = Array.isArray(res) ? res : (res?.data || res?.items || []);
+      this.liquidacionTipos = this.normalizarCatalogo(items, 'liquidacion_tipo_id')
+        .sort((a, b) => a.nombre.localeCompare(b.nombre));
+    });
+
+    this.http.get<any>(`${environment.apiUrl}/api/sucursales`, { headers: this.headers() }).pipe(
+      catchError(() => of([] as any[]))
+    ).subscribe((res: any) => {
+      const items = Array.isArray(res) ? res : (res?.data || res?.sucursales || []);
+      this.sucursales = this.normalizarCatalogo(items, 'sucursal_id');
+    });
+  }
+
+  /** Normaliza cualquier respuesta de catálogo a { id, nombre }. */
+  private normalizarCatalogo(data: any, ...idKeys: string[]): Array<{ id: number; nombre: string }> {
+    if (!Array.isArray(data)) return [];
+    return data.map((x: any) => {
+      let id = 0;
+      for (const key of [...idKeys, 'id']) {
+        const valor = x?.[key];
+        if (valor != null && Number(valor) > 0) { id = Number(valor); break; }
+      }
+      return { id, nombre: String(x?.nombre ?? x?.descripcion ?? x?.name ?? '') };
+    }).filter((x: { id: number; nombre: string }) => x.id > 0 && x.nombre);
+  }
+
+  private headers() {
+    const token = this.auth.getToken() || localStorage.getItem('token') || '';
+    return token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders();
+  }
+
+  onSucursalChange(): void {
+    this.filtros.seccion = '';
+    this.filtros.cargo = '';
+    this.cargosFiltro = [];
+
+    const sucursalId = Number(this.filtros.sucursal || 0);
+    if (!sucursalId) { this.seccionesFiltro = []; return; }
+
+    const cacheado = this.seccionesCache.get(sucursalId);
+    if (cacheado) { this.seccionesFiltro = cacheado; return; }
+
+    this.seccionesFiltro = [];
+    this.http.get<any>(`${environment.apiUrl}/api/secciones/by-sucursal`, {
+      headers: this.headers(),
+      params: { sucursal_id: String(sucursalId) }
+    }).pipe(catchError(() => of([] as any[]))).subscribe((res: any) => {
+      const items = Array.isArray(res) ? res : (res?.data || res?.secciones || []);
+      this.seccionesFiltro = this.normalizarCatalogo(items, 'seccion_id');
+      this.seccionesCache.set(sucursalId, this.seccionesFiltro);
+      try { this.cdr.detectChanges(); } catch { }
+    });
+  }
+
+  onSeccionChange(): void {
+    this.filtros.cargo = '';
+    this.cargosFiltro = [];
+
+    const seccionId = Number(this.filtros.seccion || 0);
+    if (!seccionId) return;
+
+    const cacheado = this.cargosCache.get(seccionId);
+    if (cacheado) { this.cargosFiltro = cacheado; return; }
+
+    this.http.get<any>(`${environment.apiUrl}/api/cargos/by-seccion`, {
+      headers: this.headers(),
+      params: { seccion_id: String(seccionId) }
+    }).pipe(catchError(() => of([] as any[]))).subscribe((res: any) => {
+      const items = Array.isArray(res) ? res : (res?.data || res?.cargos || []);
+      this.cargosFiltro = this.normalizarCatalogo(items, 'cargo_id');
+      this.cargosCache.set(seccionId, this.cargosFiltro);
+      try { this.cdr.detectChanges(); } catch { }
+    });
+  }
+
+  limpiarFiltros(): void {
+    this.filtros = { periodo: '', empleado: '', tipo: '', estado: '', sucursal: '', seccion: '', cargo: '' };
+    this.seccionesFiltro = [];
+    this.cargosFiltro = [];
+  }
+
   load(): void {
     this.loading = true;
     this.errorMsg = '';
@@ -197,6 +297,9 @@ debugger
       estado: this.filtros.estado
     };
     if (this.empleadoIdFiltro) params['empleado_id'] = this.empleadoIdFiltro;
+    if (this.filtros.sucursal) params['sucursal_id'] = this.filtros.sucursal;
+    if (this.filtros.seccion) params['seccion_id'] = this.filtros.seccion;
+    if (this.filtros.cargo) params['cargo_id'] = this.filtros.cargo;
 
     this.svc.list(params).pipe(
       timeout(15000),
@@ -217,7 +320,7 @@ debugger
         }
 
         const items = Array.isArray(res) ? res : (res?.data || res?.items || res?.liquidaciones || []);
-        this.liquidaciones = this.applyClientFilters(items);
+        this.liquidaciones = this.applyClientFilters(this.aplicarFiltroUltima(items));
         this.syncSelectionWithCurrentList();
         this.errorMsg = '';
         try { this.cdr.detectChanges(); } catch { }
@@ -230,12 +333,116 @@ debugger
     });
   }
 
+  /**
+   * Por defecto solo se muestra el ÚLTIMO PERÍODO procesado: se busca el período
+   * más alto (comparado como texto en formato YYYY-MM) y se quedan únicamente
+   * los registros de ese período, sin importar fecha ni tipo.
+   * Si el usuario busca explícitamente otro período con el filtro, manda ese.
+   */
+  private aplicarFiltroUltima(items: any[]): any[] {
+    if (!this.mostrarSoloUltima || !Array.isArray(items) || items.length === 0) return items;
+
+    // Si el usuario escribió un período, ese manda: ya sabe qué quiere ver.
+    const periodoBuscado = String(this.filtros.periodo || '').trim();
+    if (periodoBuscado) return items;
+
+    let ultimoPeriodo = '';
+    for (const item of items) {
+      const p = this.periodoDe(item);
+      if (p && p > ultimoPeriodo) ultimoPeriodo = p;
+    }
+    if (!ultimoPeriodo) return items;
+
+    return items.filter((item) => this.periodoDe(item) === ultimoPeriodo);
+  }
+
+  /** Período en formato YYYY-MM para poder comparar y ordenar correctamente. */
+  private periodoDe(x: any): string {
+    const p = x?.periodo ?? x?.liquidacion?.periodo;
+    if (p) {
+      const texto = String(p).trim();
+      const m = texto.match(/^(\d{4})[-/](\d{1,2})/);
+      if (m) return `${m[1]}-${String(Number(m[2])).padStart(2, '0')}`;
+      return texto;
+    }
+    const anio = x?.anio ?? x?.liquidacion?.anio;
+    const mes = x?.mes ?? x?.liquidacion?.mes;
+    if (anio && mes) return `${anio}-${String(mes).padStart(2, '0')}`;
+    return '';
+  }
+
+  private fechaDe(x: any): string {
+    const f = x?.fecha_liquidacion ?? x?.fecha ?? x?.liquidacion?.fecha_liquidacion ?? x?.liquidacion?.fecha ?? '';
+    return String(f || '').trim().slice(0, 10);
+  }
+
+  private restaurarPreferenciaUltima(): void {
+    const guardado = localStorage.getItem(this.soloUltimaKey);
+    if (guardado !== null) this.mostrarSoloUltima = guardado === '1';
+  }
+
+  /** Plegar / desplegar el panel de filtros. */
+  filtrosPlegados = false;
+
+  toggleFiltros(): void {
+    this.filtrosPlegados = !this.filtrosPlegados;
+    try { this.cdr.detectChanges(); } catch { }
+  }
+
+  /** Cantidad de filtros con valor, para mostrarla en el botón al plegar. */
+  get filtrosActivos(): number {
+    return Object.values(this.filtros).filter(v => String(v ?? '').trim() !== '').length;
+  }
+
+  onCambiarSoloUltima(valor: boolean): void {
+    this.mostrarSoloUltima = valor;
+    localStorage.setItem(this.soloUltimaKey, valor ? '1' : '0');
+  }
+
   private applyClientFilters(items: any[]): any[] {
+    let resultado = items;
+
+    // Sucursal / sección / cargo: el backend puede no soportarlos, así que se aplican también en el cliente.
+    if (this.filtros.sucursal || this.filtros.seccion || this.filtros.cargo) {
+      const sucursalId = Number(this.filtros.sucursal || 0);
+      const seccionId = Number(this.filtros.seccion || 0);
+      const cargoId = Number(this.filtros.cargo || 0);
+
+      resultado = resultado.filter((item: any) => {
+        const emp = item?.empleado || {};
+        if (sucursalId) {
+          const v = Number(emp.sucursal_id ?? emp.sucursal?.sucursal_id ?? item?.sucursal_id ?? 0);
+          if (v !== sucursalId) return false;
+        }
+        if (seccionId) {
+          const v = Number(emp.seccion_id ?? emp.seccion?.seccion_id ?? item?.seccion_id ?? 0);
+          if (v !== seccionId) return false;
+        }
+        if (cargoId) {
+          const v = Number(emp.cargo_id ?? emp.cargo?.cargo_id ?? item?.cargo_id ?? 0);
+          if (v !== cargoId) return false;
+        }
+        return true;
+      });
+    }
+
     const empleadoFiltro = this.normalize(this.filtros.empleado);
-    if (!empleadoFiltro && !this.empleadoIdFiltro) return items;
-    return items.filter((item) => {
+    if (!empleadoFiltro && !this.empleadoIdFiltro) return resultado;
+    return resultado.filter((item) => {
       const empleadoId = String(item?.empleado_id ?? item?.empleado?.id ?? '').trim();
-      const empleadoLabel = this.normalize(`${item?.empleado_label || ''} ${item?.empleado?.apellido || ''} ${item?.empleado?.nombre || ''} ${item?.empleado?.legajo || ''}`);
+      // La lista usa campos planos (empleado_apellido) y el detalle usa anidados (empleado.apellido).
+      // Hay que cubrir ambos para que la búsqueda por apellido, nombre o legajo funcione siempre.
+      const empleadoLabel = this.normalize([
+        item?.empleado_label,
+        item?.empleado_apellido,
+        item?.empleado_nombre,
+        item?.legajo,
+        item?.empleado?.apellido,
+        item?.empleado?.nombre,
+        item?.empleado?.legajo,
+        item?.apellido,
+        item?.nombre
+      ].filter(Boolean).join(' '));
       if (this.empleadoIdFiltro && empleadoId === this.empleadoIdFiltro) return true;
       if (empleadoFiltro && empleadoLabel.includes(empleadoFiltro)) return true;
       return false;
