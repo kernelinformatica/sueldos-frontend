@@ -40,6 +40,13 @@
     </div>
   </section>
 
+  <app-modal-fotos
+    [visible]="mostrarModalFoto"
+    [titulo]="tituloModalFoto()"
+    (cerrar)="cerrarFoto()">
+    <img [src]="fotoAmpliada" class="foto-modal" [alt]="tituloModalFoto()">
+  </app-modal-fotos>
+
   <section class="cargo-list-card">
     <div class="filtros-panel">
       <div class="filtro-item">
@@ -47,21 +54,12 @@
         <input type="text" [(ngModel)]="filtros.q" placeholder="Legajo, apellido, nombre o documento" />
       </div>
       <div class="filtro-item">
-  <label>Tipo de Contratacion</label>
-
-  <select
-  [(ngModel)]="filtros.contratacion_tipo_id"
->
-  <option value="">Todos</option>
-
-  <option
-    *ngFor="let c of contrataciones"
-    [value]="c.contratacion_tipo_id"
-  >
-    {{ c.nombre }}
-  </option>
-</select>
-</div>
+        <label>Tipo de Contratacion</label>
+        <select [(ngModel)]="filtros.contratacion_tipo_id">
+          <option value="">Todos</option>
+          <option *ngFor="let c of contrataciones" [value]="c.id">{{ c.nombre }}</option>
+        </select>
+      </div>
       <div class="filtro-item">
         <label>Sucursal</label>
         <select [(ngModel)]="filtros.sucursal_id" (ngModelChange)="onSucursalChange()">
@@ -71,14 +69,14 @@
       </div>
       <div class="filtro-item">
         <label>Sección</label>
-        <select [(ngModel)]="filtros.seccion_id" (ngModelChange)="onSeccionChange()">
+        <select [(ngModel)]="filtros.seccion_id" [disabled]="!filtros.sucursal_id" (ngModelChange)="onSeccionChange()">
           <option value="">Todas</option>
           <option *ngFor="let s of secciones" [value]="s.id">{{ s.nombre }}</option>
         </select>
       </div>
       <div class="filtro-item">
         <label>Puesto</label>
-        <select [(ngModel)]="filtros.cargo_id">
+        <select [(ngModel)]="filtros.cargo_id" [disabled]="!filtros.seccion_id">
           <option value="">Todos</option>
           <option *ngFor="let c of cargos" [value]="c.id">{{ c.nombre }}</option>
         </select>
@@ -112,8 +110,10 @@
         <button type="button" class="btn-action" (click)="abrirModifMasiva()" [disabled]="procesando">
           <i class="bi bi-pencil-square"></i> Modificar seleccionados
         </button>
-        <button type="button" class="btn-action btn-danger" (click)="pedirBajaMasiva()" [disabled]="procesando">
-          <i class="bi bi-trash"></i> Dar de baja seleccionados
+        <button type="button" class="btn-action btn-danger" (click)="pedirBajaMasiva()" [disabled]="procesando"
+          [title]="bajaMasivaEsFisica ? 'Eliminar definitivamente los seleccionados' : 'Dar de baja seleccionados'">
+          <i class="bi" [class.bi-trash]="!bajaMasivaEsFisica" [class.bi-trash3]="bajaMasivaEsFisica"></i>
+          {{ bajaMasivaEsFisica ? 'Eliminar definitivamente' : 'Dar de baja seleccionados' }}
         </button>
       </div>
     </div>
@@ -145,7 +145,19 @@
                 (change)="toggleSeleccion(r.empleado_basico_id, $any($event.target).checked)" />
             </td>
             <td>{{ r.legajo || '-' }}</td>
-            <td>{{ empleadoNombre(r) }}</td>
+            <td>
+              <div class="empleado-cell">
+                <span class="empleado-avatar avatar-clickable" *ngIf="tieneFotoRegistro(r); else avatarIniciales"
+                  (click)="ampliarFoto(r)" [title]="'Ampliar foto de ' + empleadoNombre(r)">
+                  <img [src]="fotoUrlRegistro(r)" [alt]="empleadoNombre(r)"
+                    (error)="avatarErrorRegistro(r)" loading="lazy" />
+                </span>
+                <ng-template #avatarIniciales>
+                  <span class="empleado-avatar empleado-avatar-iniciales">{{ inicialesRegistro(r) || '?' }}</span>
+                </ng-template>
+                <span>{{ empleadoNombre(r) }}</span>
+              </div>
+            </td>
 
             <td class="text-end">
               <span class="badge bg-success px-2 py-1" style="font-size: 0.95rem;">
@@ -259,13 +271,13 @@
             <select [(ngModel)]="masivaFiltros.sucursal_id" (ngModelChange)="onMasivaSucursalChange()"
               [disabled]="guardando">
               <option value="">Todas</option>
-              <option *ngFor="let s of sucursales" [value]="s.sucursal_id">{{ s.sucursal_id }} - {{ s.nombre }}</option>
+              <option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</option>
             </select>
           </div>
           <div class="form-field">
             <label>Sección</label>
             <select [(ngModel)]="masivaFiltros.seccion_id" (ngModelChange)="onMasivaSeccionChange()"
-              [disabled]="guardando">
+              [disabled]="guardando || !masivaFiltros.sucursal_id">
               <option value="">Todas</option>
               <option *ngFor="let s of masivaSecciones" [value]="s.id">{{ s.nombre }}</option>
             </select>

@@ -4,10 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { catchError, finalize } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { EmpleadoBasicoService } from './empleado-basico.service';
-import { EmpleadoBasico, EmpleadoBasicoUpdateMasivoItem, EmpleadoOption } from './empleado-basico.model';
+import { EmpleadoBasico, EmpleadoBasicoUpdateMasivoItem, EmpleadoOption, Catalogo } from './empleado-basico.model';
 import { ToastService } from '../../../core/toast.service';
 import { LoadingSpinnerComponent } from '../../../shared/loading-spinner/loading-spinner.component';
 import { ModalAlertaComponent } from '../../../shared/modal-alerta.component';
+import { ModalFotos } from '../../../shared/modal-fotos/modal-fotos';
 import { environment } from '../../../environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { of } from 'rxjs';
@@ -16,7 +17,7 @@ type ModoModal = 'form' | 'alta-masiva' | 'modif-masiva' | null;
 @Component({
   selector: 'app-basicos-personalizados',
   standalone: true,
-  imports: [CommonModule, FormsModule, LoadingSpinnerComponent, ModalAlertaComponent],
+  imports: [CommonModule, FormsModule, LoadingSpinnerComponent, ModalAlertaComponent, ModalFotos],
   templateUrl: './basicos-personalizados.component.html',
   styleUrls: ['./basicos-personalizados.component.scss']
 })
@@ -36,10 +37,13 @@ export class BasicosPersonalizadosComponent implements OnInit {
     seccion_id: '',
     cargo_id: ''
   };
-  contrataciones: any[] = [];
-  sucursales: any[] = [];
-  secciones: any[] = [];
-  cargos: any[] = [];
+  contrataciones: Catalogo[] = [];
+  sucursales: Catalogo[] = [];
+  secciones: Catalogo[] = [];
+  cargos: Catalogo[] = [];
+
+  private datosEmpleado = new Map<number, any>();
+  private avatarsSinImagen = new Set<number>();
 
   masivaSecciones: any[] = [];
   masivaCargos: any[] = [];
@@ -57,6 +61,22 @@ export class BasicosPersonalizadosComponent implements OnInit {
   }
   get todosSeleccionados(): boolean {
     return this.registrosFiltrados.length > 0 && this.registrosFiltrados.every(r => this.seleccion.has(r.empleado_basico_id));
+  }
+  /** Estado de baja de un registro (3 = dado de baja). */
+  private esBaja(r: { activo?: number | null } | null | undefined): boolean {
+    return Number(r?.activo) === 3;
+  }
+  /**
+   * True solo cuando se está visualizando exclusivamente registros en estado baja.
+   * En ese caso la baja masiva debe eliminar físicamente en lugar de hacer borrado lógico.
+   */
+  get soloRegistrosEnBaja(): boolean {
+    return this.registrosFiltrados.length > 0 && this.registrosFiltrados.every(r => this.esBaja(r));
+  }
+  /** La baja masiva será física: hay selección y todo lo seleccionado está en baja. */
+  get bajaMasivaEsFisica(): boolean {
+    const sel = this.seleccionados;
+    return sel.length > 0 && sel.every(r => this.esBaja(r)) && this.soloRegistrosEnBaja;
   }
 
   // Modal genérico
@@ -131,14 +151,19 @@ export class BasicosPersonalizadosComponent implements OnInit {
       });
     }
   */
-  cargarRegistros(): void {
-    this.loading = true;
+  /**
+   * Recarga la lista.
+   * @param silencioso si es true no levanta el overlay a pantalla completa, para
+   *        refrescos posteriores a una acción donde el toast ya informó el resultado.
+   */
+  cargarRegistros(silencioso = false): void {
+    if (!silencioso) {
+      this.loading = true;
+    }
 
     const estadoId = this.filtros.estado
       ? Number(this.filtros.estado)
       : undefined;
-
-    console.log('Enviando estado:', estadoId);
 
     this.svc.list(estadoId)
       .pipe(
@@ -147,7 +172,6 @@ export class BasicosPersonalizadosComponent implements OnInit {
         })
       ).subscribe(
         (res: any) => {
-
           this.registros = Array.isArray(res)
             ? res
             : (res?.data || []);
@@ -157,20 +181,24 @@ export class BasicosPersonalizadosComponent implements OnInit {
           this.loading = false;
 
           this.cdr.detectChanges();
-
         },
         err => {
           this.loading = false;
           console.error(err);
         }
       );
-
   }
   private cargarEmpleados(): void {
     this.svc.listEmpleados().subscribe((res: any) => {
       const data = Array.isArray(res) ? res : (res?.data || res?.empleados || []);
       this.empleados = (data as EmpleadoOption[]).slice();
+      this.datosEmpleado = new Map<number, any>();
+      this.empleados.forEach(e => {
+        const id = Number(e.empleado_id ?? e.id);
+        if (id) this.datosEmpleado.set(id, e);
+      });
       this.filtrarEmpleados();
+      this.cdr.detectChanges();
     }, (err) => {
       console.error(err);
       this.toast.error('No se pudieron cargar los empleados');
@@ -186,12 +214,8 @@ export class BasicosPersonalizadosComponent implements OnInit {
         catchError(() => of([]))
       )
       .subscribe((res) => {
-
-        this.sucursales =
-          Array.isArray(res)
-            ? res
-            : (res?.sucursales || res?.data || []);
-
+        const data = Array.isArray(res) ? res : (res?.sucursales || res?.data || []);
+        this.sucursales = this.normalizarCatalogo(data, 'sucursal_id');
       });
 
     this.http.get<any[] | { data?: any[]; cargos?: any[] }>(
@@ -200,32 +224,38 @@ export class BasicosPersonalizadosComponent implements OnInit {
       .pipe(catchError(() => of([]))
       )
       .subscribe((res) => {
-
-        this.cargos =
-          Array.isArray(res)
-            ? res
-            : (res?.cargos || res?.data || []);
-
-
-
+        const data = Array.isArray(res) ? res : (res?.cargos || res?.data || []);
+        this.cargos = this.normalizarCatalogo(data, 'cargo_id');
       });
 
 
-       // Tipos de contratación
+  // Tipos de contratación
   this.http.get<any[] | { data?: any[]; contrataciones_tipos?: any[] }>(
-    `${environment.apiUrl}/api/contrataciones-tipos/all`
+    `${environment.apiUrl}/api/contrataciones-tipos`
   )
     .pipe(
       catchError(() => of([]))
     )
     .subscribe((res) => {
-
-      this.contrataciones =
-        Array.isArray(res)
-          ? res
-          : (res?.contrataciones_tipos || res?.data || []);
-
+      const data = Array.isArray(res) ? res : (res?.contrataciones_tipos || res?.data || []);
+      this.contrataciones = this.normalizarCatalogo(data, 'contrataciones_tipos_id');
     });
+  }
+
+  /** Normaliza cualquier respuesta de catálogo a { id, nombre } con la clave de id indicada. */
+  private normalizarCatalogo(data: any, ...idKeys: string[]): Catalogo[] {
+    if (!Array.isArray(data)) return [];
+    return data.map((x: any) => {
+      let id = 0;
+      for (const key of [...idKeys, 'id']) {
+        const valor = x?.[key];
+        if (valor != null && Number(valor) > 0) { id = Number(valor); break; }
+      }
+      return {
+        id,
+        nombre: String(x?.nombre ?? x?.descripcion ?? x?.name ?? '')
+      };
+    }).filter((x: Catalogo) => x.id > 0 && x.nombre);
   }
 
 
@@ -265,33 +295,52 @@ get registrosFiltrados(): EmpleadoBasico[] {
 
   // Tipo de contratación
   if (this.filtros.contratacion_tipo_id) {
-    resultado = resultado.filter(r =>
-      Number(r.contratacion_tipo_id) ===
-      Number(this.filtros.contratacion_tipo_id)
-    );
+    const ctId = Number(this.filtros.contratacion_tipo_id);
+    resultado = resultado.filter((r: any) => this.idDeEmpleado(r, ['contratacion_tipo_id', 'tipo_contratacion_id', 'contratacion_tipo']) === ctId);
+  }
+
+  // Sucursal
+  if (this.filtros.sucursal_id) {
+    const sucId = Number(this.filtros.sucursal_id);
+    resultado = resultado.filter((r: any) => this.idDeEmpleado(r, ['sucursal_id', 'sucursal']) === sucId);
+  }
+
+  // Sección
+  if (this.filtros.seccion_id) {
+    const secId = Number(this.filtros.seccion_id);
+    resultado = resultado.filter((r: any) => this.idDeEmpleado(r, ['seccion_id', 'seccion']) === secId);
   }
 
   // Cargo
   if (this.filtros.cargo_id) {
-
-    const cargoSeleccionado = Number(this.filtros.cargo_id);
-
-    resultado = resultado.filter((r: any) => {
-
-      const cargoId =
-        r.cargo_id ??
-        r.empleado?.cargo_id ??
-        r.cargo?.cargo_id ??
-        r.empleado?.cargo?.cargo_id;
-
-      return Number(cargoId) === cargoSeleccionado;
-
-    });
-
+    const cargoId = Number(this.filtros.cargo_id);
+    resultado = resultado.filter((r: any) => this.idDeEmpleado(r, ['cargo_id', 'cargo']) === cargoId);
   }
 
   return resultado;
-}
+  }
+
+  /**
+   * Resuelve un id (contratación, sucursal, sección, cargo) buscando primero en el
+   * registro y, si no está, en los datos del empleado cargados en el catálogo.
+   * Devuelve 0 cuando no se encuentra.
+   */
+  private idDeEmpleado(r: any, claves: string[]): number {
+  const [idKey, objKey] = claves;
+  const emp = this.datosEmpleado.get(Number(r?.empleado_id)) || (r as any)?.empleado;
+
+  for (const fuente of [r, emp]) {
+    if (!fuente) continue;
+    const directo = fuente[idKey];
+    if (directo != null && Number(directo) > 0) return Number(directo);
+    if (objKey) {
+      const obj = fuente[objKey];
+      const anidado = obj?.id ?? obj?.[idKey];
+      if (anidado != null && Number(anidado) > 0) return Number(anidado);
+    }
+  }
+  return 0;
+  }
   // ---------- Helpers ----------
 
   empleadoNombre(r: EmpleadoBasico): string {
@@ -339,9 +388,27 @@ get registrosFiltrados(): EmpleadoBasico[] {
   }
 
   filtrarEmpleadosMasiva(): void {
+    let lista = this.empleados.slice();
+
     const q = String(this.masivaBusqueda || '').trim().toLowerCase();
-    if (!q) { this.empleadosFiltrados = this.empleados.slice(); return; }
-    this.empleadosFiltrados = this.empleados.filter(e => this.empleadoLabel(e).toLowerCase().includes(q));
+    if (q) {
+      lista = lista.filter(e => this.empleadoLabel(e).toLowerCase().includes(q));
+    }
+
+    if (this.masivaFiltros.sucursal_id) {
+      const id = Number(this.masivaFiltros.sucursal_id);
+      lista = lista.filter((e: any) => (Number(e.sucursal_id ?? e.sucursal?.id ?? 0) === id));
+    }
+    if (this.masivaFiltros.seccion_id) {
+      const id = Number(this.masivaFiltros.seccion_id);
+      lista = lista.filter((e: any) => (Number(e.seccion_id ?? e.seccion?.id ?? 0) === id));
+    }
+    if (this.masivaFiltros.cargo_id) {
+      const id = Number(this.masivaFiltros.cargo_id);
+      lista = lista.filter((e: any) => (Number(e.cargo_id ?? e.cargo?.id ?? 0) === id));
+    }
+
+    this.empleadosFiltrados = lista;
   }
 
   // ---------- Formulario individual ----------
@@ -403,7 +470,7 @@ get registrosFiltrados(): EmpleadoBasico[] {
         }
         this.cerrarModal();
         this.toast.success(this.editId ? 'Básico personalizado actualizado' : 'Básico personalizado creado');
-        this.cargarRegistros();
+        this.cargarRegistros(true);
       }, (err) => {
         console.error(err);
         this.toast.error(err?.error?.message || 'No se pudo guardar el básico personalizado');
@@ -423,7 +490,7 @@ get registrosFiltrados(): EmpleadoBasico[] {
             return;
           }
           this.toast.success('Básico personalizado dado de baja');
-          this.cargarRegistros();
+          this.cargarRegistros(true);
         }, (err) => {
           console.error(err);
           this.toast.error('No se pudo dar de baja el registro');
@@ -494,7 +561,7 @@ get registrosFiltrados(): EmpleadoBasico[] {
         }
         this.cerrarModal();
         this.toast.success(`Alta masiva realizada para ${items.length} empleado(s)`);
-        this.cargarRegistros();
+        this.cargarRegistros(true);
       }, (err) => {
         console.error(err);
         this.toast.error(err?.error?.message || 'No se pudo realizar el alta masiva');
@@ -542,7 +609,7 @@ get registrosFiltrados(): EmpleadoBasico[] {
         }
         this.cerrarModal();
         this.toast.success(`Modificación masiva realizada para ${items.length} registro(s)`);
-        this.cargarRegistros();
+        this.cargarRegistros(true);
       }, (err) => {
         console.error(err);
         this.toast.error(err?.error?.message || 'No se pudo realizar la modificación masiva');
@@ -569,20 +636,34 @@ get registrosFiltrados(): EmpleadoBasico[] {
   pedirBajaMasiva(): void {
     const ids = Array.from(this.seleccion);
     if (!ids.length) return;
-    this.confirmMensaje = `Se darán de baja ${ids.length} registro(s) seleccionados. ¿Desea continuar?`;
+
+    const fisico = this.bajaMasivaEsFisica;
+    this.confirmTitulo = fisico ? 'Confirmar eliminación definitiva' : 'Confirmar baja';
+    this.confirmMensaje = fisico
+      ? `Se eliminarán FÍSICAMENTE ${ids.length} registro(s) en estado de baja. Esta acción no se puede deshacer. ¿Desea continuar?`
+      : `Se darán de baja ${ids.length} registro(s) seleccionados. ¿Desea continuar?`;
+
     this.confirmAccion = () => {
       this.procesando = true;
-      this.svc.removeMasivo(ids).pipe(finalize(() => { this.procesando = false; try { this.cdr.detectChanges(); } catch { } }))
+      const request$ = fisico
+        ? this.svc.removeMasivoFinal(ids)
+        : this.svc.removeMasivo(ids);
+
+      request$.pipe(finalize(() => { this.procesando = false; try { this.cdr.detectChanges(); } catch { } }))
         .subscribe((res: any) => {
           if (res?.ok === false || res?.success === false) {
             this.toast.error(res?.message || 'No se pudo realizar la baja masiva');
             return;
           }
-          this.toast.success(`Baja masiva realizada para ${ids.length} registro(s)`);
-          this.cargarRegistros();
+          this.toast.success(
+            fisico
+              ? `Eliminación física de ${ids.length} registro(s) realizada`
+              : `Baja masiva realizada para ${ids.length} registro(s)`
+          );
+          this.cargarRegistros(true);
         }, (err) => {
           console.error(err);
-          this.toast.error('No se pudo realizar la baja masiva');
+          this.toast.error(fisico ? 'No se pudo eliminar físicamente los registros' : 'No se pudo realizar la baja masiva');
         });
     };
     this.confirmVisible = true;
@@ -614,12 +695,14 @@ get registrosFiltrados(): EmpleadoBasico[] {
     this.filtros = {
       q: '',
       estado: 1,
-      contratacion_id: '',
+      contratacion_tipo_id: '',
       sucursal_id: '',
       seccion_id: '',
       cargo_id: ''
-    } as any;
+    };
 
+    this.secciones = [];
+    this.cargos = [];
     this.cargarRegistros();
   }
 
@@ -633,39 +716,37 @@ get registrosFiltrados(): EmpleadoBasico[] {
   }
 
   onSucursalChange(): void {
-    console.log('Sucursal:', this.filtros.sucursal_id);
-
     this.filtros.seccion_id = '';
     this.filtros.cargo_id = '';
-
     this.secciones = [];
     this.cargos = [];
 
+    const sucursalId = Number(this.filtros.sucursal_id || 0);
+    if (!sucursalId) return;
+
     this.svc
-      .listSeccionesBySucursal(Number(this.filtros.sucursal_id))
+      .listSeccionesBySucursal(sucursalId)
       .subscribe((res: any) => {
-
-        console.log('SECCIONES', res);
-
-        this.secciones =
-          Array.isArray(res)
-            ? res
-            : (res?.data || res?.secciones || []);
-
+        const data = Array.isArray(res) ? res : (res?.data || res?.secciones || []);
+        this.secciones = this.normalizarCatalogo(data, 'seccion_id');
+        this.cdr.detectChanges();
       });
-
-    this.cargarRegistros();
   }
-
-
 
   onSeccionChange(): void {
     this.filtros.cargo_id = '';
+    this.cargos = [];
 
-    // si tenías carga remota:
-    // this.cargarCargos();
+    const seccionId = Number(this.filtros.seccion_id || 0);
+    if (!seccionId) return;
 
-    this.cargarRegistros();
+    this.svc
+      .listCargosBySeccion(seccionId)
+      .subscribe((res: any) => {
+        const data = Array.isArray(res) ? res : (res?.data || res?.cargos || []);
+        this.cargos = this.normalizarCatalogo(data, 'cargo_id');
+        this.cdr.detectChanges();
+      });
   }
 
 
@@ -674,12 +755,33 @@ get registrosFiltrados(): EmpleadoBasico[] {
   onMasivaSucursalChange(): void {
     this.masivaFiltros.seccion_id = '';
     this.masivaFiltros.cargo_id = '';
+    this.masivaSecciones = [];
+    this.masivaCargos = [];
+
+    const sucursalId = Number(this.masivaFiltros.sucursal_id || 0);
+    if (sucursalId) {
+      this.svc.listSeccionesBySucursal(sucursalId).subscribe((res: any) => {
+        const data = Array.isArray(res) ? res : (res?.data || res?.secciones || []);
+        this.masivaSecciones = this.normalizarCatalogo(data, 'seccion_id');
+        this.cdr.detectChanges();
+      });
+    }
 
     this.filtrarEmpleadosMasiva();
   }
 
   onMasivaSeccionChange(): void {
     this.masivaFiltros.cargo_id = '';
+    this.masivaCargos = [];
+
+    const seccionId = Number(this.masivaFiltros.seccion_id || 0);
+    if (seccionId) {
+      this.svc.listCargosBySeccion(seccionId).subscribe((res: any) => {
+        const data = Array.isArray(res) ? res : (res?.data || res?.cargos || []);
+        this.masivaCargos = this.normalizarCatalogo(data, 'cargo_id');
+        this.cdr.detectChanges();
+      });
+    }
 
     this.filtrarEmpleadosMasiva();
   }
@@ -700,6 +802,65 @@ get registrosFiltrados(): EmpleadoBasico[] {
     }
   }
   fotoUrlEmp(e: any): string | null {
-    return e?.foto_url || e?.foto || null;
+    return e?.foto_url_publica || e?.url_publica || e?.foto_url || e?.foto || null;
+  }
+
+  /** Datos del empleado (catálogo) vinculados a un registro del listado. */
+  private empleadoDeRegistro(r: any): any {
+    return this.datosEmpleado.get(Number(r?.empleado_id)) || null;
+  }
+
+  /** URL de la foto del empleado de un registro, ya resuelta contra la API. */
+  fotoUrlRegistro(r: any): string | null {
+    const url = this.fotoUrlEmp(r) || this.fotoUrlEmp(this.empleadoDeRegistro(r));
+    if (!url) return null;
+    const value = String(url).trim();
+    if (!value) return null;
+    if (/^https?:\/\//i.test(value) || value.startsWith('data:')) return value;
+    const base = (environment.apiUrl || '').replace(/\/$/, '');
+    return `${base}${value.startsWith('/') ? value : `/${value}`}`;
+  }
+
+  tieneFotoRegistro(r: any): boolean {
+    const id = Number(r?.empleado_id || 0);
+    return !!this.fotoUrlRegistro(r) && !!id && !this.avatarsSinImagen.has(id);
+  }
+
+  avatarErrorRegistro(r: any): void {
+    const id = Number(r?.empleado_id || 0);
+    if (id) this.avatarsSinImagen.add(id);
+  }
+
+  inicialesRegistro(r: any): string {
+    return this.inicialesEmp(r) || this.inicialesEmp(this.empleadoDeRegistro(r));
+  }
+
+  // ---------- Vista ampliada de foto ----------
+
+  mostrarModalFoto = false;
+  fotoAmpliada: string | null = null;
+  empleadoFotoSeleccionado: any = null;
+
+  tituloModalFoto(): string {
+    const r = this.empleadoFotoSeleccionado;
+    if (!r) return '';
+    const emp = this.empleadoDeRegistro(r) || {};
+    const legajo = r.legajo ?? emp.legajo ?? '-';
+    const cargo = emp.cargo?.nombre ?? r.cargo?.nombre ?? '';
+    const base = `${this.empleadoNombre(r)}, Legajo: ${legajo}`;
+    return cargo ? `${base}, Puesto: ${cargo}` : base;
+  }
+
+  ampliarFoto(r: any): void {
+    if (!this.tieneFotoRegistro(r)) return;
+    this.empleadoFotoSeleccionado = r;
+    this.fotoAmpliada = this.fotoUrlRegistro(r);
+    this.mostrarModalFoto = true;
+  }
+
+  cerrarFoto(): void {
+    this.fotoAmpliada = null;
+    this.empleadoFotoSeleccionado = null;
+    this.mostrarModalFoto = false;
   }
 }

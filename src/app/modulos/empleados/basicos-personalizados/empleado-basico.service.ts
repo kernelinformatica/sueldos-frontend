@@ -61,6 +61,11 @@ export class EmpleadoBasicoService {
     return this.http.delete(`${this.baseUrl}/masivo`, { body: { items: ids } });
   }
 
+  /** Borrado físico (definitivo) de varios registros a la vez. */
+  removeMasivoFinal(ids: number[]): Observable<any> {
+    return this.http.delete(`${this.baseUrl}/masivo/final`, { body: { items: ids } });
+  }
+
   /** Lista de empleados para los selectores (reutiliza el endpoint existente). */
   listEmpleados(): Observable<any> {
     return this.http.get<any>(`${environment.apiUrl}/api/empleados`);

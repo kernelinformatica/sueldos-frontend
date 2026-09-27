@@ -43,6 +43,9 @@ export interface EmpleadoOption {
   numero_documento?: string;
   documento?: string;
   tipo_contratacion_id?: number;
+  contratacion_tipo_id?: number;
+  sucursal_id?: number;
+  sucursal?: { sucursal_id?: number; id?: number; nombre?: string };
   contratacion_tipo?: { contrataciones_tipos_id?: number; id?: number; nombre?: string };
   seccion_id?: number;
   seccion?: { seccion_id?: number; id?: number; nombre?: string };
@@ -51,6 +54,12 @@ export interface EmpleadoOption {
   foto_url_publica?: string | null;
   url_publica?: string | null;
   foto?: string | null;
+}
+
+/** Opción normalizada de cualquier catálogo (id + nombre). */
+export interface Catalogo {
+  id: number;
+  nombre: string;
 }
 
 export interface CatalogoOption {
