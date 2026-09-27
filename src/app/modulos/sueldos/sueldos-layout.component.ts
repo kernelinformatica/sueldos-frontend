@@ -20,7 +20,7 @@ export class SueldosLayoutComponent {
   constructor(private auth: AuthService, private router: Router) {
     const perms = this.auth.getPermissions() || [];
     const has = (alias: string): boolean => Array.isArray(perms) && perms.some((p: any) => (typeof p === 'string' ? p === alias : p?.alias === alias));
-    const canEnter = has('sueldos') || has('sueldos_liquidar') || has('sueldos_liquidaciones');
+    const canEnter = has('sueldos') || has('sueldos_liquidar') || has('sueldos_liquidaciones') || has('libro_sueldos');
     if (!canEnter) {
       this.menu = [];
       return;
@@ -29,6 +29,10 @@ export class SueldosLayoutComponent {
     this.menu = [
       { label: 'Inicio', route: '/sueldos', icon: 'bi bi-house' }
     ];
+
+    if (has('libro_sueldos')) {
+      this.menu.push({ label: 'Libro de sueldos', route: '/sueldos/libros', icon: 'bi bi-journal-text' });
+    }
 
     if (has('sueldos_liquidar')) {
       this.menu.push({ label: 'Liquidar', route: '/sueldos/liquidar', icon: 'bi bi-cash-stack' });

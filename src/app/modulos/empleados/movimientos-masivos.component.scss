@@ -1,3 +1,9 @@
+/* Reusar estilos del listado para consistencia visual.
+   Va como @use al inicio porque Sass exige que las reglas @use precedan
+   a cualquier otra regla. No hay ciclo: este componente es
+   movimientos-masivos, no empleados-listado. */
+@use './empleados-listado.component.scss';
+
 .ficha-card {
   border-radius: 6px;
   background: #fff;
@@ -414,5 +420,3 @@
     cursor: pointer;
     border-radius: 8px;
 }
-/* Reusar estilos del listado para consistencia visual */
-@import './empleados-listado.component.scss';

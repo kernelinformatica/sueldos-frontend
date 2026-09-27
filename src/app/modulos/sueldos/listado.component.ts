@@ -1352,6 +1352,99 @@ export class ListadoComponent implements OnInit {
     });
   }
 
+  downloadingRecibos = false;
+
+  /**
+   * Descarga un único PDF con los recibos de las liquidaciones seleccionadas.
+   * Sin selección usa el período activo y, si tampoco hay, deja que el backend
+   * resuelva el período más reciente.
+   */
+  descargarRecibos(): void {
+    if (this.downloadingRecibos) return;
+
+    // Orden de selección respetado, tal como pide la spec.
+    const ids = Array.from(this.selectedLiquidacionIds);
+    const periodo = String(this.filtros.periodo || '').trim();
+
+    const params = ids.length > 0 ? { ids } : (periodo ? { periodo } : {});
+    if (!ids.length && !periodo) {
+      this.errorMsg = 'Seleccioná liquidaciones o indicá un período para descargar los recibos.';
+      return;
+    }
+
+    this.downloadingRecibos = true;
+    try { this.cdr.detectChanges(); } catch { }
+
+    this.svc.getPdfMasivo(params).pipe(
+      timeout(120000),
+      finalize(() => {
+        this.downloadingRecibos = false;
+        try { this.cdr.detectChanges(); } catch { }
+      })
+    ).subscribe({
+      next: (res: any) => {
+        if (res?.error) {
+          this.errorMsg = this.mensajeErrorRecibos(res.error);
+          return;
+        }
+
+        const blob: Blob | null = res?.blob ?? null;
+        if (!blob) {
+          this.errorMsg = this.mensajeErrorRecibos(res?.error, 'No se pudieron generar los recibos.');
+          return;
+        }
+
+        const filename = this.nombreArchivoDesdeHeaders(res?.headers, ids.length, periodo);
+        this.guardarBlobComoArchivo(blob, filename);
+        this.errorMsg = '';
+      },
+      error: (err) => {
+        this.errorMsg = this.mensajeErrorRecibos(err, 'No se pudieron generar los recibos.');
+      }
+    });
+  }
+
+  /** Nombre del archivo desde Content-Disposition, con fallback descriptivo. */
+  private nombreArchivoDesdeHeaders(headers: any, cantidad: number, periodo: string): string {
+    const leer = (name: string): string => {
+      if (!headers) return '';
+      if (typeof headers.get === 'function') return headers.get(name) || '';
+      return headers[name] || headers[name.toLowerCase()] || '';
+    };
+
+    const disposition = String(leer('content-disposition') || '').trim();
+    const match = disposition ? disposition.match(/filename\*=UTF-8''(.+)|filename="?([^"]+)"?/) : null;
+    if (match) {
+      const nombre = decodeURIComponent(match[1] || match[2] || '').trim();
+      if (nombre) return nombre.endsWith('.pdf') ? nombre : `${nombre}.pdf`;
+    }
+
+    if (cantidad > 0) return `recibos_${cantidad}_seleccion.pdf`;
+    if (periodo) return `recibos_${periodo}.pdf`;
+    return 'recibos.pdf';
+  }
+
+  /** Dispara la descarga del blob y libera la URL temporal. */
+  private guardarBlobComoArchivo(blob: Blob, filename: string): void {
+    const blobUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+  }
+
+  /** Mensajes de error del endpoint de recibos masivo. */
+  private mensajeErrorRecibos(err: any, fallback = 'No se pudieron generar los recibos.'): string {
+    const status = Number(err?.status ?? 0);
+    if (status === 404) return 'No hay liquidaciones para los criterios indicados.';
+    if (status === 400) return 'Alguna liquidación no es válida o no pertenece a la empresa.';
+    if (status === 422) return 'Hay demasiadas liquidaciones. Filtrá por período o seleccioná menos para generar los recibos.';
+    return this.extractHttpErrorMessage(err, fallback);
+  }
+
   private openDetalleEnVentana(mode: 'print' | 'pdf', liquidacion?: any): void {
     const detalleBase = liquidacion ? this.normalizeDetalle(this.detalle || liquidacion, liquidacion) : this.detalleNormalizado;
     if (!detalleBase || this.loadingDetail) return;

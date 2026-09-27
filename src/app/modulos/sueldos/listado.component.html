@@ -85,6 +85,11 @@
     </label>
     <div class="bulk-actions-right">
       <span class="bulk-selected-count">{{ selectedLiquidacionIds.size }} seleccionadas</span>
+      <button type="button" class="icon-action-btn icon-action-pdf" (click)="descargarRecibos()"
+        [disabled]="downloadingRecibos || (!hasSelectedLiquidaciones && !filtros.periodo)"
+        aria-label="Descargar recibos" title="Descargar todos los recibos en un solo PDF">
+        <i class="bi" [ngClass]="downloadingRecibos ? 'bi-arrow-repeat icon-spin' : 'bi-file-earmark-pdf'"></i>
+      </button>
       <button type="button" class="icon-action-btn icon-action-recalculate" (click)="recalcularSeleccionadas()" [disabled]="!hasSelectedLiquidaciones || savingBulk" aria-label="Recalcular seleccionadas" title="Recalcular seleccionadas">
         <i class="bi" [ngClass]="savingBulk ? 'bi-arrow-repeat icon-spin' : 'bi-calculator'"></i>
       </button>

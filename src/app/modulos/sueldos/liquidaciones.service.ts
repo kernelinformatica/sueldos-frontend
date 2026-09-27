@@ -78,4 +78,24 @@ export class LiquidacionesService {
       catchError(() => of({ blob: null as any, headers: {} }))
     );
   }
+
+  /**
+   * Obtiene UN SOLO PDF con los recibos de las liquidaciones indicadas.
+   * - ids: lista explícita respetando el orden (ej. 3,1,2)
+   * - periodo: formato AAAA-MM; si no se manda nada el backend usa el período más reciente.
+   */
+  getPdfMasivo(params: { ids?: number[]; periodo?: string }): Observable<{ blob: Blob | null; headers: any }> {
+    let query = new HttpParams();
+    if (params.ids?.length) {
+      query = query.set('ids', params.ids.join(','));
+    } else if (params.periodo) {
+      query = query.set('periodo', params.periodo);
+    }
+
+    return this.http.get(`${environment.apiUrl}/api/liquidaciones/recibos/pdf`, { headers: this.headers(), params: query, responseType: 'blob' as 'json', observe: 'response' as 'body' }).pipe(
+      map((resp: any) => ({ blob: resp?.body || null, headers: resp?.headers || {} })),
+      // El error se propaga para que el componente pueda mostrar el mensaje del backend.
+      catchError((err) => of({ blob: null as any, headers: {}, error: err }))
+    );
+  }
 }

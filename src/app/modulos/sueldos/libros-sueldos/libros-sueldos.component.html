@@ -1,0 +1,164 @@
+<section class="libros-page">
+  <app-loading-spinner [visible]="loading" [centered]="true" text="Cargando libros..."></app-loading-spinner>
+
+  <div class="hero-card">
+    <div class="module-breadcrumb">
+      <a routerLink="/modulos">Módulos</a>
+      <span>/</span>
+      <a routerLink="/sueldos">Sueldos</a>
+      <span>/</span>
+      <span>Libro de Sueldos</span>
+    </div>
+    <h1>Libro de Sueldos y Jornales</h1>
+    <p>Historial de libros por período, con su hash de integridad y estado de presentación.</p>
+    <div class="hero-acciones">
+      <button type="button" class="btn-primary" (click)="generar()" [disabled]="loading || !puedeAgregar"
+        *ngIf="puedeAgregar">
+        <i class="bi bi-plus-lg"></i> Generar libro
+      </button>
+    </div>
+  </div>
+
+  <div class="filters-card" [class.collapsed]="filtrosPlegados">
+    <button type="button" class="filters-toggle" (click)="toggleFiltros()"
+      [attr.aria-expanded]="!filtrosPlegados"
+      [title]="filtrosPlegados ? 'Desplegar filtros' : 'Plegar filtros'">
+      <span class="filters-label">Filtros</span>
+      <span class="filters-count" *ngIf="filtrosActivos > 0">{{ filtrosActivos }}</span>
+      <i class="bi" [ngClass]="filtrosPlegados ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
+    </button>
+
+    <div class="filters-body" *ngIf="!filtrosPlegados">
+      <label>
+        <span>Año</span>
+        <input type="number" [(ngModel)]="filtros.anio" placeholder="2026" />
+      </label>
+      <label>
+        <span>Estado</span>
+        <select [(ngModel)]="filtros.estado">
+          <option value="">Todos</option>
+          <option *ngFor="let e of estados" [value]="e.nombre" [title]="e.descripcion">
+            {{ e.nombre }}
+          </option>
+        </select>
+      </label>
+      <div class="filter-actions">
+        <button type="button" class="btn-primary" (click)="cargar()" [disabled]="loading">Filtrar</button>
+        <button type="button" class="btn-secondary" (click)="limpiarFiltros()">Limpiar</button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="errorMsg" class="alert-error">{{ errorMsg }}</div>
+
+  <div class="table-wrap" *ngIf="!loading && libros.length > 0">
+    <table class="libros-table">
+      <thead>
+        <tr>
+          <th>N°</th>
+          <th>Período</th>
+          <th>Ver.</th>
+          <th class="num">Trabajadores</th>
+          <th class="num">Remuneraciones</th>
+          <th class="num">Descuentos</th>
+          <th class="num">Neto</th>
+          <th>Estado</th>
+          <th>Generado</th>
+          <th class="acciones">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let l of libros" [class.anulado]="l.estado === 'anulado'">
+          <td class="mono">{{ l.numero_libro }}</td>
+          <td>{{ periodoLegible(l) }}</td>
+          <td class="num">v{{ l.version }}</td>
+          <td class="num">{{ l.total_trabajadores }}</td>
+          <td class="num">{{ money(l.total_remuneraciones) }}</td>
+          <td class="num">{{ money(l.total_descuentos) }}</td>
+          <td class="num"><strong>{{ money(l.total_neto) }}</strong></td>
+          <td>
+            <span class="state-badge" [ngClass]="estadoClass(l.estado)" [title]="descripcionEstado(l.estado)">
+              {{ l.estado }}
+            </span>
+            <div class="estado-desc" *ngIf="descripcionEstado(l.estado)">
+              {{ descripcionEstado(l.estado) }}
+            </div>
+          </td>
+          <td class="small">{{ fechaHora(l.generado_en) }}</td>
+          <td class="acciones">
+            <div class="row-actions">
+              <button type="button" class="icon-btn" (click)="ver(l)" *ngIf="puedeVer" title="Ver libro" aria-label="Ver libro">
+                <i class="bi bi-eye"></i>
+              </button>
+              <button type="button" class="icon-btn" (click)="descargarPdf(l)"
+                [disabled]="descargandoId === l.libro_sueldo_id || !puedeExportarPdf(l)"
+                title="Descargar PDF" aria-label="Descargar PDF">
+                <i class="bi" [ngClass]="descargandoId === l.libro_sueldo_id ? 'bi-arrow-repeat spin' : 'bi-file-earmark-pdf'"></i>
+              </button>
+              <button type="button" class="icon-btn" (click)="descargarLsd(l)"
+                [disabled]="descargandoId === l.libro_sueldo_id || !puedeExportarLsd(l)"
+                title="Exportar LSD" aria-label="Exportar LSD">
+                <i class="bi bi-cloud-arrow-down"></i>
+              </button>
+              <button type="button" class="icon-btn" (click)="pedirPresentacion(l)"
+                [disabled]="!puedePresentarLibro(l)"
+                [title]="tituloPresentar(l)"
+                aria-label="Presentar libro">
+                <i class="bi" [ngClass]="presentingId === l.libro_sueldo_id ? 'bi-arrow-repeat spin' : 'bi-send-check'"></i>
+              </button>
+              <button type="button" class="icon-btn danger" (click)="pedirAnulacion(l)"
+                [disabled]="!puedeAnular(l)"
+                [title]="puedeAnular(l) ? 'Anular libro' : 'No podés anular este libro'"
+                aria-label="Anular libro">
+                <i class="bi bi-x-octagon"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="empty-state" *ngIf="!loading && libros.length === 0">
+    <p>No hay libros de sueldos para mostrar.</p>
+    <button type="button" class="btn-primary" (click)="generar()" *ngIf="puedeAgregar">Generar el primero</button>
+  </div>
+
+  <app-modal-alerta
+    [visible]="modalVisible"
+    [titulo]="modalTitle"
+    [mostrarSpinner]="modalSpinner"
+    [bloquearCierre]="modalSpinner"
+    [esConfirmacion]="true"
+    (cerrar)="onModalCerrar($event)">
+    <div>{{ modalMessage }}</div>
+    <div class="motivo-wrap">
+      <label>Motivo de la anulación (obligatorio)</label>
+      <textarea [(ngModel)]="motivoAnulacion" rows="3" placeholder="Explique el motivo..." [disabled]="modalSpinner"></textarea>
+    </div>
+  </app-modal-alerta>
+  <app-modal-alerta
+    [visible]="libroPresentando !== null"
+    titulo="Presentar libro de sueldos"
+    [mostrarSpinner]="presentingId !== null"
+    [bloquearCierre]="presentingId !== null"
+    [esConfirmacion]="true"
+    (cerrar)="confirmarPresentacion(); onModalPresentarCerrar()">
+    <div>
+      <p>
+        Se marcará como <strong>presentado</strong> el libro N° {{ libroPresentando?.numero_libro }}
+        (versión {{ libroPresentando?.version }}) del período {{ libroPresentando ? periodoLegible(libroPresentando) : '' }}.
+      </p>
+      <p class="aviso-inmutable">
+        <i class="bi bi-lock-fill"></i>
+        A partir de este momento el libro queda <strong>inmutable</strong>: no podrá modificarse ni anularse.
+      </p>
+      <div class="motivo-wrap">
+        <label>N° de presentación (opcional)</label>
+        <input type="text" [(ngModel)]="presentacionNumero" maxlength="60"
+          placeholder="Constancia del organismo fiscal" [disabled]="presentingId !== null" />
+        <small>Si lo cargás ahora, queda registrado. También podés completarlo más adelante.</small>
+      </div>
+    </div>
+  </app-modal-alerta>
+</section>

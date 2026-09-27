@@ -1,0 +1,186 @@
+<section class="libros-page">
+  <app-loading-spinner [visible]="validando || generando" [centered]="true" [text]="generando ? 'Generando libro...' : 'Validando período...'"></app-loading-spinner>
+
+  <div class="hero-card">
+    <div class="module-breadcrumb">
+      <a routerLink="/modulos">Módulos</a>
+      <span>/</span>
+      <a routerLink="/sueldos">Sueldos</a>
+      <span>/</span>
+      <a routerLink="/sueldos/libros">Libro de Sueldos</a>
+      <span>/</span>
+      <span>Generar</span>
+    </div>
+    <h1>Generar libro de sueldos</h1>
+    <p>Elegí el período, validá y generá el libro. La validación no escribe nada.</p>
+  </div>
+
+  <div class="table-wrap">
+    <div class="form-grid">
+      <label>
+        <span>Año</span>
+        <input type="number" [(ngModel)]="anio" min="2000" max="2100" />
+      </label>
+      <label>
+        <span>Mes</span>
+        <select [(ngModel)]="mes">
+          <option *ngFor="let m of meses" [ngValue]="m.valor">{{ m.nombre }}</option>
+        </select>
+      </label>
+      <label>
+        <span>Tipo de liquidación</span>
+        <select [(ngModel)]="tipoSeleccionado">
+          <option [ngValue]="null">Todos los tipos</option>
+          <option *ngFor="let t of liquidacionTipos" [ngValue]="t.id">{{ t.nombre }}</option>
+        </select>
+      </label>
+      <label>
+        <span>N° de libro (opcional)</span>
+        <input type="text" [(ngModel)]="numeroLibro" placeholder="Se genera automáticamente" />
+      </label>
+    </div>
+
+    <div class="rango">
+      Período: <strong>{{ periodoDesde }} → {{ periodoHasta }}</strong>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="btn-primary" (click)="validar()" [disabled]="validando || generando">
+        <i class="bi bi-shield-check"></i> Validar período
+      </button>
+      <button type="button" class="btn-primary generar" (click)="generar()" [disabled]="!puedeGenerar">
+        <i class="bi" [ngClass]="generando ? 'bi-arrow-repeat spin' : 'bi-check2-circle'"></i> Generar libro
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="errorMsg" class="alert-error">{{ errorMsg }}</div>
+
+  <div class="table-wrap" *ngIf="previa">
+    <h2 class="subtitulo">Resultado de la validación</h2>
+
+    <div class="previa-resumen" [ngClass]="previa.valido ? 'ok' : 'ko'">
+      <i class="bi" [ngClass]="previa.valido ? 'bi-check-circle-fill' : 'bi-x-circle-fill'"></i>
+      <div>
+        <strong *ngIf="previa.valido">Período válido. Se puede generar el libro.</strong>
+        <strong *ngIf="!previa.valido">No se puede generar el libro.</strong>
+        <div *ngIf="previa.total_trabajadores">
+          {{ previa.total_trabajadores }} trabajador(es) en el período.
+          <span *ngIf="errores.length"> {{ errores.length }} error(es) pendientes.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="previa-totales" *ngIf="previa.totales">
+      <div>
+        <span>Remuneración base</span>
+        <strong>{{ money(previa.totales['remuneracion_base']) }}</strong>
+      </div>
+      <div>
+        <span>Total remunerativo</span>
+        <strong>{{ money(previa.totales['total_remunerativo']) }}</strong>
+      </div>
+      <div>
+        <span>No remunerativo</span>
+        <strong>{{ money(previa.totales['total_no_remunerativo']) }}</strong>
+      </div>
+      <div>
+        <span>Descuentos</span>
+        <strong>{{ money(previa.totales['total_descuentos']) }}</strong>
+      </div>
+      <div>
+        <span>Aportes</span>
+        <strong>{{ money(previa.totales['total_aportes']) }}</strong>
+      </div>
+      <div>
+        <span>Contribuciones</span>
+        <strong>{{ money(previa.totales['total_contribuciones']) }}</strong>
+      </div>
+      <div class="destacado">
+        <span>Neto</span>
+        <strong>{{ money(previa.totales['total_neto']) }}</strong>
+      </div>
+    </div>
+
+    <div class="table-wrap" *ngIf="detallePrevia.length > 0">
+      <h2 class="subtitulo">
+        Detalle por trabajador
+        <span class="info-chip" title="Revisá estos importes antes de generar el libro">
+          revisá antes de generar
+        </span>
+      </h2>
+
+      <div class="buscador">
+        <input type="text" [(ngModel)]="qPrevia" placeholder="Buscar por legajo, CUIL, apellido o nombre" />
+        <span class="resultados">{{ detallePreviaFiltrado.length }} de {{ detallePrevia.length }}</span>
+      </div>
+
+      <table class="libros-table">
+        <thead>
+          <tr>
+            <th>Legajo</th>
+            <th>CUIL</th>
+            <th>Apellido y nombre</th>
+            <th class="num">Base</th>
+            <th class="num">Remuner.</th>
+            <th class="num">No remuner.</th>
+            <th class="num">Descuentos</th>
+            <th class="num">Neto</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let d of detallePreviaFiltrado">
+            <td class="mono">{{ d.legajo }}</td>
+            <td class="mono">{{ d.cuil }}</td>
+            <td>
+              {{ nombreCompletoPrevia(d) }}
+              <div class="obs" *ngIf="d.observaciones">{{ d.observaciones }}</div>
+            </td>
+            <td class="num">{{ money(d.remuneracion_base) }}</td>
+            <td class="num">{{ money(d.total_remunerativo) }}</td>
+            <td class="num">{{ money(d.total_no_remunerativo) }}</td>
+            <td class="num">{{ money(d.total_descuentos) }}</td>
+            <td class="num"><strong>{{ money(d.total_neto) }}</strong></td>
+          </tr>
+        </tbody>
+        <tfoot *ngIf="detallePreviaFiltrado.length > 0">
+          <tr>
+            <td colspan="3">TOTALES ({{ detallePreviaFiltrado.length }} trabajador/es)</td>
+            <td class="num">{{ money(sumaPrevia('remuneracion_base')) }}</td>
+            <td class="num">{{ money(sumaPrevia('total_remunerativo')) }}</td>
+            <td class="num">{{ money(sumaPrevia('total_no_remunerativo')) }}</td>
+            <td class="num">{{ money(sumaPrevia('total_descuentos')) }}</td>
+            <td class="num"><strong>{{ money(sumaPrevia('total_neto')) }}</strong></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="bloque-validaciones error" *ngIf="errores.length > 0">
+      <h3>
+        <i class="bi bi-x-octagon-fill"></i>
+        Errores que impiden generar el libro ({{ errores.length }})
+      </h3>
+      <ul>
+        <li *ngFor="let e of erroresConEtiqueta">
+          <span class="emp-tag" *ngIf="e.conEtiqueta">Empleado {{ e.empleadoId }}</span>
+          <span class="txt">{{ e.texto }}</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="bloque-validaciones warn" *ngIf="avisos.length > 0">
+      <h3>
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        Advertencias ({{ avisos.length }})
+      </h3>
+      <ul>
+        <li *ngFor="let a of avisos">
+          <span class="emp-tag" *ngIf="a.empleadoId">Empleado {{ a.empleadoId }}</span>
+          <span class="emp-tag" *ngIf="!a.empleadoId && a.legajo">Legajo {{ a.legajo }}</span>
+          <span class="txt">{{ a.texto }}</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>

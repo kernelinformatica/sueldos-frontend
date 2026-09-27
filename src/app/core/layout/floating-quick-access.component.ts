@@ -134,6 +134,8 @@ export class FloatingQuickAccessComponent {
     { label: 'Inicio Sueldos', route: '/sueldos', icon: 'bi-house', hint: 'Panel principal' },
     { label: 'Liquidar', route: '/sueldos/liquidar', icon: 'bi-cash-stack', hint: 'Nueva liquidación' },
     { label: 'Liquidaciones', route: '/sueldos/listado', icon: 'bi-card-list', hint: 'Historial' },
+    { label: 'Libros de sueldos', route: '/sueldos/libros', icon: 'bi-book', hint: 'Gestionar' },
+    { label: 'Liquidaciones', route: '/sueldos/listado', icon: 'bi-card-list', hint: 'Historial' },
     { label: 'Conceptos', route: '/admin/conceptos', icon: 'bi-journal-text', hint: 'Catálogo' },
     { label: 'Empleados', route: '/admin/empleados/listado', icon: 'bi-people', hint: 'Ficha y listado' }
   ];

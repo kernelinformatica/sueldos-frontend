@@ -1,0 +1,241 @@
+<section class="libros-page">
+  <app-loading-spinner [visible]="loading" [centered]="true" text="Cargando libro..."></app-loading-spinner>
+
+  <div *ngIf="errorMsg" class="alert-error">{{ errorMsg }}</div>
+
+  <ng-container *ngIf="!loading && libro">
+    <div class="hero-card">
+      <div class="module-breadcrumb">
+        <a routerLink="/modulos">Módulos</a>
+        <span>/</span>
+        <a routerLink="/sueldos">Sueldos</a>
+        <span>/</span>
+        <a routerLink="/sueldos/libros">Libro de Sueldos</a>
+        <span>/</span>
+        <span>{{ libro?.numero_libro || 'Detalle' }}</span>
+      </div>
+      <h1>N° {{ libro.numero_libro }} · {{ periodoLegible(libro) }}</h1>
+      <p>Versión {{ libro.version }} · {{ libro.total_trabajadores }} trabajador(es)</p>
+      <div class="hero-acciones">
+        <button type="button" class="btn-primary" (click)="pedirConfirmacion()"
+          [disabled]="!puedeGenerarDefinitivo || !libroEsBorrador"
+          [title]="libroEsBorrador ? 'Confirmar el libro y volverlo inmutable' : 'Solo un borrador se puede confirmar'">
+          <i class="bi" [ngClass]="confirmando ? 'bi-arrow-repeat spin' : 'bi-check2-circle'"></i>
+          Confirmar libro
+        </button>
+        <span class="state-badge" [ngClass]="libro.estado" [title]="descripcionEstado(libro.estado)">
+          {{ libro.estado }}
+        </span>
+        <span class="estado-desc-inline" *ngIf="descripcionEstado(libro.estado)">
+          {{ descripcionEstado(libro.estado) }}
+        </span>
+        <button type="button" class="btn-secondary" (click)="descargarPdf()" [disabled]="busy">
+          <i class="bi" [ngClass]="busy ? 'bi-arrow-repeat spin' : 'bi-file-earmark-pdf'"></i> PDF
+        </button>
+        <button type="button" class="btn-secondary" (click)="descargarLsd()" [disabled]="busy || !puedeExportarLsd"
+          [title]="puedeExportarLsd ? 'Exportar LSD' : 'Necesitás el permiso libro_sueldos_editar'">
+          <i class="bi bi-cloud-arrow-down"></i> LSD
+        </button>
+      </div>
+    </div>
+
+    <div class="totales-card">
+      <div class="total-box">
+        <span>Remuneraciones</span>
+        <strong>{{ money(libro.total_remuneraciones) }}</strong>
+      </div>
+      <div class="total-box">
+        <span>No remunerativos</span>
+        <strong>{{ money(libro.total_no_remunerativo) }}</strong>
+      </div>
+      <div class="total-box">
+        <span>Descuentos</span>
+        <strong>{{ money(libro.total_descuentos) }}</strong>
+      </div>
+      <div class="total-box">
+        <span>Aportes</span>
+        <strong>{{ money(libro.total_aportes) }}</strong>
+      </div>
+      <div class="total-box">
+        <span>Contribuciones</span>
+        <strong>{{ money(libro.total_contribuciones) }}</strong>
+      </div>
+      <div class="total-box destacado">
+        <span>Neto total</span>
+        <strong>{{ money(libro.total_neto) }}</strong>
+      </div>
+    </div>
+
+    <div class="meta-card">
+      <div><span>Generado</span><strong>{{ fechaHora(libro.generado_en) }}</strong></div>
+      <div *ngIf="libro.presentado_en"><span>Presentado</span><strong>{{ fechaHora(libro.presentado_en) }}</strong></div>
+      <div *ngIf="libro.presentacion_numero"><span>N° de presentación</span><strong>{{ libro.presentacion_numero }}</strong></div>
+      <div class="hash"><span>Hash de integridad</span><strong class="mono">{{ libro.hash_contenido || '-' }}</strong></div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="buscador">
+        <input type="text" [(ngModel)]="q" placeholder="Buscar por legajo, CUIL, apellido o nombre" />
+        <span class="resultados">{{ detalleFiltrado.length }} de {{ detalle.length }}</span>
+      </div>
+
+      <table class="libros-table">
+        <thead>
+          <tr>
+            <th>Legajo</th>
+            <th>CUIL</th>
+            <th>Apellido y nombre</th>
+            <th>Ingreso</th>
+            <th>Categoría</th>
+            <th class="num">Base</th>
+            <th class="num">Remuner.</th>
+            <th class="num">No remuner.</th>
+            <th class="num">Descuentos</th>
+            <th class="num">Neto</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let d of detalleFiltrado">
+            <td class="mono">{{ d.legajo }}</td>
+            <td class="mono">{{ d.cuil }}</td>
+            <td>
+             <!-- <button type="button" class="link-conceptos" (click)="abrirConceptos(d)"
+                title="Ver desglose de conceptos">
+                {{ nombreCompleto(d) }}
+                <i class="bi bi-list-ul"></i>
+              </button>-->
+               {{ nombreCompleto(d) }}
+              <div class="obs" *ngIf="d.observaciones">{{ d.observaciones }}</div>
+            </td>
+            <td>{{ fecha(d.fecha_ingreso) }}</td>
+            <td>{{ d.categoria || '-' }}</td>
+            <td class="num">{{ money(d.remuneracion_base) }}</td>
+            <td class="num">{{ money(d.total_remunerativo) }}</td>
+            <td class="num">{{ money(d.total_no_remunerativo) }}</td>
+            <td class="num">{{ money(d.total_descuentos) }}</td>
+            <td class="num"><strong>{{ money(d.total_neto) }}</strong></td>
+          </tr>
+        </tbody>
+        <tfoot *ngIf="detalleFiltrado.length > 0">
+          <tr>
+            <td colspan="5">TOTALES ({{ detalleFiltrado.length }} trabajador/es)</td>
+            <td class="num">{{ money(sum('remuneracion_base')) }}</td>
+            <td class="num">{{ money(sum('total_remunerativo')) }}</td>
+            <td class="num">{{ money(sum('total_no_remunerativo')) }}</td>
+            <td class="num">{{ money(sum('total_descuentos')) }}</td>
+            <td class="num"><strong>{{ money(sum('total_neto')) }}</strong></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="table-wrap" *ngIf="auditoria.length > 0">
+      <h2 class="subtitulo">Auditoría</h2>
+      <table class="libros-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Acción</th>
+            <th>Estado anterior</th>
+            <th>Estado nuevo</th>
+            <th>Motivo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let a of auditoria">
+            <td class="small">{{ fechaHora(a.created_at) }}</td>
+            <td>{{ a.accion }}</td>
+            <td>{{ a.estado_anterior || '-' }}</td>
+            <td>{{ a.estado_nuevo || '-' }}</td>
+            <td class="small">{{ a.motivo || '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </ng-container>
+  <div class="modal-backdrop" *ngIf="modalConceptosVisible" (click)="cerrarConceptos()"></div>
+  <section class="modal-conceptos" *ngIf="modalConceptosVisible" role="dialog" aria-modal="true">
+    <div class="modal-conceptos-shell" (click)="$event.stopPropagation()">
+      <div class="modal-conceptos-head">
+        <div>
+          <h3>Desglose de conceptos</h3>
+          <p class="modal-conceptos-sub">
+            {{ empleadoConceptos ? nombreCompleto(empleadoConceptos) : '' }}
+            <span *ngIf="empleadoConceptos"> · Legajo {{ empleadoConceptos.legajo }} · CUIL {{ empleadoConceptos.cuil }}</span>
+          </p>
+        </div>
+        <button type="button" class="modal-close" (click)="cerrarConceptos()" aria-label="Cerrar">&times;</button>
+      </div>
+
+      <div class="modal-conceptos-body">
+        <div *ngIf="cargandoConceptos" class="loading-conceptos">
+          <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+          <span>Cargando conceptos...</span>
+        </div>
+
+        <div *ngIf="!cargandoConceptos && errorConceptos" class="alert-error">{{ errorConceptos }}</div>
+
+        <div *ngIf="!cargandoConceptos && !errorConceptos && conceptos.length === 0" class="empty-conceptos">
+          <i class="bi bi-inbox"></i>
+          <p>Este empleado no tiene conceptos detallados para el período.</p>
+        </div>
+
+        <ng-container *ngIf="!cargandoConceptos && !errorConceptos && conceptos.length > 0">
+          <div class="grupo-conceptos" *ngFor="let g of conceptosPorTipo">
+            <h4 class="grupo-titulo">{{ g.etiqueta }}</h4>
+            <table class="tabla-conceptos">
+              <thead>
+                <tr>
+                  <th style="width:70px;">Código</th>
+                  <th>Concepto</th>
+                  <th class="num" style="width:90px;">Cant.</th>
+                  <th class="num" style="width:130px;">Importe</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let c of g.items">
+                  <td class="mono">{{ c.codigo }}</td>
+                  <td>{{ c.nombre }}</td>
+                  <td class="num">{{ c.cantidad | number:'1.0-4' }}</td>
+                  <td class="num">{{ g.signo }}{{ money(c.importe) }}</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="3">Total {{ g.etiqueta }}</td>
+                  <td class="num">{{ g.signo }}{{ money(g.total) }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <div class="neto-conceptos" *ngIf="empleadoConceptos">
+            <span>Neto a pagar del empleado</span>
+            <strong>{{ money(empleadoConceptos.total_neto) }}</strong>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </section>
+
+  <app-modal-alerta
+    [visible]="modalConfirmarVisible"
+    titulo="Confirmar libro de sueldos"
+    [mostrarSpinner]="confirmando"
+    [bloquearCierre]="confirmando"
+    [esConfirmacion]="true"
+    (cerrar)="confirmarGeneracion()">
+    <div>
+      <p>
+        El libro N° <strong>{{ libro?.numero_libro }}</strong> (versión {{ libro?.version }})
+        del período {{ libro ? periodoLegible(libro) : '' }} pasará a estado
+        <strong>generado</strong>.
+      </p>
+      <div class="aviso-inmutable">
+        <i class="bi bi-lock-fill"></i>
+        A partir de este momento el libro queda <strong>inmutable</strong>: no podrá modificarse.
+        Si necesitás corregirlo, vas a tener que anularlo y generar uno nuevo.
+      </div>
+    </div>
+  </app-modal-alerta>
+</section>

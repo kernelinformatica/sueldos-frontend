@@ -46,7 +46,10 @@ export const routes: Routes = [
     children: [
       { path: '', loadComponent: () => import('./modulos/sueldos/home.component').then(m => m.HomeComponent) },
       { path: 'liquidar', loadComponent: () => import('./modulos/sueldos/liquidar.component').then(m => m.LiquidarComponent) },
-      { path: 'listado', loadComponent: () => import('./modulos/sueldos/listado.component').then(m => m.ListadoComponent) }
+      { path: 'listado', loadComponent: () => import('./modulos/sueldos/listado.component').then(m => m.ListadoComponent) },
+      { path: 'libros', loadComponent: () => import('./modulos/sueldos/libros-sueldos/libros-sueldos.component').then(m => m.LibrosSueldosComponent) },
+      { path: 'libros/generar', loadComponent: () => import('./modulos/sueldos/libros-sueldos/libro-generar.component').then(m => m.LibroGenerarComponent) },
+      { path: 'libros/:id', loadComponent: () => import('./modulos/sueldos/libros-sueldos/libro-detalle.component').then(m => m.LibroDetalleComponent) }
     ]
   },
  
