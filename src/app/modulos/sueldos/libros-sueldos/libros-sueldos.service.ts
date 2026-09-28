@@ -116,12 +116,23 @@ function extraerLibro(res: any): LibroSueldo | null {
 
 /** Concepto del desglose de un empleado dentro de un libro. */
 export interface LibroConcepto {
+  liquidacion_id?: number;
+  concepto_id?: number;
   codigo: string;
   nombre: string;
-  /** remunerativo | no_remunerativo | descuento | aporte | contribucion */
+  /** tipo de formula o categoria: BASICO, FIJO, ANTIGUEDAD, PORCENTAJE_*, SUMA_GRUPO... */
   tipo: string;
+  /** S suma, R resta */
+  suma_resta: string;
   cantidad: number;
+  base_calculo: number;
+  porcentaje: number;
   importe: number;
+  importe_original: number;
+  requiere_revision: number;
+  advertencia: string | null;
+  orden: number;
+  descripcion: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -228,8 +239,33 @@ export class LibrosSueldosService {
       params: { empleado_id: String(empleadoId) }
     }).pipe(
       map((res: any) => {
-        const raw: any = Array.isArray(res) ? res : (res?.data || res?.items || []);
-        return { data: Array.isArray(raw) ? raw : [] };
+        // El endpoint puede responder plano, {data}, {items} o {libro_sueldo_id, conceptos}.
+        const raw: any = Array.isArray(res) ? res
+          : (res?.conceptos || res?.data?.conceptos || res?.data || res?.items || []);
+        const lista: any[] = Array.isArray(raw) ? raw : [];
+        const num = (v: any): number => {
+          const n = Number(v);
+          return Number.isFinite(n) ? n : 0;
+        };
+        return {
+          data: lista.map((x: any): LibroConcepto => ({
+            liquidacion_id: num(x?.liquidacion_id),
+            concepto_id: num(x?.concepto_id),
+            codigo: String(x?.codigo_concepto ?? x?.codigo ?? '').trim(),
+            nombre: String(x?.nombre_concepto ?? x?.nombre ?? '').trim(),
+            tipo: String(x?.tipo ?? x?.formula_tipo ?? x?.categoria ?? '').trim().toLowerCase(),
+            suma_resta: String(x?.suma_resta ?? 'S').trim().toUpperCase(),
+            cantidad: num(x?.cantidad),
+            base_calculo: num(x?.base_calculo),
+            porcentaje: num(x?.porcentaje),
+            importe: num(x?.importe),
+            importe_original: num(x?.importe_original ?? x?.importe),
+            requiere_revision: num(x?.requiere_revision),
+            advertencia: x?.advertencia ?? null,
+            orden: num(x?.orden),
+            descripcion: String(x?.descripcion ?? x?.nombre ?? '').trim()
+          })).filter((c: LibroConcepto) => !!c.nombre || !!c.codigo)
+        };
       }),
       catchError((err) => of({ data: [] as LibroConcepto[], error: err }))
     );
@@ -260,6 +296,16 @@ export class LibrosSueldosService {
   /** PDF del libro, como blob + headers para leer Content-Disposition. */
   pdf(id: number): Observable<{ blob: Blob | null; headers: any; error?: any }> {
     return this.http.get(`${this.baseUrl}/${id}/pdf`, {
+      headers: this.headers(), responseType: 'blob' as 'json', observe: 'response' as 'body'
+    }).pipe(
+      map((resp: any) => ({ blob: resp?.body || null, headers: resp?.headers || {} })),
+      catchError((err) => of({ blob: null as any, headers: {}, error: err }))
+    );
+  }
+
+  /** PDF del libro detallado (con desglose de conceptos), mismo formato inline. */
+  pdfDetalle(id: number): Observable<{ blob: Blob | null; headers: any; error?: any }> {
+    return this.http.get(`${this.baseUrl}/${id}/pdf-detalle`, {
       headers: this.headers(), responseType: 'blob' as 'json', observe: 'response' as 'body'
     }).pipe(
       map((resp: any) => ({ blob: resp?.body || null, headers: resp?.headers || {} })),

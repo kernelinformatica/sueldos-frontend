@@ -75,6 +75,53 @@
   min-width: 200px;
 }
 
+/* ---------- Selector de PDF (oficial / detallado) ---------- */
+
+.pdf-menu {
+  position: relative;
+  display: inline-block;
+
+  .caret {
+    margin-left: 0.25rem;
+    font-size: 0.7rem;
+  }
+
+  .pdf-menu-dropdown {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    left: 0;
+    z-index: 30;
+    min-width: 260px;
+    padding: 0.3rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.6rem;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15);
+
+    button {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      width: 100%;
+      padding: 0.55rem 0.6rem;
+      border: 0;
+      border-radius: 0.45rem;
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+      color: #1e293b;
+
+      &:hover { background: #f1f5f9; }
+
+      > i { margin-top: 0.15rem; color: #4338ca; }
+
+      span { display: flex; flex-direction: column; }
+      strong { font-size: 0.88rem; font-weight: 600; }
+      small { font-size: 0.75rem; color: #667085; }
+    }
+  }
+}
+
 .btn-back {
   background: transparent;
   border: 0;
@@ -355,6 +402,31 @@
 .modal-conceptos-body {
   padding: 1.1rem 1.3rem;
   overflow-y: auto;
+
+  .badge-tipo {
+    display: inline-block;
+    margin-left: 0.4rem;
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #4338ca;
+    font-size: 0.7rem;
+    white-space: nowrap;
+  }
+
+  .advertencia-concepto {
+    margin-top: 0.15rem;
+    color: #b45309;
+    font-size: 0.75rem;
+  }
+
+  tr.revision td { background: #fffbeb; }
+
+  .neto-empleado {
+    margin-left: 0.75rem;
+    color: #667085;
+    font-weight: 400;
+  }
 }
 
 .loading-conceptos {

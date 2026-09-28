@@ -29,9 +29,28 @@
         <span class="estado-desc-inline" *ngIf="descripcionEstado(libro.estado)">
           {{ descripcionEstado(libro.estado) }}
         </span>
-        <button type="button" class="btn-secondary" (click)="descargarPdf()" [disabled]="busy">
-          <i class="bi" [ngClass]="busy ? 'bi-arrow-repeat spin' : 'bi-file-earmark-pdf'"></i> PDF
-        </button>
+        <div class="pdf-menu">
+          <button type="button" class="btn-secondary" (click)="toggleMenuPdf()" [disabled]="busy">
+            <i class="bi" [ngClass]="busy ? 'bi-arrow-repeat spin' : 'bi-file-earmark-pdf'"></i> PDF
+            <i class="bi bi-chevron-down caret"></i>
+          </button>
+          <div class="pdf-menu-dropdown" *ngIf="menuPdfVisible" (click)="$event.stopPropagation()">
+            <button type="button" (click)="descargarPdf()">
+              <i class="bi bi-file-earmark-text"></i>
+              <span>
+                <strong>PDF oficial</strong>
+                <small>Libro de sueldos en formato oficial</small>
+              </span>
+            </button>
+            <button type="button" (click)="descargarPdfDetalle()">
+              <i class="bi bi-file-earmark-richtext"></i>
+              <span>
+                <strong>PDF detallado</strong>
+                <small>Incluye el desglose de conceptos por empleado</small>
+              </span>
+            </button>
+          </div>
+        </div>
         <button type="button" class="btn-secondary" (click)="descargarLsd()" [disabled]="busy || !puedeExportarLsd"
           [title]="puedeExportarLsd ? 'Exportar LSD' : 'Necesitás el permiso libro_sueldos_editar'">
           <i class="bi bi-cloud-arrow-down"></i> LSD
@@ -99,12 +118,12 @@
             <td class="mono">{{ d.legajo }}</td>
             <td class="mono">{{ d.cuil }}</td>
             <td>
-             <!-- <button type="button" class="link-conceptos" (click)="abrirConceptos(d)"
+              <button type="button" class="link-conceptos" (click)="abrirConceptos(d)"
                 title="Ver desglose de conceptos">
-                {{ nombreCompleto(d) }}
+                {{ nombreCompleto(d) }} 
                 <i class="bi bi-list-ul"></i>
-              </button>-->
-               {{ nombreCompleto(d) }}
+              </button>
+             
               <div class="obs" *ngIf="d.observaciones">{{ d.observaciones }}</div>
             </td>
             <td>{{ fecha(d.fecha_ingreso) }}</td>
@@ -129,6 +148,8 @@
       </table>
     </div>
 
+   <!-- Auditoría section removed 
+    
     <div class="table-wrap" *ngIf="auditoria.length > 0">
       <h2 class="subtitulo">Auditoría</h2>
       <table class="libros-table">
@@ -152,6 +173,8 @@
         </tbody>
       </table>
     </div>
+   -->
+
   </ng-container>
   <div class="modal-backdrop" *ngIf="modalConceptosVisible" (click)="cerrarConceptos()"></div>
   <section class="modal-conceptos" *ngIf="modalConceptosVisible" role="dialog" aria-modal="true">
@@ -189,29 +212,40 @@
                   <th style="width:70px;">Código</th>
                   <th>Concepto</th>
                   <th class="num" style="width:90px;">Cant.</th>
+                  <th class="num" style="width:130px;">Base</th>
                   <th class="num" style="width:130px;">Importe</th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let c of g.items">
+                <tr *ngFor="let c of g.items" [class.revision]="c.requiere_revision">
                   <td class="mono">{{ c.codigo }}</td>
-                  <td>{{ c.nombre }}</td>
+                  <td>
+                    {{ c.nombre }}
+                    <span class="badge-tipo" *ngIf="c.tipo">{{ etiquetaTipo(c.tipo) }}</span>
+                    <div class="advertencia-concepto" *ngIf="c.advertencia">
+                      <i class="bi bi-exclamation-triangle"></i> {{ c.advertencia }}
+                    </div>
+                  </td>
                   <td class="num">{{ c.cantidad | number:'1.0-4' }}</td>
-                  <td class="num">{{ g.signo }}{{ money(c.importe) }}</td>
+                  <td class="num">{{ c.base_calculo ? money(c.base_calculo) : '-' }}</td>
+                  <td class="num">{{ esResta(c) ? '-' : '' }}{{ money(c.importe) }}</td>
                 </tr>
               </tbody>
               <tfoot>
                 <tr>
-                  <td colspan="3">Total {{ g.etiqueta }}</td>
+                  <td colspan="4">Total {{ g.etiqueta }}</td>
                   <td class="num">{{ g.signo }}{{ money(g.total) }}</td>
                 </tr>
               </tfoot>
             </table>
           </div>
 
-          <div class="neto-conceptos" *ngIf="empleadoConceptos">
-            <span>Neto a pagar del empleado</span>
-            <strong>{{ money(empleadoConceptos.total_neto) }}</strong>
+          <div class="neto-conceptos">
+            <span>Total del desglose</span>
+            <strong>{{ money(totalConceptos) }}</strong>
+            <span *ngIf="empleadoConceptos" class="neto-empleado">
+              Neto del empleado: {{ money(empleadoConceptos.total_neto) }}
+            </span>
           </div>
         </ng-container>
       </div>

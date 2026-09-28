@@ -137,6 +137,7 @@ export class LibroDetalleComponent implements OnInit {
   }
 
   descargarPdf(): void {
+    this.menuPdfVisible = false;
     if (!this.libro || this.busy) return;
     this.busy = true;
     this.svc.pdf(this.libro.libro_sueldo_id).pipe(finalize(() => {
@@ -149,6 +150,34 @@ export class LibroDetalleComponent implements OnInit {
       }
       this.guardar(res.blob, res.headers, `libro_sueldos_${this.libro!.numero_libro}.pdf`);
     });
+  }
+
+  /** PDF del libro detallado: incluye el desglose de conceptos por empleado. */
+  descargarPdfDetalle(): void {
+    this.menuPdfVisible = false;
+    if (!this.libro || this.busy) return;
+    this.busy = true;
+    this.svc.pdfDetalle(this.libro.libro_sueldo_id).pipe(finalize(() => {
+      this.busy = false;
+      try { this.cdr.detectChanges(); } catch { /* ignore */ }
+    })).subscribe((res) => {
+      if (res.error || !res.blob) {
+        this.errorMsg = this.msgError(res.error, 'No se pudo generar el PDF detallado.');
+        return;
+      }
+      this.guardar(res.blob, res.headers, `libro_sueldos_detallado_${this.libro!.numero_libro}.pdf`);
+    });
+  }
+
+  menuPdfVisible = false;
+
+  toggleMenuPdf(): void {
+    if (this.busy) return;
+    this.menuPdfVisible = !this.menuPdfVisible;
+  }
+
+  cerrarMenuPdf(): void {
+    this.menuPdfVisible = false;
   }
 
   descargarLsd(): void {
@@ -225,36 +254,59 @@ export class LibroDetalleComponent implements OnInit {
     this.conceptos = [];
   }
 
-  /** Conceptos agrupados por tipo, en el orden de presentacion del libro. */
-  get conceptosPorTipo(): Array<{ tipo: string; etiqueta: string; items: LibroConcepto[]; total: number; signo: string }> {
-    const grupos = new Map<string, LibroConcepto[]>();
-    (this.conceptos || []).forEach(c => {
-      const k = String(c?.tipo || 'remunerativo').toLowerCase();
-      if (!grupos.has(k)) grupos.set(k, []);
-      grupos.get(k)!.push(c);
-    });
-
-    const orden = ['remunerativo', 'no_remunerativo', 'descuento', 'aporte', 'contribucion'];
-    const etiquetas: Record<string, string> = {
+  /** Etiqueta legible de un tipo de formula recibido desde el backend. */
+  etiquetaTipo(t: string): string {
+    const mapa: Record<string, string> = {
+      basico: 'Básico',
+      fijo: 'Concepto fijo',
+      antiguedad: 'Antigüedad',
+      porcentaje_remunerativo: 'Porcentaje remunerativo',
+      porcentaje_no_remunerativo: 'Porcentaje no remunerativo',
+      porcentaje_grupo: 'Porcentaje sobre grupo',
+      suma_grupo: 'Sobre suma de grupo',
+      resta_grupo: 'Resta sobre grupo',
       remunerativo: 'Haberes remunerativos',
       no_remunerativo: 'Haberes no remunerativos',
       descuento: 'Descuentos',
       aporte: 'Aportes',
       contribucion: 'Contribuciones'
     };
+    return mapa[String(t || '').toLowerCase()] || String(t || '');
+  }
 
-    return orden
-      .filter(t => grupos.has(t))
-      .map(t => {
-        const items = grupos.get(t)!;
-        return {
-          tipo: t,
-          etiqueta: etiquetas[t] || t,
-          items,
-          total: items.reduce((acc, c) => acc + Number(c.importe ?? 0), 0),
-          signo: (t === 'descuento' || t === 'aporte') ? '-' : ''
-        };
-      });
+  /** true si el concepto resta del neto (S suma / R resta). */
+  esResta(c: LibroConcepto): boolean {
+    return String(c?.suma_resta || 'S').toUpperCase().startsWith('R');
+  }
+
+  /** Total del empleado calculado desde el desglose. */
+  get totalConceptos(): number {
+    return (this.conceptos || []).reduce(
+      (acc, c) => acc + (this.esResta(c) ? -1 : 1) * Number(c.importe ?? 0), 0
+    );
+  }
+
+  /** Conceptos agrupados por tipo, en el orden de presentacion del libro. */
+  get conceptosPorTipo(): Array<{ tipo: string; etiqueta: string; items: LibroConcepto[]; total: number; signo: string }> {
+    // Si el backend manda el orden, se respeta; si no, se ordena por codigo.
+    const conceptos = [...(this.conceptos || [])].sort((a, b) => (a.orden || 0) - (b.orden || 0));
+    const grupos = new Map<string, LibroConcepto[]>();
+    conceptos.forEach(c => {
+      const k = String(c?.tipo || 'remunerativo').toLowerCase();
+      if (!grupos.has(k)) grupos.set(k, []);
+      grupos.get(k)!.push(c);
+    });
+
+    return [...grupos.entries()].map(([tipo, items]) => {
+      const resta = items.every(c => this.esResta(c));
+      return {
+        tipo,
+        etiqueta: this.etiquetaTipo(tipo),
+        items,
+        total: items.reduce((acc, c) => acc + (this.esResta(c) ? -1 : 1) * Number(c.importe ?? 0), 0),
+        signo: resta ? '-' : ''
+      };
+    });
   }
 
   money(v: any): string {
