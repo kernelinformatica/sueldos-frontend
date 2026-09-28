@@ -50,7 +50,7 @@ export class SucursalesComponent implements OnInit {
     this.loadSeccionesDisponibles();
     this.loadSucursales();
   }
-
+  get canEnter(): boolean { return this.hasPerm('sucursales'); }
   get canCreate(): boolean { return this.hasPerm('sucursales_agregar'); }
   get canEdit(): boolean { return this.hasPerm('sucursales_editar'); }
   get canDelete(): boolean {

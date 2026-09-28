@@ -1,12 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener } from '@angular/core';
+import { Component, HostListener, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../auth/auth.service';
 
 type QuickAction = {
   label: string;
   route: string;
   icon: string;
   hint?: string;
+  permission?: string;
 };
 
 @Component({
@@ -15,24 +17,45 @@ type QuickAction = {
   imports: [CommonModule, RouterLink],
   template: `
     <div class="quick-access-root" [class.open]="open">
-      <div class="quick-access-bubble" [class.hidden]="open" aria-hidden="true">Rápidos</div>
-      <button type="button" class="quick-access-toggle" (click)="toggle()" [attr.aria-expanded]="open" aria-label="Accesos rápidos" title="Accesos rápidos">
+      <div class="quick-access-bubble" [class.hidden]="open" aria-hidden="true">
+        Rápidos
+      </div>
+
+      <button
+        type="button"
+        class="quick-access-toggle"
+        (click)="toggle()"
+        [attr.aria-expanded]="open"
+        aria-label="Accesos rápidos"
+        title="Accesos rápidos">
+
         <i class="bi" [ngClass]="open ? 'bi-x-lg' : 'bi-lightning-charge-fill'"></i>
       </button>
 
-      <div class="quick-access-panel" [class.visible]="open" [attr.aria-hidden]="!open">
+      <div
+        class="quick-access-panel"
+        [class.visible]="open"
+        [attr.aria-hidden]="!open">
+
         <div class="quick-access-header">
-          <span>Accesos rápidos</span>
-          <small>Sueldos</small>
+          <span><i class="bi bi-lightning-charge-fill"></i> Atajos</span>
+          <small> <div class="bi-grid-3x3-gap-fill"></div> </small>
         </div>
 
-        <a *ngFor="let action of actions" class="quick-access-item" [routerLink]="action.route" (click)="close()">
+        <a
+          *ngFor="let action of actions"
+          class="quick-access-item"
+          [routerLink]="action.route"
+          (click)="close()">
+
           <i class="bi" [ngClass]="action.icon"></i>
-          <div>
-            <strong>{{ action.label }}</strong>
-            <span *ngIf="action.hint">{{ action.hint }}</span>
-          </div>
+
+          <div class="quick-access-content">
+<strong>{{ action.label }}</strong>
+<div *ngIf="action.hint">{{ action.hint }}</div>
+</div>
         </a>
+
       </div>
     </div>
   `,
@@ -47,99 +70,168 @@ type QuickAction = {
       pointer-events: none;
       opacity: 1;
       transform: translateX(0) scale(1);
-      transition: opacity .2s cubic-bezier(0.4, 0, 0.2, 1), transform .2s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: opacity .2s, transform .2s;
     }
     .quick-access-bubble.hidden {
       opacity: 0;
       transform: translateX(6px) scale(0.92);
     }
     .quick-access-toggle {
-      width: 3.45rem; height: 3.45rem; border: 0; border-radius: 999px; color: #fff;
+      width: 3.45rem;
+      height: 3.45rem;
+      border: 0;
+      border-radius: 999px;
+      color: #fff;
       background: linear-gradient(135deg, #0f766e 0%, #0b5f59 100%);
-      box-shadow: 0 20px 40px rgba(15,23,42,0.32);
-      display: inline-flex; align-items: center; justify-content: center;
       cursor: pointer;
-      transition: transform .22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow .2s ease, filter .2s ease;
-    }
-    .quick-access-toggle:hover { transform: translateY(-2px) scale(1.04); filter: brightness(1.05); box-shadow: 0 24px 42px rgba(15,23,42,0.36); }
-    .quick-access-toggle:active { transform: translateY(0) scale(0.96); }
-    .quick-access-toggle i {
-      font-size: 1.1rem;
-      transition: transform .25s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    .quick-access-root.open .quick-access-toggle i {
-      transform: rotate(90deg);
     }
     .quick-access-panel {
-      position: absolute; right: 0; bottom: 4.05rem; width: 16.4rem; padding: .7rem;
-      background: rgba(255,255,255,.96); backdrop-filter: blur(10px);
-      border: 1px solid rgba(226,232,240,.9); border-radius: 18px;
-      box-shadow: 0 18px 40px rgba(15,23,42,.18);
-      transform-origin: bottom right;
-      /* Estado cerrado (animación sutil de salida) */
+      position: absolute;
+      right: 0;
+      bottom: 4.05rem;
+      width: 16.4rem;
+      padding: .7rem;
+      background: rgba(255,255,255,.96);
+      border-radius: 18px;
       opacity: 0;
       visibility: hidden;
-      transform: translateY(10px) scale(0.95);
+      transform: translateY(10px) scale(.95);
       pointer-events: none;
-      transition:
-        opacity .22s cubic-bezier(0.4, 0, 0.2, 1),
-        transform .24s cubic-bezier(0.4, 0, 0.2, 1),
-        visibility .24s step-end;
+      transition: all .2s;
     }
-    /* Estado abierto (animación sutil de entrada con resorte leve) */
     .quick-access-panel.visible {
       opacity: 1;
       visibility: visible;
       transform: translateY(0) scale(1);
       pointer-events: auto;
-      transition:
-        opacity .24s cubic-bezier(0, 0, 0.2, 1),
-        transform .26s cubic-bezier(0.16, 1, 0.3, 1),
-        visibility 0s step-start;
     }
-    .quick-access-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:.55rem; padding: 0 .25rem; }
-    .quick-access-header span { font-weight: 800; color:#0f172a; font-size:.95rem; }
-    .quick-access-header small { color:#64748b; }
+    .quick-access-header {
+      display:flex;
+      justify-content:space-between;
+      margin-bottom:.55rem;
+    }
     .quick-access-item {
-      display:flex; align-items:center; gap:.75rem; padding:.7rem .75rem; border-radius: 14px;
-      text-decoration:none; color:#0f172a;
-      transition: background .15s ease, transform .15s ease, color .15s ease;
+      display:flex;
+      align-items:center;
+      gap:.75rem;
+      padding:.7rem;
+      text-decoration:none;
+      color:#0f172a;
+      border-radius:14px;
     }
-    .quick-access-item:hover { background:#f8fafc; transform: translateX(-2px); }
-    .quick-access-item i { font-size: 1rem; color:#0f766e; width: 1.4rem; text-align:center; transition: transform .15s ease; }
-    .quick-access-item:hover i { transform: scale(1.1); }
-    .quick-access-item strong { display:block; font-size:.92rem; }
-    .quick-access-item span { display:block; color:#64748b; font-size:.78rem; }
-    @media (prefers-reduced-motion: reduce) {
-      .quick-access-panel,
-      .quick-access-bubble,
-      .quick-access-toggle,
-      .quick-access-toggle i,
-      .quick-access-item {
-        transition: none !important;
-        animation: none !important;
-      }
-    }
-    @media (max-width: 768px) {
-      :host { right: .75rem; bottom: .85rem; }
-      .quick-access-panel { width: min(16rem, calc(100vw - 1.5rem)); }
-    }
-    `
+    .quick-access-item:hover {
+  background:#f8fafc;
+}
+
+.quick-access-item {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .7rem;
+  text-decoration: none;
+  color: #0f172a;
+  border-radius: 14px;
+
+  transition:
+    transform .25s ease,
+    background-color .25s ease,
+    box-shadow .25s ease;
+}
+.quick-access-root.open .quick-access-toggle i {
+transform: rotate(180deg) scale(1.15);
+}
+.quick-access-item:hover {
+  background: #dfdfdf;
+  transform: translateX(-4px);
+  box-shadow: 0 8px 20px rgba(15,23,42,.08);
+}
+
+.quick-access-item i {
+  font-size: 1.2rem;
+  color: #0f766e;
+  transition:
+    transform .25s ease,
+    color .25s ease;
+}
+
+.quick-access-item:hover i {
+  transform: scale(1.2) rotate(-8deg);
+  color: #14b8a6;
+}`
+
   ]
+
 })
-export class FloatingQuickAccessComponent {
+
+export class FloatingQuickAccessComponent implements OnInit {
+
   open = false;
 
   actions: QuickAction[] = [
-    { label: 'Inicio Sueldos', route: '/sueldos', icon: 'bi-house', hint: 'Panel principal' },
-    { label: 'Liquidar', route: '/sueldos/liquidar', icon: 'bi-cash-stack', hint: 'Nueva liquidación' },
-    { label: 'Liquidaciones', route: '/sueldos/listado', icon: 'bi-card-list', hint: 'Historial' },
-    { label: 'Libros de sueldos', route: '/sueldos/libros', icon: 'bi-book', hint: 'Gestionar' },
-    { label: 'Conceptos', route: '/admin/conceptos', icon: 'bi-journal-text', hint: 'Catálogo' },
-    { label: 'Empleados', route: '/admin/empleados/listado', icon: 'bi-people', hint: 'Ficha y listado' }
+    {
+      label: 'Inicio Sueldos',
+      route: '/modulos',
+      icon: 'bi-house',
+      hint: 'Panel principal'
+    },
+    {
+      label: 'Liquidar',
+      route: '/sueldos/liquidar',
+      icon: 'bi-cash-stack',
+      hint: 'Nueva liquidación',
+      permission: 'liquidar'
+    },
+    {
+      label: 'Liquidaciones',
+      route: '/sueldos/listado',
+      icon: 'bi-card-list',
+      hint: 'Historial',
+      permission: 'liquidaciones'
+    },
+    {
+      label: 'Libros de sueldos',
+      route: '/sueldos/libros',
+      icon: 'bi-book',
+      hint: 'Gestionar',
+      permission: 'libros_sueldos'
+    },
+    {
+      label: 'Conceptos',
+      route: '/admin/conceptos',
+      icon: 'bi-journal-text',
+      hint: 'Catálogo',
+      permission: 'conceptos'
+    },
+    {
+      label: 'Empleados',
+      route: '/admin/empleados/listado',
+      icon: 'bi-people',
+      hint: 'Ficha y listado',
+      permission: 'empleados'
+    }
   ];
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private auth: AuthService
+  ) {}
+
+  ngOnInit(): void {
+
+    const perms = this.auth.getPermissions() || [];
+
+    const has = (alias: string) =>
+      Array.isArray(perms) &&
+      perms.some((p: any) =>
+        typeof p === 'string'
+          ? p === alias
+          : p?.alias === alias
+      );
+
+    this.actions = this.actions.filter(
+      action => !action.permission || has(action.permission)
+    );
+  }
 
   toggle(): void {
     this.open = !this.open;
@@ -157,6 +249,7 @@ export class FloatingQuickAccessComponent {
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     const target = event.target as HTMLElement | null;
+
     if (this.open && target && !target.closest('.quick-access-root')) {
       this.close();
     }

@@ -36,7 +36,7 @@ export class CargosComponent implements OnInit {
     this.loadCatalogos();
     this.loadCargos();
   }
-
+  get canEnter(): boolean { return this.hasPerm('cargos'); }
   get canCreate(): boolean { return this.hasPerm('cargos_agregar'); }
   get canEdit(): boolean { return this.hasPerm('cargos_editar'); }
   get canDelete(): boolean { return this.hasPerm('cargos_borrar') || this.hasPerm('cargos_eliminar') || this.hasPerm('cargos_elliminar') || this.auth.isSuperAdmin(); }

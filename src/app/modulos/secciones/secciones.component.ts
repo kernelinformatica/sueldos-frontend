@@ -38,6 +38,8 @@ export class SeccionesComponent implements OnInit {
     this.loadSecciones();
   }
 
+
+  
   loadEstados() {
     this.estadosLoading = true;
     this.estadosError = '';
@@ -69,7 +71,7 @@ export class SeccionesComponent implements OnInit {
     });
   }
 
-
+  get canEnter(): boolean { return this.hasPerm('secciones'); }
   get canCreate(): boolean { return this.hasPerm('secciones_agregar'); }
   get canEdit(): boolean { return this.hasPerm('secciones_editar'); }
   get canDelete(): boolean { return this.hasPerm('secciones_borrar'); }
