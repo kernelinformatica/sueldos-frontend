@@ -140,4 +140,35 @@ export class EmpleadosConceptosService {
       })
     );
   }
+
+  /**
+   * Elimina asignaciones de conceptos masivamente.
+   * DELETE /api/empleados/asignaciones-masivas
+   * Payload: { empresa_id?, employee_ids?, filter?, concepto_ids (obligatorio), dryRun?, hardDelete? }
+   */
+  deleteConceptosMasivos(payload: {
+    empresa_id?: number;
+    employee_ids?: number[];
+    filter?: { sucursal_id?: number[]; seccion_id?: number[]; tipo_contratacion?: number[]; q?: string; activo?: boolean };
+    concepto_ids: number[];
+    dryRun?: boolean;
+    hardDelete?: boolean;
+  }) {
+    let token = this.auth.getToken();
+    if (!token) token = localStorage.getItem('token') || null;
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }) : new HttpHeaders({ 'Content-Type': 'application/json' });
+
+    return this.http.delete<any>(`${environment.apiUrl}/api/empleados/asignaciones-masivas`, { headers, body: payload }).pipe(
+      map((res) => res || {}),
+      catchError((err) => {
+        const status = err?.status || 0;
+        let body = null;
+        try { body = err?.error ?? null; } catch { body = null; }
+        const message = (body && body.message) ? body.message : err?.message || `HTTP ${status}`;
+        const structured = { status, message, body };
+        console.error('[EmpleadosConceptosService] deleteConceptosMasivos error', structured);
+        return throwError(() => structured);
+      })
+    );
+  }
 }

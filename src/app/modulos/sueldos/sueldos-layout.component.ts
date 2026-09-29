@@ -21,25 +21,26 @@ export class SueldosLayoutComponent {
     const perms = this.auth.getPermissions() || [];
     const has = (alias: string): boolean => Array.isArray(perms) && perms.some((p: any) => (typeof p === 'string' ? p === alias : p?.alias === alias));
     const canEnter = has('sueldos') || has('sueldos_liquidar') || has('sueldos_liquidaciones') || has('libro_sueldos');
+    
     if (!canEnter) {
       this.menu = [];
       return;
     }
 
     this.menu = [
-      { label: 'Inicio', route: '/sueldos', icon: 'bi bi-house' }
+      { label: 'Inicio', route: '/admin/sueldos', icon: 'bi bi-house' }
     ];
 
     if (has('libro_sueldos')) {
-      this.menu.push({ label: 'Libro de sueldos', route: '/sueldos/libros', icon: 'bi bi-journal-text' });
+      this.menu.push({ label: 'Libro de sueldos', route: 'libros', icon: 'bi bi-journal-text' });
     }
 
     if (has('sueldos_liquidar')) {
-      this.menu.push({ label: 'Liquidar', route: '/sueldos/liquidar', icon: 'bi bi-cash-stack' });
+      this.menu.push({ label: 'Liquidar', route: 'liquidar', icon: 'bi bi-cash-stack' });
     }
 
     if (has('sueldos_liquidaciones')) {
-      this.menu.push({ label: 'Listado de liquidaciones', route: '/sueldos/listado', icon: 'bi bi-card-list' });
+      this.menu.push({ label: 'Listado de liquidaciones', route: 'listado', icon: 'bi bi-card-list' });
     }
   }
 

@@ -122,12 +122,12 @@ export class LibrosSueldosComponent implements OnInit {
 
   ver(libro: LibroSueldo): void {
     if (!this.puedeVer) return;
-    this.router.navigate(['/sueldos/libros', libro.libro_sueldo_id]);
+    this.router.navigate(['/admin/sueldos/libros', libro.libro_sueldo_id]);
   }
 
   generar(): void {
     if (!this.puedeAgregar) return;
-    this.router.navigate(['/sueldos/libros/generar']);
+    this.router.navigate(['/admin/sueldos/libros/generar']);
   }
 
   // ---------- Anulación ----------

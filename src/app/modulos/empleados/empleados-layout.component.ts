@@ -4,6 +4,7 @@ import { RouterLink, RouterOutlet } from '@angular/router';
 import { NavbarComponent } from '../../core/layout/navbar.component';
 import { SidebarComponent } from '../../core/layout/sidebar.component';
 import { AuthService } from '../../auth/auth.service';
+import { normalizarRutaPermiso } from '../../core/routes/route-normalizer';
 
 interface EmpleadosMenuItem {
   label: string;
@@ -42,7 +43,7 @@ export class EmpleadosLayoutComponent {
       route: '/admin/empleados/conceptos',
       icon: 'bi bi-ui-checks-grid'
     },
-    
+
   ];
 
   constructor(private auth: AuthService) {
@@ -68,16 +69,16 @@ export class EmpleadosLayoutComponent {
     const perms = this.auth.getPermissions() || [];
 
     const getPerm = (...aliases: string[]) => perms.find((p: any) => aliases.includes(p?.alias));
-    const conceptosMasivosPerm = getPerm('empleados_conceptos_masivos');
     const sueldoEspecialPerm = getPerm('sueldo_especial');
     const has = (alias: string) => Array.isArray(perms) && perms.some((p: any) => (typeof p === 'string' ? p === alias : (p?.alias === alias)));
 
-    if ((has('empleados_conceptos_masivos') || has('empleados')) && conceptosMasivosPerm?.router) {
-      base.push({ label: 'Movimientos Masivos', route: `/${conceptosMasivosPerm.router}`, icon: 'bi bi-ui-checks-grid' });
+    if (has('empleados_conceptos_masivos') || has('empleados') || has('conceptos')) {
+      const ruta = normalizarRutaPermiso({ alias: 'empleados_conceptos_masivos' }) || '/admin/empleados/conceptos';
+      base.push({ label: 'Movimientos Masivos', route: ruta, icon: 'bi bi-ui-checks-grid' });
     }
 
     if ((has('sueldo_especial') || has('sueldo_especial_agregar')) && sueldoEspecialPerm?.router) {
-      base.push({ label: 'Sueldo Basico Especial', route: `/${sueldoEspecialPerm.router}`, icon: 'bi bi-sliders2' });
+      base.push({ label: 'Sueldo Basico Especial', route: normalizarRutaPermiso(sueldoEspecialPerm) || '/sueldos/liquidar', icon: 'bi bi-sliders2' });
     }
     this.menu = base;
   }

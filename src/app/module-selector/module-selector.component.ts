@@ -7,6 +7,7 @@ import { AuthService } from '../auth/auth.service';
 import { app } from '../environments/environment';
 import { FooterComponent } from '../core/footer/footer.component';
 import { environment } from '../environments/environment';
+import { normalizarRutaPermiso } from '../core/routes/route-normalizer';
 
 interface PermisoMenu {
   id?: number | string;
@@ -279,24 +280,37 @@ export class ModuleSelectorComponent implements OnInit {
     this.showAlerts = false;
     this.showMessages = false;
   }
-
   seleccionar(permiso: PermisoMenu) {
-    let destino = permiso.router || permiso.alias;
-    const alias = String(permiso.alias || '').trim().toLowerCase();
-    // Map common aliases to routes
-    if (!destino && permiso?.alias === 'conceptos') destino = 'admin/conceptos';
-    if (permiso?.alias === 'conceptos' && !permiso.router) destino = 'admin/conceptos';
-    // If alias is simply 'conceptos', navigate to admin/conceptos
-    if (permiso?.alias === 'conceptos' && permiso?.router !== undefined) {
-      destino = permiso.router || 'admin/conceptos';
-    }
-    if (alias === 'sueldos' || alias === 'sueldos_liquidar' || alias === 'sueldos_liquidaciones') {
-      destino = 'sueldos';
-    }
-    if (!destino) return;
+  console.log('PERMISO SELECCIONADO:', permiso);
+  console.log('ROUTER ORIGINAL:', permiso.router);
 
-    this.modeloImputacionService.clearModeloImputacionCab();
+  const destino = normalizarRutaPermiso(permiso);
+
+  console.log('DESTINO NORMALIZADO:', destino);
+
+  this.router.navigateByUrl(destino || '/modulos')
+    .then(ok => console.log('NAVEGACIÓN OK:', ok))
+    .catch(err => console.error('ERROR NAVEGANDO:', err));
+}
+/*
+  seleccionar(permiso: PermisoMenu) {
+    debugger;
+    const destino = normalizarRutaPermiso(permiso) || this.fallbackPermiso(permiso) || '/modulos';
+    try {
+      this.modeloImputacionService.clearModeloImputacionCab();
+    } catch (e) {
+      console.debug('seleccionar: no se pudo limpiar modelo de imputación', e);
+    }
     this.router.navigate([destino]);
+  }
+*/
+  /**
+   * Último recurso cuando el permiso no tiene una ruta reconocida.
+   */
+  private fallbackPermiso(permiso: PermisoMenu): string | null {
+    const alias = String(permiso?.alias || '').trim().toLowerCase();
+    if (alias === 'conceptos') return '/admin/conceptos';
+    return null;
   }
 
   logout() {

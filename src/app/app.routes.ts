@@ -42,7 +42,7 @@ export const routes: Routes = [
       { path: 'editar', loadComponent: () => import('./modulos/sucursales/sucursal-form.component').then(m => m.SucursalFormComponent) }
     ]
   },
-  { path: 'sueldos', canActivate: [AuthGuard], loadComponent: () => import('./modulos/sueldos/sueldos-layout.component').then(m => m.SueldosLayoutComponent),
+  { path: 'admin/sueldos', canActivate: [AuthGuard], loadComponent: () => import('./modulos/sueldos/sueldos-layout.component').then(m => m.SueldosLayoutComponent),
     children: [
       { path: '', loadComponent: () => import('./modulos/sueldos/home.component').then(m => m.HomeComponent) },
       { path: 'liquidar', loadComponent: () => import('./modulos/sueldos/liquidar.component').then(m => m.LiquidarComponent) },

@@ -60,7 +60,7 @@ export class EmpleadosHomeComponent implements OnInit {
     } else {
       this.loading = true;
     }
-
+    
     this.hydrateAnalyticsFromSession();
     this.hydrateDotacionFromSession();
 

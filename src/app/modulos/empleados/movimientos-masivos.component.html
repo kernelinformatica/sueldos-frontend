@@ -8,27 +8,55 @@
     <header class="ficha-header">
     <h2>Movimientos Masivos</h2>
     <div class="ficha-actions toolbar-icons">
-      <button *ngIf="canAssignConcepts" type="button" class="icon-btn assign-btn" (click)="assign()" [disabled]="!hasSelection || loading" title="Asignar seleccionados">
-        <!-- assign icon (paper plane) -->
+       <!-- <button *ngIf="canAssignConcepts" type="button" class="icon-btn" (click)="simulateAssign()" [disabled]="!puedeSimular" title="Simular asignación (sin aplicar)">
+       simulate (eye) 
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M2 21L23 12L2 3L2 10L17 12L2 14L2 21Z" fill="currentColor" />
+          <path d="M1 12S5 5 12 5s11 7 11 7-4 7-11 7S1 12 1 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
         </svg>
+      </button>-->
+      <button *ngIf="canAssignConcepts" type="button" class="icon-btn assign-btn" (click)="assign()" [disabled]="!puedeAsignar" title="Asignar seleccionados">
+        <!-- assign icon (paper plane) -->
+       
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+<!-- Lista -->
+<path d="M4 7H14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+<path d="M4 12H14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+<path d="M4 17H14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+ 
+<!-- + -->
+<path d="M19 8V16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+<path d="M15 12H23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</svg>
       </button>
+      <span class="validation-msg" *ngIf="validationError">{{ validationError }}</span>
+      <!--<button *ngIf="canAssignConcepts" type="button" class="icon-btn" (click)="previewDelete()" [disabled]="!hasSelection || loading" title="Simular eliminación (dry run)">
+         simulate delete (eye) 
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M1 12S5 5 12 5s11 7 11 7-4 7-11 7S1 12 1 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </button>-->
+     
       <button *ngIf="canAssignConcepts" type="button" class="icon-btn delete-btn" (click)="removeSelected()" [disabled]="!hasSelection || loading" title="Eliminar seleccionados">
         <!-- trash icon -->
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M3 6H5H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+<path d="M12 3L3 8L12 13L21 8L12 3Z" fill="currentColor"/>
+<path d="M5 12L12 16L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+<path d="M5 16L12 20L19 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+ 
+<path d="M20 4V10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+<path d="M17 7H23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</svg>
       </button>
     </div>
   </header>
  <app-modal-fotos
   [visible]="mostrarModalFoto"
-  titulo="{{ empleadoSeleccionado?.apellido }}, {{ empleadoSeleccionado?.nombre }}, Legajo: {{ empleadoSeleccionado?.legajo }}, Puesto: {{ empleadoSeleccionado?.cargo.nombre }}" 
+  titulo="{{ empleadoSeleccionado?.apellido }}, {{ empleadoSeleccionado?.nombre }}, Legajo: {{ empleadoSeleccionado?.legajo }}, Puesto: {{ empleadoSeleccionado?.cargo.nombre }}"
   (cerrar)="cerrarFoto()">
   <img
-    [src]="fotoAmpliada"  
+    [src]="fotoAmpliada"
     class="foto-modal">
 
 </app-modal-fotos>
@@ -82,14 +110,14 @@
               </tr>
             </thead>
             <tbody>
-              
+
               <ng-container *ngFor="let e of empleadosFiltrados">
                 <tr [class.is-inactive]="esEmpleadoInactivo(e)">
                   <td><input type="checkbox" [checked]="isEmployeeSelected(e)" (change)="toggleEmployee(e)" /></td>
                   <td>
                     <div class="employee-cell">
                       <div class="employee-avatar" *ngIf="tieneFoto(e); else initials">
-                        
+
                         <div class="foto-container">
                           <img [src]="fotoUrl(e)" (click)="ampliarFoto(e)" class="foto-empleado" (error)="avatarError(e)" alt="foto" />
                         </div>
@@ -182,11 +210,51 @@
 
           <!-- (Nota eliminada) -->
         </div>
+
+        <div class="override-panel" *ngIf="requiereRazonOverride">
+          <label for="razonOverride">
+            Razón del override de importe <span class="required">*</span>
+          </label>
+          <textarea
+            id="razonOverride"
+            rows="2"
+            [(ngModel)]="razonOverride"
+            [disabled]="loading"
+            placeholder="Obligatoria: justifica el importe manual aplicado a conceptos de sueldo básico">
+          </textarea>
+          <small class="hint">El backend exige este motivo cuando algún concepto de sueldo básico lleva importe cargado a mano.</small>
+        </div>
       </div>
     </div>
   </section>
 
   <footer class="ficha-footer">
+    <div *ngIf="assignPreview" class="preview-box">
+      <h4>Simulación de asignación (no aplicada)</h4>
+      <div class="job-id" *ngIf="lastJobId">Job ID: {{ lastJobId }}</div>
+      <ul class="preview-stats">
+        <li>Empleados considerados: <strong>{{ assignPreview.summary?.requested ?? 0 }}</strong></li>
+        <li>Procesados: <strong>{{ assignPreview.summary?.processed ?? 0 }}</strong></li>
+        <li>Exitosos: <strong>{{ assignPreview.summary?.succeeded ?? 0 }}</strong></li>
+        <li>Fallidos: <strong>{{ assignPreview.summary?.failed ?? 0 }}</strong></li>
+      </ul>
+      <ul class="failures-list" *ngIf="assignPreview.failures?.length">
+        <li *ngFor="let f of assignPreview.failures">Empleado {{ f.empleado_id }}: {{ (f.errors || []).join('; ') }}</li>
+      </ul>
+      <div class="modal-actions-row" *ngIf="assignPreview.failures?.length">
+        <button class="btn" (click)="exportFailuresCsv()">Exportar errores (.csv)</button>
+      </div>
+    </div>
+    <div *ngIf="deletePreview">
+      <h4>Simulación de eliminación (no aplicada)</h4>
+      <div class="job-id" *ngIf="deletePreview?.summary?.requested != null">
+        Empleados considerados: {{ deletePreview.summary.requested }} · Asignaciones a eliminar: {{ deletePreview.summary.removed }}
+      </div>
+      <div class="job-id" *ngIf="deletePreview?.summary?.invalid_conceptos">Conceptos inválidos: {{ deletePreview.summary.invalid_conceptos }}</div>
+      <ul class="failures-list" *ngIf="deletePreview.removed.length">
+        <li *ngFor="let r of deletePreview.removed">Empleado {{ r.empleado_id }} — concepto {{ r.concepto_id }}</li>
+      </ul>
+    </div>
     <div *ngIf="assignSummary.length">
       <h4>Resumen de asignación masiva</h4>
       <div *ngIf="result?.job_id" class="job-id">Job ID: {{ result.job_id }}</div>
@@ -213,9 +281,34 @@
       </div>
     </div>
     <div *ngIf="!assignSummary.length">
-      <div *ngIf="result">
+      <div *ngIf="lastAssignResponse">
         <h4>Resultado</h4>
-        <pre>{{ result | json }}</pre>
+        <ul class="preview-stats" *ngIf="assignSummaryData">
+          <li>Solicitados: <strong>{{ assignSummaryData.requested }}</strong></li>
+          <li>Procesados: <strong>{{ assignSummaryData.processed }}</strong></li>
+          <li>Exitosos: <strong>{{ assignSummaryData.succeeded }}</strong></li>
+          <li>Fallidos: <strong>{{ assignSummaryData.failed }}</strong></li>
+        </ul>
+        <div class="job-id" *ngIf="lastJobId">Job ID: {{ lastJobId }}</div>
+        <div class="modal-actions-row" *ngIf="assignFailures.length" style="margin-bottom:8px; display:flex; gap:8px;">
+          <button class="btn" (click)="exportFailuresCsv()">Exportar errores (.csv)</button>
+          <button class="btn" (click)="copyFailuresToClipboard()">Copiar errores</button>
+        </div>
+        <table class="failures-table" *ngIf="assignFailures.length">
+          <thead>
+            <tr><th>Empleado</th><th>Errores</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let f of assignFailures">
+              <td>{{ f.empleado_id }}</td>
+              <td>{{ (f.errors || []).join('; ') }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <details *ngIf="!assignFailures.length">
+          <summary>Ver respuesta completa</summary>
+          <pre>{{ lastAssignResponse | json }}</pre>
+        </details>
       </div>
     </div>
   </footer>
@@ -229,6 +322,159 @@
       <h3 class="modal-title">{{ modalTitle }}</h3>
       <div class="modal-body">
         <p *ngIf="modalMessage">{{ modalMessage }}</p>
+        <div
+  *ngIf="modalConceptsSummary.length"
+  class="modal-concepts-summary">
+
+  <div class="modal-summary-title">
+    <strong>
+      {{ modalConceptsAction === 'asignados'
+        ? 'Conceptos asignados'
+        : 'Conceptos eliminados' }}
+    </strong>
+
+    <span class="modal-summary-total">
+      {{ totalModalConcepts }}
+      {{ totalModalConcepts === 1 ? 'concepto' : 'conceptos' }}
+    </span>
+  </div>
+
+  <div
+    class="modal-summary-employee"
+    *ngFor="let item of modalConceptsSummary">
+
+    <div class="modal-summary-employee-header">
+
+      <div
+        class="employee-avatar"
+        *ngIf="tieneFoto(item.empleado); else modalInitials">
+
+        <img
+          [src]="fotoUrl(item.empleado)"
+          alt="foto">
+      </div>
+
+      <ng-template #modalInitials>
+        <div class="employee-avatar">
+          <i>{{ iniciales(item.empleado) }}</i>
+        </div>
+      </ng-template>
+
+      <div class="modal-summary-employee-name">
+        {{ item.empleado.apellido }}, {{ item.empleado.nombre }}
+      </div>
+
+    </div>
+
+    <ul class="modal-summary-concepts">
+
+      <li *ngFor="let concepto of item.conceptos">
+
+        <span class="concept-badge">
+          {{ concepto.codigo || '-' }}
+        </span>
+
+        <strong>
+          {{ concepto.nombre }}
+        </strong>
+
+        <span
+          class="concept-type-badge"
+          *ngIf="concepto.tipo_codigo">
+
+          {{ concepto.tipo_codigo }}
+
+        </span>
+
+        <span
+          class="modal-concept-import"
+          *ngIf="concepto.importe != null">
+
+          Importe:
+          {{ concepto.importe | number:'1.2-2' }}
+
+          <span *ngIf="concepto.unidades != null">
+            · Unidades: {{ concepto.unidades }}
+          </span>
+
+        </span>
+
+      </li>
+
+    </ul>
+
+  </div>
+
+</div>
+
+        <div *ngIf="modalConceptsSummary?.length" class="concepts-summary">
+
+  <div
+    class="summary-employee"
+    *ngFor="let item of modalConceptsSummary">
+
+    <div class="emp-header">
+      <div class="employee-avatar" *ngIf="tieneFoto(item.empleado); else initialsModal">
+        <img [src]="fotoUrl(item.empleado)" alt="foto" />
+      </div>
+
+      <ng-template #initialsModal>
+        <div class="employee-avatar">
+          <i>{{ iniciales(item.empleado) }}</i>
+        </div>
+      </ng-template>
+
+      <div class="emp-name">
+        {{ item.empleado.apellido }}, {{ item.empleado.nombre }}
+      </div>
+    </div>
+
+    <ul class="emp-concepts">
+      <li *ngFor="let concepto of item.conceptos">
+
+        <span class="concept-badge">
+          {{ concepto.codigo || '-' }}
+        </span>
+
+        <strong>
+          {{ concepto.nombre || '(sin nombre)' }}
+        </strong>
+
+        <span class="concept-type-badge">
+          {{ concepto.tipo_codigo || '-' }}
+        </span>
+
+        <div
+          class="concept-details"
+          *ngIf="concepto.importe != null">
+
+          Importe:
+          <strong>
+            {{ concepto.importe | number:'1.2-2' }}
+          </strong>
+
+          <span *ngIf="concepto.unidades != null">
+            · Unidades:
+            <strong>{{ concepto.unidades }}</strong>
+          </span>
+
+        </div>
+
+      </li>
+    </ul>
+
+  </div>
+
+</div>
+<div
+  class="concepts-summary-total"
+  *ngIf="modalConceptsSummary?.length">
+
+  Total de conceptos:
+  <strong>{{ totalModalConcepts }}</strong>
+
+</div>
+
         <div *ngIf="modalErrors">
           <h4 *ngIf="isArray(modalErrors)">Errores por empleado ({{ (modalErrors || []).length }})</h4>
           <div class="modal-actions-row" *ngIf="isArray(modalErrors)" style="margin-bottom:8px; display:flex; gap:8px;">

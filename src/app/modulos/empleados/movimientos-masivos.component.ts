@@ -88,6 +88,34 @@ interface EstadoEmpleadoValue {
   es_activo?: number | boolean;
 }
 
+interface ConceptoMasivoItem {
+  concepto_id: number;
+  unidades?: number;
+  importe?: number;
+  fecha_asignacion?: string;
+}
+
+interface AsignacionMasivaRequest {
+  empresa_id?: number;
+  employee_ids?: number[];
+  filter?: { sucursal_id?: number[]; seccion_id?: number[]; tipo_contratacion?: number[]; q?: string; activo?: boolean };
+  conceptos: ConceptoMasivoItem[];
+  batchSize?: number;
+  dryRun?: boolean;
+  atomicPerEmployee?: boolean;
+  razon_override?: string;
+  requestedBy?: number;
+}
+
+interface AsignacionMasivaResponse {
+  summary: { requested: number; processed: number; succeeded: number; failed: number };
+  failures: { empleado_id: number; errors: string[] }[];
+  job_id: string;
+  message: string;
+  created: { empleado_concepto_id: number; concepto_id: number; empleado_id: number }[];
+  updated: { empleado_concepto_id: number; concepto_id: number; empleado_id: number }[];
+}
+
 @Component({
   selector: 'app-movimientos-masivos',
   standalone: true,
@@ -120,6 +148,7 @@ export class MovimientosMasivosComponent implements OnInit {
   analyticsResumen: any = null;
   analyticsTop: any[] = [];
   analyticsSectores: any[] = [];
+
   analyticsFilters = { periodo_desde: '', periodo_hasta: '', liquidacion_tipo_id: null as number | null };
   liquidacionTipos: any[] = [];
   // last payload enviado, usado para reintentos por empleado
@@ -138,6 +167,31 @@ export class MovimientosMasivosComponent implements OnInit {
   fotoAmpliada: string | null = null;
   mostrarModalFoto = false;
   empleadoSeleccionado: any;
+  /** Si la eliminación masiva debe ser física (DELETE duro) en lugar de baja lógica. */
+  deleteHardDelete = false;
+  /** Preview de la última simulación (dryRun) de eliminación masiva. */
+  deletePreview: { summary: any; removed: any[] } | null = null;
+  // Resumen de conceptos mostrado dentro del modal
+  modalConceptsSummary: any[] = [];
+  modalConceptsAction: 'asignados' | 'eliminados' | null = null;
+  // ---- Asignación masiva (contrato AsignacionMasivaRequest) ----
+  /** Razón obligatoria cuando algún concepto de sueldo básico lleva importe manual. */
+  razonOverride = '';
+  batchSize = 200;
+  atomicPerEmployee = true;
+  /** Última respuesta completa del POST (summary/failures/job_id/created/updated). */
+  lastAssignResponse: any = null;
+  /** Último job_id devuelto por el backend (auditoría). */
+  lastJobId: string | null = null;
+  /** Preview de la última simulación de asignación (dryRun). */
+  assignPreview: AsignacionMasivaResponse | null = null;
+  /** Snapshot del payload pendiente de confirmación tras un dryRun. */
+  private pendingPayload: any = null;
+  /** Conceptos enviados en la última llamada (para el resumen post-respuesta). */
+  private lastSentConceptos: ConceptoMasivoItem[] = [];
+  /** Mensaje de validación para mostrar junto a los botones. */
+  validationError = '';
+
   constructor(
     private fb: FormBuilder,
     private svc: EmpleadosConceptosService,
@@ -165,7 +219,7 @@ export class MovimientosMasivosComponent implements OnInit {
     // cuando cambia sucursal en filtros, cargar secciones por sucursal
     this.filterForm.get('sucursal_id')?.valueChanges.subscribe((val) => {
       const id = Number(val ?? null);
-      try { this.filterForm.get('seccion')?.setValue(null); this.filterForm.get('cargo')?.setValue(null); } catch {}
+      try { this.filterForm.get('seccion')?.setValue(null); this.filterForm.get('cargo')?.setValue(null); } catch { }
       if (id) {
         this.getSeccionesBySucursal(id, false);
       } else {
@@ -176,7 +230,7 @@ export class MovimientosMasivosComponent implements OnInit {
     // cuando cambia seccion en filtros, cargar cargos por seccion
     this.filterForm.get('seccion')?.valueChanges.subscribe((val) => {
       const id = Number(val ?? null);
-      try { this.filterForm.get('cargo')?.setValue(null); } catch {}
+      try { this.filterForm.get('cargo')?.setValue(null); } catch { }
       if (id) {
         this.getCargosBySeccion(id, false);
       } else {
@@ -184,7 +238,151 @@ export class MovimientosMasivosComponent implements OnInit {
       }
     });
   }
+  /**
+   * Construye el resumen de conceptos para mostrar dentro del modal.
+   *
+   * action:
+   *  - asignados
+   *  - eliminados
+   */
+  private buildModalConceptsSummary(
+    employeeIds: number[],
+    conceptos: any[],
+    action: 'asignados' | 'eliminados'
+  ): any[] {
 
+    const agrupado = new Map<number, any>();
+
+    for (const item of conceptos || []) {
+      const empleadoId = Number(
+        item?.empleado_id ??
+        item?.employee_id ??
+        item?.empleado?.empleado_id ??
+        item?.empleado?.id
+      );
+
+      const conceptoId = Number(
+        item?.concepto_id ??
+        item?.concepto?.concepto_id ??
+        item?.concepto?.id
+      );
+
+      if (!empleadoId || !conceptoId) continue;
+
+      if (!agrupado.has(empleadoId)) {
+        const empleado =
+          this.employees.find(
+            (e) => Number(this.getEmpleadoId(e)) === empleadoId
+          ) ||
+          item?.empleado ||
+          {
+            empleado_id: empleadoId,
+            apellido: '',
+            nombre: ''
+          };
+
+        agrupado.set(empleadoId, {
+          empleado,
+          conceptos: []
+        });
+      }
+
+      const conceptoObj =
+        this.conceptos.find(
+          (c) => Number(this.getConceptId(c)) === conceptoId
+        ) ||
+        item?.concepto ||
+        {};
+
+      agrupado.get(empleadoId).conceptos.push({
+        concepto_id: conceptoId,
+        codigo:
+          item?.codigo ??
+          conceptoObj?.codigo ??
+          null,
+        nombre:
+          item?.nombre ??
+          conceptoObj?.nombre ??
+          conceptoObj?.descripcion ??
+          conceptoObj?.codigo ??
+          '(sin nombre)',
+        tipo_codigo:
+          item?.tipo_codigo ??
+          conceptoObj?.tipo_concepto?.codigo ??
+          conceptoObj?.tipo_concepto?.nombre ??
+          null,
+        importe:
+          item?.importe ??
+          null,
+        unidades:
+          item?.unidades ??
+          1
+      });
+    }
+
+    return Array.from(agrupado.values());
+  }
+
+  /**
+   * Construye el resumen de asignaciones utilizando created + updated
+   * devueltos por el backend.
+   */
+  private buildAssignedModalSummary(res: any): any[] {
+    const created = Array.isArray(res?.created) ? res.created : [];
+    const updated = Array.isArray(res?.updated) ? res.updated : [];
+
+    const items = [...created, ...updated];
+
+    const employeeIds = Array.from(
+      new Set(
+        items
+          .map((item: any) => Number(item?.empleado_id))
+          .filter((id: number) => !!id)
+      )
+    );
+
+    return this.buildModalConceptsSummary(
+      employeeIds,
+      items,
+      'asignados'
+    );
+  }
+
+  /**
+   * Construye el resumen de eliminaciones utilizando `removed`
+   * devuelto por el backend.
+   */
+  private buildDeletedModalSummary(res: any): any[] {
+    const removed = Array.isArray(res?.removed)
+      ? res.removed
+      : [];
+
+    const employeeIds: number[] = Array.from(
+      new Set<number>(
+        removed
+          .map((item: any): number => Number(
+            item?.empleado_id ??
+            item?.employee_id
+          ))
+          .filter((id: number): id is number => Number.isFinite(id) && id > 0)
+      )
+    );
+
+    return this.buildModalConceptsSummary(
+      employeeIds,
+      removed,
+      'eliminados'
+    );
+  }
+
+  get totalModalConcepts(): number {
+    return (this.modalConceptsSummary || [])
+      .reduce(
+        (total: number, item: any) =>
+          total + (item?.conceptos?.length || 0),
+        0
+      );
+  }
   loadLiquidacionTipos(): void {
     this.http.get<any>(`${environment.apiUrl}/api/liquidacion-tipos`).pipe(catchError(() => of([] as any[]))).subscribe((res) => {
       const items = Array.isArray(res) ? res : (res?.data || res?.items || []);
@@ -351,7 +549,7 @@ export class MovimientosMasivosComponent implements OnInit {
   onSucursalChange(): void {
     const raw = this.filterForm.get('sucursal_id')?.value;
     const id = Number(raw ?? null);
-    try { this.filterForm.get('seccion')?.setValue(null); this.filterForm.get('cargo')?.setValue(null); } catch {}
+    try { this.filterForm.get('seccion')?.setValue(null); this.filterForm.get('cargo')?.setValue(null); } catch { }
     if (id) {
       this.getSeccionesBySucursal(id, false);
     } else {
@@ -383,14 +581,14 @@ export class MovimientosMasivosComponent implements OnInit {
         }),
         finalize(() => {
           this.loading = false;
-          try { this.cdr.detectChanges(); } catch {}
+          try { this.cdr.detectChanges(); } catch { }
           this.loadingService.hide();
         })
       )
       .subscribe((res) => {
         const rows = Array.isArray(res) ? res : (res?.empleados || res?.data || []);
         this.employees = rows;
-        try { this.cdr.detectChanges(); } catch {}
+        try { this.cdr.detectChanges(); } catch { }
       });
   }
 
@@ -493,9 +691,11 @@ export class MovimientosMasivosComponent implements OnInit {
   }
 
   isConceptManual(concepto: any): boolean {
-    // Evaluar el código del tipo de concepto (concepto.tipo_concepto.codigo)
+    // El backend sólo acepta override de importe si el concepto tiene es_sueldo_basico = 1.
+    const esBasico = Number(concepto?.es_sueldo_basico) === 1 || concepto?.es_sueldo_basico === true;
+    if (esBasico) return true;
+    // Fallback: código de tipo de concepto con 'MANUAL' (cubre _MANUAL y variantes)
     const tipoCodigo = String(concepto?.tipo_concepto?.codigo ?? '').toUpperCase();
-    // Habilitar ingreso de importe/unidades si el código contiene 'MANUAL' (cubre _MANUAL y variantes)
     return tipoCodigo.includes('MANUAL');
   }
 
@@ -573,7 +773,7 @@ export class MovimientosMasivosComponent implements OnInit {
     const empleadoId = this.getEmpleadoId(empleado);
     if (!empleadoId) return;
     // marcar para que muestre iniciales en caso de error
-    try { this.avatarsSinImagen.add(empleadoId); } catch {}
+    try { this.avatarsSinImagen.add(empleadoId); } catch { }
   }
 
   isConceptSelected(concepto: any) {
@@ -664,104 +864,217 @@ export class MovimientosMasivosComponent implements OnInit {
     sc[field] = value;
   }
 
+  /**
+   * Construye el payload según el contrato AsignacionMasivaRequest.
+   * Usa employee_ids si hay selección explícita; si no, arma el filter con los filtros de pantalla.
+   */
+  private buildAssignPayload(dryRun: boolean): AsignacionMasivaRequest | null {
+    const conceptos: ConceptoMasivoItem[] = this.selectedConcepts.map((c) => {
+      const item: ConceptoMasivoItem = { concepto_id: Number(c.concepto_id) };
+      const unidades = c.unidades != null ? Number(c.unidades) : 1;
+      item.unidades = Number.isFinite(unidades) ? unidades : 1;
+      // Sólo enviar importe cuando el usuario realmente cargó un valor (override manual)
+      if (c.importe !== null && c.importe !== undefined && `${c.importe}`.toString().trim() !== '') {
+        const importe = Number(c.importe);
+        if (Number.isFinite(importe)) item.importe = importe;
+      }
+      return item;
+    });
+
+    if (!conceptos.length) {
+      this.validationError = 'Lista vacía: debe seleccionar al menos un concepto.';
+      return null;
+    }
+
+    const payload: AsignacionMasivaRequest = {
+      empresa_id: Number(localStorage.getItem('empresaId') || 0) || undefined,
+      conceptos,
+      batchSize: this.batchSize,
+      dryRun,
+      atomicPerEmployee: this.atomicPerEmployee
+    };
+
+    const employeeIds: number[] = Array.from(this.selectedEmployeeIds);
+    if (employeeIds.length) {
+      payload.employee_ids = employeeIds;
+    } else {
+      const filter = this.buildFilter();
+      if (!filter) {
+        this.validationError = 'Seleccione al menos un empleado o defina un filtro de empleados.';
+        return null;
+      }
+      payload.filter = filter;
+    }
+
+    // razon_override es obligatoria si algún concepto lleva importe manual
+    const usaOverride = conceptos.some((c) => c.importe !== undefined);
+    if (usaOverride) {
+      const razon = String(this.razonOverride || '').trim();
+      if (!razon) {
+        this.validationError = 'Ingrese la razón del override de importe (campo obligatorio).';
+        return null;
+      }
+      payload.razon_override = razon;
+    }
+
+    this.validationError = '';
+    return payload;
+  }
+
+  /** Arma el filter alternativo a employee_ids con los filtros de la pantalla. */
+  private buildFilter(): AsignacionMasivaRequest['filter'] | null {
+    const filter: any = {};
+    const sucursalId = Number(this.filterForm.get('sucursal_id')?.value || 0) || null;
+    const seccionId = Number(this.filterForm.get('seccion')?.value || 0) || null;
+    const tipoContratacion = Number(this.filterForm.get('tipo_contratacion')?.value || 0) || null;
+    const q = String(this.filterForm.get('q')?.value || '').trim();
+
+    if (sucursalId) filter.sucursal_id = [sucursalId];
+    if (seccionId) filter.seccion_id = [seccionId];
+    if (tipoContratacion) filter.tipo_contratacion = [tipoContratacion];
+    if (q) filter.q = q;
+    filter.activo = true;
+
+    return Object.keys(filter).length ? filter : null;
+  }
+
+  /** Botón principal: si ya hubo un dryRun, reaplica el mismo payload con dryRun:false. */
   assign() {
-    const employee_ids = Array.from(this.selectedEmployeeIds.values());
-    if (!employee_ids.length || !this.selectedConcepts.length) {
-      alert('Seleccione al menos 1 empleado y 1 concepto');
+    this.deletePreview = null;
+    if (this.loading) return;
+
+    const pending = this.pendingPayload;
+    // Confirmación posterior a una simulación: reutilizar exactamente el mismo payload
+    if (pending && pending.dryRun === false && this.assignPreview) {
+      const proceed = confirm(
+        `Se asignarán a ${pending.employee_ids?.length ?? 0} empleado(s) ${pending.conceptos.length} concepto(s).\n\n¿Confirma la operación?`
+      );
+      if (!proceed) return;
+      this.enviarAsignacion(pending);
       return;
     }
 
-    const conceptosPayload = this.selectedConcepts.map((c) => {
-      const importe = c.importe != null ? Number(c.importe) : null;
-      const unidades = c.unidades != null ? Number(c.unidades) : null;
-      const valor = (importe != null && unidades != null) ? (importe * unidades) : null;
-      return { concepto_id: c.concepto_id, importe, unidades, valor };
-    });
+    const payload = this.buildAssignPayload(false);
+    if (!payload) return;
+    this.enviarAsignacion(payload);
+  }
 
-    const payload = {
-      empresa_id: Number(localStorage.getItem('empresaId') || 0) || undefined,
-      employee_ids,
-      conceptos: conceptosPayload,
-      requestedBy: 0
-    };
+  /** Simulación previa (dryRun: true) que no aplica cambios. */
+  simulateAssign(): void {
+    if (this.loading) return;
+    const payload = this.buildAssignPayload(true);
+    if (!payload) return;
+    this.enviarAsignacion(payload);
+  }
 
-    // store for possible reintentos por empleado
+  private enviarAsignacion(payload: AsignacionMasivaRequest): void {
     try { this.lastPayload = JSON.parse(JSON.stringify(payload)); } catch { this.lastPayload = payload; }
+    // Guardar los conceptos enviados para armar el resumen tras la respuesta
+    this.lastSentConceptos = payload.conceptos || [];
 
     this.loading = true;
-    this.loading = true;
-    console.debug('assign() start - payload', payload);
-    let assignStart = Date.now();
-    try { this.loadingService.show(); } catch (e) { console.debug('loadingService.show error', e); }
+    try { this.loadingService.show(); } catch { /* noop */ }
 
-    // ensure both local and global spinners are hidden in finalize
-    this.svc.assignConceptosMasivos(payload).pipe(finalize(() => { try { this.loading = false; this.loadingService.hide(); const duration = Date.now() - assignStart; console.debug('assign() finalize - loading hidden, duration(ms):', duration); this.cdr.detectChanges(); } catch (e) { console.debug('finalize hide error', e); } })).subscribe(
-      (res: any) => {
-        try {
-          this.result = res;
-          // Generar resumen por empleado con los conceptos enviados
-          this.assignSummary = Array.from(this.selectedEmployeeIds.values()).map((id) => {
-            const empleado = this.employees.find((e) => this.getEmpleadoId(e) === id) || { empleado_id: id, nombre: '', apellido: '' };
-            const conceptos = (conceptosPayload || []).map((cp) => {
-              const conceptoObj = this.conceptos.find((cc) => this.getConceptId(cc) === cp.concepto_id) || {};
-              return {
-                concepto_id: cp.concepto_id,
-                nombre: conceptoObj.nombre || conceptoObj.descripcion || conceptoObj.codigo || '',
-                codigo: conceptoObj.codigo || null,
-                tipo_codigo: (conceptoObj?.tipo_concepto?.codigo) || (conceptoObj?.tipo_concepto?.nombre) || null,
-                importe: cp.importe,
-                unidades: cp.unidades,
-                valor: cp.valor
-              };
-            });
-            return { empleado, conceptos };
-          });
+    const esDryRun = payload.dryRun === true;
 
-          // limpiar selección para evitar reenvíos accidentales
-          this.selectedEmployeeIds.clear();
-          this.selectedConcepts = [];
-          // refrescar listado para mostrar los conceptos asignados actualizados
-          try { this.cargarEmpleados(); } catch (e) { console.debug('refresh empleados after assign error', e); }
-          // If backend returned a summary with failures, treat as partial failure and show details
-          const summary = res?.summary;
-          const failures = res?.failures || [];
-          if (summary && (Number(summary.failed || 0) > 0 || (Array.isArray(failures) && failures.length > 0))) {
-            this.modalTitle = 'Asignación con errores';
-            this.modalMessage = res?.message || `Procesado: ${summary.processed || 0}, Fallados: ${summary.failed || failures.length}`;
-            this.modalErrors = failures.length ? failures : (res?.errors || null);
-          } else {
-            // show success modal with backend message if provided
-            this.modalTitle = 'Asignación exitosa';
-            this.modalMessage = res?.message || 'Asignación enviada. Ver resumen abajo.';
-            this.modalErrors = failures.length ? failures : null;
-          }
-          // expose job id if backend returned it
-          if (res?.job_id) {
-            this.result = this.result || {};
-            this.result.job_id = res.job_id;
-          }
-          this.modalVisible = true;
-          console.debug('assignConceptosMasivos res', res);
-        } catch (ex) {
-          console.error('Error processing assign response', ex);
-          try { this.loading = false; this.loadingService.hide(); } catch {}
-          this.modalTitle = 'Error interno';
-          this.modalMessage = 'Ocurrió un error al procesar la respuesta. Revise la consola.';
-          this.modalErrors = ex instanceof Error ? (ex.message as any) : null;
-          this.modalVisible = true;
-        }
-      },
-      (err: any) => {
-        try { console.error('assignConceptosMasivos err', err); } catch {}
-        try { this.loading = false; this.loadingService.hide(); } catch {}
-        // Support structured error from service: { status, message, body }
-        const msg = err?.message || err?.error?.message || `Error al ejecutar asignación. Código: ${err?.status || ''}`;
-        this.modalTitle = 'Error en la asignación';
-        this.modalMessage = msg;
-        this.modalErrors = err?.error?.errors || null;
-        this.modalVisible = true;
-      }
-    );
+    this.svc.assignConceptosMasivos(payload).pipe(
+      finalize(() => {
+        try { this.loading = false; this.loadingService.hide(); this.cdr.detectChanges(); } catch { /* noop */ }
+      })
+    ).subscribe({
+      next: (res: any) => this.procesarRespuestaAsignacion(res, esDryRun),
+      error: (err: any) => this.procesarErrorAsignacion(err)
+    });
+  }
+
+  private procesarRespuestaAsignacion(res: any, esDryRun: boolean): void {
+    const summary = res?.summary || { requested: 0, processed: 0, succeeded: 0, failed: 0 };
+    const failures = Array.isArray(res?.failures) ? res.failures : [];
+    this.result = res;
+    this.lastAssignResponse = res;
+
+    if (res?.job_id) this.lastJobId = res.job_id;
+
+    if (esDryRun) {
+      this.assignPreview = res;
+      this.pendingPayload = { ...(this.pendingPayload || this.lastPayload || {}), dryRun: false };
+      this.pendingPayload = this.buildAssignPayload(false) || this.pendingPayload;
+      this.modalTitle = 'Simulación de asignación';
+      this.modalMessage = res?.message ||
+        `Se afectarían ${summary.requested} empleado(s): ${summary.succeeded} exitoso(s), ${summary.failed} con errores.`;
+      this.modalErrors = failures.length ? failures : null;
+      this.modalVisible = true;
+      return;
+    }
+
+    this.assignPreview = null;
+    this.pendingPayload = null;
+    // Resumen real de lo que el backend creó/actualizó
+    this.modalConceptsSummary = this.buildAssignedModalSummary(res);
+    this.modalConceptsAction = 'asignados';
+
+    // Un 200 no implica éxito total: atomicPerEmployee permite failures parciales.
+    if (Number(summary.failed || 0) > 0 || failures.length > 0) {
+      this.modalTitle = 'Asignación con errores';
+      this.modalMessage = res?.message ||
+        `Procesados: ${summary.processed}, Exitosos: ${summary.succeeded}, Fallidos: ${summary.failed || failures.length}`;
+      this.modalErrors = failures.length ? failures : (res?.errors || null);
+    } else {
+      this.modalTitle = 'Asignación exitosa';
+      this.modalMessage = res?.message || `Se procesaron ${summary.succeeded || summary.processed} empleado(s).`;
+      this.modalErrors = null;
+    }
+
+    this.assignSummary = this.buildAssignSummary(this.lastSentConceptos);
+    this.selectedEmployeeIds.clear();
+    this.selectedConcepts = [];
+    try { this.cargarEmpleados(); } catch { /* noop */ }
+    this.modalVisible = true;
+  }
+
+  private procesarErrorAsignacion(err: any): void {
+    const status = Number(err?.status || 0);
+    const body = err?.body || err?.error || null;
+    const backendMessage = body?.message || err?.message || '';
+
+    if (status === 403) {
+      this.modalTitle = 'Permiso denegado';
+      this.modalMessage = backendMessage || 'Permiso denegado';
+    } else if (status === 400) {
+      this.modalTitle = 'Solicitud inválida';
+      this.modalMessage = backendMessage || 'Solicitud inválida';
+    } else if (status === 500) {
+      this.modalTitle = 'Error interno';
+      this.modalMessage = 'Error interno al procesar asignaciones masivas';
+    } else {
+      this.modalTitle = 'Error en la asignación';
+      this.modalMessage = backendMessage || `Error al ejecutar asignación. Código: ${status || ''}`;
+    }
+
+    this.modalErrors = body?.errors || (Array.isArray(body?.invalid_conceptos) ? { invalid_conceptos: body.invalid_conceptos } : null);
+    this.modalVisible = true;
+  }
+
+  /** Resumen por empleado para el pie de pantalla. */
+  private buildAssignSummary(conceptos: ConceptoMasivoItem[]): any[] {
+    return Array.from(this.selectedEmployeeIds.values()).map((id) => {
+      const empleado = this.employees.find((e) => this.getEmpleadoId(e) === id) || { empleado_id: id, nombre: '', apellido: '' };
+      return {
+        empleado,
+        conceptos: conceptos.map((cp) => {
+          const conceptoObj = this.conceptos.find((cc) => this.getConceptId(cc) === cp.concepto_id) || {};
+          return {
+            concepto_id: cp.concepto_id,
+            nombre: conceptoObj.nombre || conceptoObj.descripcion || conceptoObj.codigo || '',
+            codigo: conceptoObj.codigo || null,
+            tipo_codigo: conceptoObj?.tipo_concepto?.codigo || conceptoObj?.tipo_concepto?.nombre || null,
+            importe: cp.importe ?? null,
+            unidades: cp.unidades ?? 1,
+            valor: cp.importe != null ? cp.importe * (cp.unidades ?? 1) : null
+          };
+        })
+      };
+    });
   }
 
   retryEmpleado(empleadoId: number) {
@@ -773,6 +1086,8 @@ export class MovimientosMasivosComponent implements OnInit {
     }
     const payload = JSON.parse(JSON.stringify(this.lastPayload));
     payload.employee_ids = [empleadoId];
+    delete payload.filter;
+    payload.dryRun = false;
 
     this.loading = true;
     let retryStart = Date.now();
@@ -795,9 +1110,10 @@ export class MovimientosMasivosComponent implements OnInit {
         if (res?.job_id) {
           this.result = this.result || {};
           this.result.job_id = res.job_id;
+          this.lastJobId = res.job_id;
         }
         // ensure loading flag is cleared for retry
-        try { this.loading = false; } catch {}
+        try { this.loading = false; } catch { }
         this.modalVisible = true;
       },
       (err: any) => {
@@ -805,26 +1121,28 @@ export class MovimientosMasivosComponent implements OnInit {
         this.modalTitle = 'Error en reintento';
         this.modalMessage = msg;
         this.modalErrors = err?.error?.errors || null;
-        try { this.loading = false; } catch {}
+        try { this.loading = false; } catch { }
         this.modalVisible = true;
       }
     );
   }
 
   exportFailuresCsv() {
-    const list: any[] = Array.isArray(this.modalErrors) ? (this.modalErrors as any[]) : (Array.isArray(this.result?.failures) ? (this.result!.failures as any[]) : []);
+    const list: any[] = this.assignFailures.length
+      ? this.assignFailures
+      : (Array.isArray(this.result?.failures) ? (this.result!.failures as any[]) : []);
     if (!list || !list.length) return;
     const rows = [['empleado_id', 'errors', 'job_id']];
     for (const f of list) {
       const errs = Array.isArray(f.errors) ? f.errors.join('; ') : (f.errors || '');
       rows.push([String(f.empleado_id || ''), errs, String(this.result?.job_id || '')]);
     }
-    const csv = rows.map((r: any[]) => r.map((cell: any) => '"' + String(cell).replace(/"/g,'""') + '"').join(',')).join('\r\n');
+    const csv = rows.map((r: any[]) => r.map((cell: any) => '"' + String(cell).replace(/"/g, '""') + '"').join(',')).join('\r\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `asignaciones_errores_${(this.result?.job_id||Date.now())}.csv`;
+    a.download = `asignaciones_errores_${(this.result?.job_id || Date.now())}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -832,7 +1150,9 @@ export class MovimientosMasivosComponent implements OnInit {
   }
 
   copyFailuresToClipboard() {
-    const list: any[] = Array.isArray(this.modalErrors) ? (this.modalErrors as any[]) : (Array.isArray(this.result?.failures) ? (this.result!.failures as any[]) : []);
+    const list: any[] = this.assignFailures.length
+      ? this.assignFailures
+      : (Array.isArray(this.result?.failures) ? (this.result!.failures as any[]) : []);
     if (!list || !list.length) return;
     const text = list.map((f: any) => `Empleado ${f.empleado_id}: ${(Array.isArray(f.errors) ? f.errors.join('; ') : f.errors || '')}`).join('\n');
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -844,6 +1164,38 @@ export class MovimientosMasivosComponent implements OnInit {
     } else {
       try { window.prompt('Copiar errores (Ctrl+C + Enter):', text); } catch { /* noop */ }
     }
+  }
+
+  /** True si algún concepto seleccionado es sueldo básico con importe cargado a mano. */
+  get requiereRazonOverride(): boolean {
+    return this.selectedConcepts.some((c) => c.importe !== null && c.importe !== undefined && `${c.importe}`.toString().trim() !== '');
+  }
+
+  /** Habilita el botón de confirmar sólo si hay conceptos seleccionados. */
+  get puedeAsignar(): boolean {
+    return !!this.canAssignConcepts && this.selectedConcepts.length > 0 && !this.loading;
+  }
+
+  get puedeSimular(): boolean {
+    return this.puedeAsignar;
+  }
+
+  /** Resumen numérico de la última respuesta (para el pie de pantalla). */
+  get assignSummaryData(): any {
+    return this.lastAssignResponse?.summary || null;
+  }
+
+  get assignFailures(): any[] {
+    const f = this.lastAssignResponse?.failures;
+    return Array.isArray(f) ? f : [];
+  }
+
+  get tienePreviewAsignacion(): boolean {
+    return !!this.assignPreview;
+  }
+
+  get tienePreview(): boolean {
+    return !!this.assignPreview || !!this.deletePreview;
   }
 
   isArray(v: any): boolean {
@@ -869,6 +1221,8 @@ export class MovimientosMasivosComponent implements OnInit {
         this.modalTitle = '';
         this.modalMessage = null;
         this.modalErrors = null;
+        this.modalConceptsSummary = [];
+        this.modalConceptsAction = null;
         this.cdr.detectChanges();
       } catch (ex) {
         console.debug('closeModal timeout handler error', ex);
@@ -888,7 +1242,7 @@ export class MovimientosMasivosComponent implements OnInit {
           this.modalMessage = null;
           this.modalErrors = null;
           // also force hide spinner again as last resort
-          try { this.loadingService.hide(true); } catch {}
+          try { this.loadingService.hide(true); } catch { }
           this.cdr.detectChanges();
         }
       } catch (ex) {
@@ -900,12 +1254,12 @@ export class MovimientosMasivosComponent implements OnInit {
     }, 1000);
   }
   irAFichaEmpleado(empleadoId: number) {
-   
+
     if (empleadoId) {
       this.router.navigate(['admin/empleados/editar', empleadoId]);
     }
   }
-   ampliarFoto(empleado: EmpleadoItem): void {
+  ampliarFoto(empleado: EmpleadoItem): void {
 
     if (this.tieneFoto(empleado)) {
       this.empleadoSeleccionado = empleado;
@@ -921,11 +1275,13 @@ export class MovimientosMasivosComponent implements OnInit {
 
   get canAssignConcepts(): boolean {
     try {
+      if (this.auth.isSuperAdmin()) return true;
       const perms = this.auth.getPermissions() || [];
-      const has = (alias: string) => {
-        return Array.isArray(perms) && perms.some((p: any) => (typeof p === 'string' ? p === alias : (p?.alias === alias)));
-      };
-      return has('conceptos') && has('conceptos_asigna');
+      const has = (alias: string) => Array.isArray(perms) && perms.some((p: any) => (typeof p === 'string' ? p === alias : (p?.alias === alias)));
+      // El backend exige el alias 'conceptos_asigna' en el rol del usuario.
+      if (has('conceptos_asigna')) return true;
+      // 'conceptos' habilita el módulo; los permisos granulares siguen siendo exigidos.
+      return has('conceptos') && has('empleados_conceptos_masivos');
     } catch (e) {
       return false;
     }
@@ -943,10 +1299,191 @@ export class MovimientosMasivosComponent implements OnInit {
 
   removeSelected() {
     if (!this.hasSelection) return;
-    const proceed = confirm('¿Confirma eliminar las asignaciones seleccionadas? Esta acción no está implementada en el frontend y debe confirmarse con el backend.');
-    if (!proceed) return;
-    // Placeholder: implementar eliminación masiva por backend.
-    console.warn('removeSelected() called - implementación pendiente');
-    alert('Eliminar asignaciones masivas no implementado aún. Abriré un issue si querés.');
+
+    const conceptIds = this.selectedConcepts.map((c) => Number(c.concepto_id)).filter((id) => !!id);
+    const employeeIds = Array.from(this.selectedEmployeeIds.values());
+
+    if (!conceptIds.length) {
+      this.modalTitle = 'Faltan conceptos';
+      this.modalMessage = 'Debe seleccionar al menos un concepto para eliminar.';
+      this.modalErrors = null;
+      this.modalVisible = true;
+      return;
+    }
+    if (!employeeIds.length) {
+      this.modalTitle = 'Faltan empleados';
+      this.modalMessage = 'Debe seleccionar al menos un empleado para eliminar.';
+      this.modalErrors = null;
+      this.modalVisible = true;
+      return;
+    }
+
+    const empresaId = Number(localStorage.getItem('empresaId') || 0) || undefined;
+    const basePayload: any = {
+      empresa_id: empresaId,
+      employee_ids: employeeIds,
+      concepto_ids: conceptIds
+    };
+
+    const hardDelete = !!this.deleteHardDelete;
+    const pregunta = (extra: string) =>
+      `Se eliminará${hardDelete ? ' de forma definitiva' : ' (baja lógica)'} el concepto seleccionado de ${employeeIds.length} empleado(s).\n\n${extra}\n\n¿Confirma la operación?`;
+    if (!confirm(pregunta('Continuar?'))) return;
+
+    this.runDeleteMasivo(basePayload, false);
+  }
+
+  /** Ejecuta el DELETE de asignaciones masivas; si dryRun es true solo muestra el preview. */
+  runDeleteMasivo(basePayload: any, dryRun: boolean) {
+    const payload = {
+      ...basePayload,
+      dryRun,
+      hardDelete: this.deleteHardDelete
+    };
+
+    this.loading = true;
+
+    try {
+      this.loadingService.show();
+    } catch {
+      /* noop */
+    }
+
+    this.svc.deleteConceptosMasivos(payload).pipe(
+      finalize(() => {
+        try {
+          this.loading = false;
+          this.loadingService.hide();
+          this.cdr.detectChanges();
+        } catch {
+          /* noop */
+        }
+      })
+    ).subscribe({
+      next: (res: any) => {
+        const summary = res?.summary || {};
+        this.result = res;
+
+        if (dryRun) {
+
+          const removed = Array.isArray(res?.removed)
+            ? res.removed
+            : [];
+
+          this.modalTitle = 'Simulación (dry run)';
+
+          this.modalMessage =
+            res?.message ||
+            `Se eliminarían ${summary.removed ?? removed.length} asignación(es) sobre ${summary.requested ?? 0} empleado(s).`;
+
+          this.modalErrors = null;
+
+          this.deletePreview = {
+            summary,
+            removed
+          };
+
+        } else {
+
+          this.deletePreview = null;
+
+          // Resumen real de lo eliminado por el backend
+          try {
+            this.modalConceptsSummary =
+              this.buildDeletedModalSummary(res);
+          } catch (error) {
+
+            console.error(
+              'Error construyendo resumen de eliminación:',
+              error
+            );
+
+            // Si falla el resumen, dejamos un array vacío
+            // pero NO impedimos que se abra el modal.
+            this.modalConceptsSummary = [];
+          }
+
+          this.modalConceptsAction = 'eliminados';
+
+          this.modalTitle = 'Eliminación completada';
+
+          this.modalMessage =
+            res?.message ||
+            `Se eliminaron ${summary.removed ?? 0} asignación(es) sobre ${summary.requested ?? 0} empleado(s).`;
+
+          this.modalErrors =
+            Number(summary.invalid_conceptos || 0) > 0
+              ? {
+                invalid_conceptos: summary.invalid_conceptos
+              }
+              : null;
+
+          this.selectedEmployeeIds.clear();
+          this.selectedConcepts = [];
+
+          this.assignSummary = [];
+
+          try {
+            this.cargarEmpleados();
+          } catch {
+            /* noop */
+          }
+        }
+
+        // IMPORTANTE:
+        // El modal se abre SIEMPRE al final.
+        this.modalVisible = true;
+
+        this.cdr.detectChanges();
+      },
+
+      error: (err: any) => {
+
+        this.modalTitle = 'Error en la eliminación';
+
+        this.modalMessage =
+          err?.message ||
+          err?.body?.message ||
+          `Error al eliminar asignaciones. Código: ${err?.status || ''}`;
+
+        const body = err?.body || err?.error || null;
+
+        this.modalErrors =
+          body?.errors ||
+          (
+            Array.isArray(body?.invalid_conceptos)
+              ? {
+                invalid_conceptos: body.invalid_conceptos
+              }
+              : null
+          );
+
+        this.modalConceptsSummary = [];
+        this.modalConceptsAction = 'eliminados';
+
+        this.modalVisible = true;
+
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  /** Simula la eliminación sin aplicarla (dryRun). */
+  previewDelete(): void {
+    if (!this.hasSelection) return;
+    const conceptIds = this.selectedConcepts.map((c) => Number(c.concepto_id)).filter((id) => !!id);
+    const employeeIds = Array.from(this.selectedEmployeeIds.values());
+    if (!conceptIds.length || !employeeIds.length) {
+      this.modalTitle = 'Selección incompleta';
+      this.modalMessage = 'Debe seleccionar al menos un empleado y un concepto.';
+      this.modalErrors = null;
+      this.modalVisible = true;
+      return;
+    }
+    this.runDeleteMasivo({
+      empresa_id: Number(localStorage.getItem('empresaId') || 0) || undefined,
+      employee_ids: employeeIds,
+      concepto_ids: conceptIds
+    }, true);
   }
 }

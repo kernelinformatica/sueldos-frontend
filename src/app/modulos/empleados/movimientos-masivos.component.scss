@@ -420,3 +420,81 @@
     cursor: pointer;
     border-radius: 8px;
 }
+
+/* ===== Asignación / eliminación masiva ===== */
+.validation-msg {
+    color: #b91c1c;
+    font-size: 0.78rem;
+    align-self: center;
+    max-width: 22rem;
+}
+.toolbar-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: #475569;
+    white-space: nowrap;
+}
+.override-panel {
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid #f0c36d;
+    border-radius: 8px;
+    background: #fffbeb;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.override-panel label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #78350f;
+}
+.override-panel .required {
+    color: #b91c1c;
+}
+.override-panel textarea {
+    width: 100%;
+    resize: vertical;
+    padding: 6px 8px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font: inherit;
+}
+.override-panel .hint {
+    font-size: 0.72rem;
+    color: #92400e;
+}
+.preview-box {
+    border: 1px dashed #93c5fd;
+    background: #eff6ff;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+}
+.preview-stats {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin: 6px 0;
+    padding: 0;
+    font-size: 0.82rem;
+    color: #1e3a8a;
+}
+.failures-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    margin-top: 8px;
+}
+.failures-table th,
+.failures-table td {
+    border: 1px solid #e2e8f0;
+    padding: 4px 8px;
+    text-align: left;
+}
+.failures-table th {
+    background: #f8fafc;
+}

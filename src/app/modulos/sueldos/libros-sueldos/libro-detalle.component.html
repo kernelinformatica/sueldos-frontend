@@ -6,11 +6,11 @@
   <ng-container *ngIf="!loading && libro">
     <div class="hero-card">
       <div class="module-breadcrumb">
-        <a routerLink="/modulos">Módulos</a>
+        <a routerLink="modulos">Módulos</a>
         <span>/</span>
-        <a routerLink="/sueldos">Sueldos</a>
+        <a routerLink="/admin/sueldos">Sueldos</a>
         <span>/</span>
-        <a routerLink="/sueldos/libros">Libro de Sueldos</a>
+        <a routerLink="/admin/sueldos/libros">Libro de Sueldos</a>
         <span>/</span>
         <span>{{ libro?.numero_libro || 'Detalle' }}</span>
       </div>
