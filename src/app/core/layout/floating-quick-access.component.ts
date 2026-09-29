@@ -176,24 +176,24 @@ export class FloatingQuickAccessComponent implements OnInit {
     },
     {
       label: 'Liquidar',
-      route: '/sueldos/liquidar',
+      route: '/admin/sueldos/liquidar',
       icon: 'bi-cash-stack',
       hint: 'Nueva liquidación',
-      permission: 'liquidar'
+      permission: 'sueldos_liquidar'
     },
     {
       label: 'Liquidaciones',
-      route: '/sueldos/listado',
+      route: '/admin/sueldos/listado',
       icon: 'bi-card-list',
       hint: 'Historial',
-      permission: 'liquidaciones'
+      permission: 'sueldos'
     },
     {
       label: 'Libros de sueldos',
-      route: '/sueldos/libros',
+      route: '/admin/sueldos/libros',
       icon: 'bi-book',
       hint: 'Gestionar',
-      permission: 'libros_sueldos'
+      permission: 'libro_sueldos'
     },
     {
       label: 'Conceptos',
@@ -219,7 +219,7 @@ export class FloatingQuickAccessComponent implements OnInit {
   ngOnInit(): void {
 
     const perms = this.auth.getPermissions() || [];
-
+    
     const has = (alias: string) =>
       Array.isArray(perms) &&
       perms.some((p: any) =>
@@ -227,6 +227,7 @@ export class FloatingQuickAccessComponent implements OnInit {
           ? p === alias
           : p?.alias === alias
       );
+      
 
     this.actions = this.actions.filter(
       action => !action.permission || has(action.permission)
