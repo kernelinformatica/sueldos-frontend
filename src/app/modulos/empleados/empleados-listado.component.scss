@@ -31,22 +31,33 @@
 }
 
 .filtros-panel {
-  display: grid;
-  /* Reducir ancho del input de búsqueda para mejorar alineación del botón */
-  grid-template-columns: 1.3fr 0.7fr 0.7fr 1fr 1fr auto;
-  gap: 0.75rem;
-  align-items: end;
-  background: #f8f9fc;
-  border: 1px solid #e7e9f1;
-  border-radius: 18px;
-  padding: 1rem;
-  margin-bottom: 1rem;
+  display: flex;
+flex-wrap: wrap;
+gap: 8px; // antes seguramente 16px o más
+align-items: flex-end;
+}
+.filtro-estado {
+flex: 0 0 120px;
+min-width: 120px;
+max-width: 120px;
+}
+.filtro-legajo {
+min-width: 60px;
+max-width: 60px;
+}
+ .filtro-legajo input {
+width: 100%;
+box-sizing: border-box;
+}
+.filtro-item:not(.filtro-wide) {
+min-width: 130px;
 }
 
 .filtro-item {
   display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+flex-direction: column;
+gap: 0.35rem;
+min-width: 200px;
 
   label {
     font-size: 0.78rem;
@@ -338,4 +349,198 @@ tr.is-disabled .employee-status-note {
     max-width: 100%;
     cursor: pointer;
     border-radius: 8px;
+}
+
+
+.input-search {
+  position: relative;
+  width: 100%;
+}
+
+.input-search i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #98a2b3;
+  font-size: 16px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.input-search input {
+  width: 100%;
+  padding-left: 40px !important; // deja espacio para la lupa
+  box-sizing: border-box;
+}
+
+.filtros-box {
+  background: #fff;
+  border: 1px solid #e4e7ec;
+  border-radius: 16px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+
+  box-shadow:
+    0 1px 2px rgba(16, 24, 40, 0.06),
+    0 8px 24px rgba(16, 24, 40, 0.08);
+}
+
+.filtros-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+
+  border-bottom: 1px solid #eaecf0;
+
+  color: #344054;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.filtros-header > .filtros-header-title i {
+  color: #5c6bc0;
+  font-size: 1rem;
+}
+
+/* Título a la izquierda, contador de filtros activos al lado */
+.filtros-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.filtros-badge {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: #e8eaf6;
+  color: #283593;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+/* Flecha de plegar/desplegar, en el borde superior derecho del box */
+.filtros-toggle {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 2rem;
+  height: 2rem;
+  margin: -0.25rem -0.25rem 0 0;
+  padding: 0;
+
+  border: 1px solid #e4e7ec;
+  border-radius: 8px;
+  background: #f8f9fc;
+  color: #475467;
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.filtros-toggle:hover {
+  background: #e8eaf6;
+  border-color: #c7cbe0;
+  color: #283593;
+}
+
+.filtros-toggle:focus-visible {
+  outline: 2px solid #5c6bc0;
+  outline-offset: 2px;
+}
+
+/* Cuando está plegado, el header queda pegado al borde sin padding extra */
+.filtros-box:has(.filtros-toggle) .filtros-header {
+  margin-bottom: 0;
+}
+
+/* Grilla ordenada de filtros */
+.filtros-panel {
+  display: grid;
+  grid-template-columns:
+    minmax(240px, 1.6fr) /* Nombre */
+    minmax(110px, 0.6fr) /* Legajo desde */
+    minmax(110px, 0.6fr) /* Legajo hasta */
+    minmax(130px, 0.8fr) /* Estado */
+    minmax(150px, 1fr) /* Sucursal */
+    minmax(150px, 1fr) /* Sección */
+    minmax(150px, 1fr) /* Cargo */
+    auto; /* Acciones */
+  gap: 0.75rem 1rem;
+  align-items: end;
+  margin-top: 1rem;
+}
+
+.filtros-panel .filtro-item {
+  width: 100%;
+  min-width: 0;
+}
+
+.filtros-panel .filtro-wide {
+  grid-column: span 1;
+}
+
+.filtros-panel .filtro-estado,
+.filtros-panel .filtro-legajo {
+  min-width: 0;
+  max-width: none;
+}
+
+.filtros-panel .filtro-legajo input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.filtros-panel .filtro-wide input {
+  max-width: none;
+}
+
+.filtros-panel .filtro-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  align-self: end;
+}
+
+.filtros-panel .filtro-actions .btn-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1400px) {
+  .filtros-panel {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1100px) {
+  .filtros-panel {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .filtros-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .filtros-panel {
+    grid-template-columns: 1fr;
+  }
 }

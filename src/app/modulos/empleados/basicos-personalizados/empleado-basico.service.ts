@@ -97,4 +97,26 @@ export class EmpleadoBasicoService {
   listCargos(): Observable<any> {
     return this.http.get<any>(`${environment.apiUrl}/api/cargos/all`);
   }
+
+  /**
+   * Sube un Excel/CSV con columnas LEGAJO y BASICO (importe).
+   * El archivo viaja tal cual al backend (multipart/form-data), sin parsear en el front.
+   * @param archivo Archivo .xlsx, .xls o .csv
+   * @param opciones dryRun para previsualizar sin aplicar; fechas como valores por defecto
+   */
+  importarDesdeArchivo(
+    archivo: File,
+    opciones: { dryRun?: boolean; fechaDesde?: string; fechaHasta?: string; activo?: boolean } = {}
+  ): Observable<any> {
+    const fd = new FormData();
+    fd.append('archivo', archivo, archivo.name);
+    // Alias duplicates por si el backend espera otro nombre de campo.
+    fd.append('file', archivo, archivo.name);
+    if (opciones.dryRun !== undefined) fd.append('dryRun', String(opciones.dryRun));
+    if (opciones.fechaDesde) fd.append('fecha_desde', opciones.fechaDesde);
+    if (opciones.fechaHasta) fd.append('fecha_hasta', opciones.fechaHasta);
+    if (opciones.activo !== undefined) fd.append('activo', String(opciones.activo));
+
+    return this.http.post(`${this.baseUrl}/importar`, fd);
+  }
 }

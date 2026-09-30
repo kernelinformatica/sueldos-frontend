@@ -6,71 +6,99 @@
       <p>Empleados cargados <span class="badge">{{ empleados.length }}</span></p>
     </div>
     <div class="listado-actions">
-      <button type="button" class="btn-action btn-icon" (click)="cargarEmpleados()" aria-label="Recargar listado" title="Recargar listado">
+      <button type="button" class="btn-action btn-icon" (click)="cargarEmpleados()" aria-label="Recargar listado"
+        title="Recargar listado">
         <i class="bi bi-arrow-clockwise"></i>
       </button>
-      <a routerLink="/admin/empleados/alta" class="btn-action btn-icon" aria-label="Nuevo empleado" title="Nuevo empleado">
+      <a routerLink="/admin/empleados/alta" class="btn-action btn-icon" aria-label="Nuevo empleado"
+        title="Nuevo empleado">
         <i class="bi bi-person-plus-fill"></i>
       </a>
     </div>
   </div>
-
-  <div class="filtros-panel">
-    <div class="filtro-item filtro-wide">
-      <label>Nombre</label>
-      <input type="text" [(ngModel)]="filtros.nombre" placeholder="Buscar por apellido o nombre" />
-    </div>
-    <div class="filtro-item filtro-small filtro-legajo">
-      <label>Legajo desde</label>
-      <input type="number" [(ngModel)]="filtros.legajoDesde" placeholder="Desde" />
-    </div>
-    <div class="filtro-item filtro-small filtro-legajo">
-      <label>Legajo hasta</label>
-      <input type="number" [(ngModel)]="filtros.legajoHasta" placeholder="Hasta" />
-    </div>
-    <div class="filtro-item">
-      <label>Sucursal</label>
-      <select [(ngModel)]="filtros.sucursal" (ngModelChange)="onSucursalChange()">
-        <option value="">Todas</option>
-        <option *ngFor="let s of sucursales; trackBy: trackByCatalogoId" [value]="s.sucursal_id || s.id">
-          {{ s.nombre }}
-        </option>
-      </select>
-    </div>
-    <div class="filtro-item">
-      <label>Sección</label>
-      <select [(ngModel)]="filtros.seccion" (ngModelChange)="onSeccionChange()" [disabled]="!filtros.sucursal">
-        <option value="">Todas</option>
-        <option *ngFor="let seccion of seccionesFiltro" [value]="seccion.id">
-          {{ seccion.nombre }}
-        </option>
-      </select>
-    </div>
-    <div class="filtro-item">
-      <label>Cargo</label>
-      <select [(ngModel)]="filtros.cargo" [disabled]="!filtros.seccion">
-        <option value="">Todos</option>
-        <option *ngFor="let cargo of cargosFiltro" [value]="cargo.id">
-          {{ cargo.nombre }}
-        </option>
-      </select>
-    </div>
-    <div class="filtro-item">
-      <label>Estado</label>
-      <select [(ngModel)]="filtros.estado">
-        <option value="">Todos</option>
-        <option *ngFor="let estado of estadosEmpleados; trackBy: trackByCatalogoId" [value]="getEstadoCatalogoNombre(estado)">
-          {{ getEstadoCatalogoNombre(estado) }}
-        </option>
-      </select>
-    </div>
-    <div class="filtro-actions">
-      <button type="button" class="btn-action btn-icon" (click)="limpiarFiltros()" aria-label="Limpiar filtros" title="Limpiar filtros">
-        <i class="bi bi-eraser-fill"></i>
+  <div class="filtros-box">
+    <div class="filtros-header">
+      <div class="filtros-header-title">
+        <i class="bi bi-funnel-fill"></i>
+        <span>Filtros de búsqueda</span>
+        <span class="filtros-badge" *ngIf="filtrosActivosCount">{{ filtrosActivosCount }} activo{{ filtrosActivosCount === 1 ? '' : 's' }}</span>
+      </div>
+      <button type="button" class="filtros-toggle" (click)="toggleFiltros()" [attr.aria-expanded]="!filtrosColapsados"
+        [attr.aria-label]="filtrosColapsados ? 'Desplegar filtros' : 'Plegar filtros'"
+        [title]="filtrosColapsados ? 'Desplegar filtros' : 'Plegar filtros'">
+        <i class="bi" [class.bi-chevron-up]="filtrosColapsados" [class.bi-chevron-down]="!filtrosColapsados"></i>
       </button>
+    </div>
+
+    <div class="filtros-panel" *ngIf="!filtrosColapsados">
+      <div class="filtro-item filtro-wide">
+        <label for="filtroNombre">Nombre</label>
+        <div class="input-search">
+          <i class="bi bi-search"></i>
+          <input id="filtroNombre" type="text" [(ngModel)]="filtros.nombre" placeholder="Buscar por apellido o nombre" />
+        </div>
+      </div>
+
+      <div class="filtro-item filtro-small filtro-legajo">
+        <label for="filtroLegajoDesde">Legajo desde</label>
+        <input id="filtroLegajoDesde" type="number" [(ngModel)]="filtros.legajoDesde" placeholder="Desde" />
+      </div>
+
+      <div class="filtro-item filtro-small filtro-legajo">
+        <label for="filtroLegajoHasta">Legajo hasta</label>
+        <input id="filtroLegajoHasta" type="number" [(ngModel)]="filtros.legajoHasta" placeholder="Hasta" />
+      </div>
+
+      <div class="filtro-item filtro-estado">
+        <label for="filtroEstado">Estado</label>
+        <select id="filtroEstado" [(ngModel)]="filtros.estado">
+          <option value="">Todos</option>
+          <option *ngFor="let estado of estadosEmpleados; trackBy: trackByCatalogoId" [value]="getEstadoCatalogoNombre(estado)">
+            {{ getEstadoCatalogoNombre(estado) }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filtro-item">
+        <label for="filtroSucursal">Sucursal</label>
+        <select id="filtroSucursal" [(ngModel)]="filtros.sucursal" (ngModelChange)="onSucursalChange()">
+          <option value="">Todas</option>
+          <option *ngFor="let s of sucursales; trackBy: trackByCatalogoId" [value]="s.sucursal_id || s.id">
+            {{ s.nombre }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filtro-item">
+        <label for="filtroSeccion">Sección</label>
+        <select id="filtroSeccion" [(ngModel)]="filtros.seccion" (ngModelChange)="onSeccionChange()" [disabled]="!filtros.sucursal">
+          <option value="">Todas</option>
+          <option *ngFor="let seccion of seccionesFiltro; trackBy: trackByCatalogoId" [value]="seccion.id">
+            {{ seccion.nombre }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filtro-item">
+        <label for="filtroCargo">Cargo</label>
+        <select id="filtroCargo" [(ngModel)]="filtros.cargo" [disabled]="!filtros.seccion">
+          <option value="">Todos</option>
+          <option *ngFor="let cargo of cargosFiltro; trackBy: trackByCatalogoId" [value]="cargo.id">
+            {{ cargo.nombre }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filtro-actions">
+        <button type="button" class="btn-action btn-icon" (click)="limpiarFiltros()" aria-label="Limpiar filtros"
+          title="Limpiar filtros" [disabled]="!filtrosActivosCount">
+          <i class="bi bi-eraser-fill"></i>
+        </button>
+      </div>
     </div>
   </div>
 
+  <br />
   <div *ngIf="loading" class="loading-box">
     Cargando empleados...
   </div>
@@ -86,15 +114,12 @@
   <div *ngIf="!loading && !error && loadingCatalogos" class="loading-box">
     Cargando catálogos de secciones y cargos...
   </div>
- <app-modal-fotos
-  [visible]="mostrarModalFoto"
-  titulo="{{ empleadoSeleccionado?.apellido }}, {{ empleadoSeleccionado?.nombre }}, Legajo: {{ empleadoSeleccionado?.legajo }}, Puesto: {{ empleadoSeleccionado?.cargo.nombre }}" 
-  (cerrar)="cerrarFoto()">
-  <img
-    [src]="fotoAmpliada"  
-    class="foto-modal">
+  <app-modal-fotos [visible]="mostrarModalFoto"
+    titulo="{{ empleadoSeleccionado?.apellido }}, {{ empleadoSeleccionado?.nombre }}, Legajo: {{ empleadoSeleccionado?.legajo }}, Puesto: {{ empleadoSeleccionado?.cargo.nombre }}"
+    (cerrar)="cerrarFoto()">
+    <img [src]="fotoAmpliada" class="foto-modal">
 
-</app-modal-fotos>
+  </app-modal-fotos>
   <div *ngIf="!loading && !error && empleadosFiltrados.length > 0" class="table-wrap">
     <table class="empleados-table">
       <thead>
@@ -113,15 +138,16 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let empleado of empleadosFiltrados" [class.is-inactive]="esEmpleadoInactivo(empleado)" [class.is-disabled]="isUsuarioNoHabilitado(empleado)">
-          
+        <tr *ngFor="let empleado of empleadosFiltrados" [class.is-inactive]="esEmpleadoInactivo(empleado)"
+          [class.is-disabled]="isUsuarioNoHabilitado(empleado)">
+
           <td>
             <div class="employee-cell">
-              <div class="employee-avatar avatar-clickable" [title]="nombreCompleto(empleado)" >
-                <div class="modal-body foto-container" >
-                <img *ngIf="tieneFoto(empleado); else employeeAvatarIcon" [src]="fotoUrl(empleado)"  class="foto-empleado" (click)="ampliarFoto(empleado)" [alt]="nombreCompleto(empleado)"
-               
-                 (error)="avatarError(empleado)" />
+              <div class="employee-avatar avatar-clickable" [title]="nombreCompleto(empleado)">
+                <div class="modal-body foto-container">
+                  <img *ngIf="tieneFoto(empleado); else employeeAvatarIcon" [src]="fotoUrl(empleado)"
+                    class="foto-empleado" (click)="ampliarFoto(empleado)" [alt]="nombreCompleto(empleado)"
+                    (error)="avatarError(empleado)" />
                 </div>
                 <ng-template #employeeAvatarIcon>
                   <i class="bi bi-person-fill"></i>
@@ -141,23 +167,17 @@
           <td>{{ cargoLabel(empleado) }}</td>
           <td>{{ empleado.email || '-' }}</td>
           <td>{{ empleado.telefono || '-' }}</td>
-            <td>
-              <span class="badge-state">{{ estadoNombre(empleado.estado) || estadoLabel(empleado.estado) }}</span>
-            </td>
+          <td>
+            <span class="badge-state">{{ estadoNombre(empleado.estado) || estadoLabel(empleado.estado) }}</span>
+          </td>
           <td>
             <div class="row-actions">
-              <a *ngIf="getEmpleadoId(empleado) as empleadoId"
-                 [routerLink]="['/admin/empleados/editar', empleadoId]"
-                 class="btn-action btn-icon"
-                 aria-label="Editar empleado"
-                 title="Editar empleado">
+              <a *ngIf="getEmpleadoId(empleado) as empleadoId" [routerLink]="['/admin/empleados/editar', empleadoId]"
+                class="btn-action btn-icon" aria-label="Editar empleado" title="Editar empleado">
                 <i class="bi bi-pencil-square"></i>
               </a>
-                <a *ngIf="getEmpleadoId(empleado) as empleadoId"
-                  [routerLink]="['/admin/empleados/conceptos', empleadoId]"
-                 class="btn-action btn-icon"
-                 aria-label="Ficha del empleado"
-                 title="Ficha del empleado">
+              <a *ngIf="getEmpleadoId(empleado) as empleadoId" [routerLink]="['/admin/empleados/conceptos', empleadoId]"
+                class="btn-action btn-icon" aria-label="Ficha del empleado" title="Ficha del empleado">
                 <i class="bi bi-person-lines-fill"></i>
               </a>
             </div>
@@ -170,4 +190,3 @@
   <div *ngIf="!loading && !error && empleados.length > 0 && empleadosFiltrados.length === 0" class="empty-box">
     No hay empleados que coincidan con los filtros.
   </div>
-

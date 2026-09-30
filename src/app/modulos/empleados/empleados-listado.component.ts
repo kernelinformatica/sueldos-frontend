@@ -134,19 +134,22 @@ export class EmpleadosListadoComponent implements OnInit {
     sucursal: '',
     seccion: '',
     cargo: '',
-    estado: ''
+    estado: 'Activo'
   };
   loading = true;
   loadingCatalogos = false;
   error = '';
+  /** true = panel de filtros plegado. */
+  filtrosColapsados = false;
 
   constructor(private http: HttpClient, private cdr: ChangeDetectorRef, private loadingService: LoadingService) { }
 
   ngOnInit(): void {
     this.cargarEmpleados();
     this.cargarCatalogos();
+    this.filtros.estado = 'Activo';
   }
-
+ 
   cargarCatalogos(): void {
     this.loadingCatalogos = true;
 
@@ -267,10 +270,29 @@ export class EmpleadosListadoComponent implements OnInit {
       sucursal: '',
       seccion: '',
       cargo: '',
-      estado: ''
+      estado: 'Activo'
     };
     this.seccionesFiltro = [];
     this.cargosFiltro = [];
+  }
+
+  /** Plega / despliega el panel de filtros. */
+  toggleFiltros(): void {
+    this.filtrosColapsados = !this.filtrosColapsados;
+  }
+
+  /** Cantidad de filtros con valor cargado (para el badge y el botón de limpiar). */
+  get filtrosActivosCount(): number {
+    const f = this.filtros || ({} as any);
+    return [
+      f.nombre,
+      f.legajoDesde,
+      f.legajoHasta,
+      f.sucursal,
+      f.seccion,
+      f.cargo,
+      f.estado
+    ].filter((v) => v !== null && v !== undefined && String(v).trim() !== '').length;
   }
 
   // ---------- Cascada de filtros: sucursal → sección → cargo ----------

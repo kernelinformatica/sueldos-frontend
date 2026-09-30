@@ -12,7 +12,7 @@ import { ModalFotos } from '../../../shared/modal-fotos/modal-fotos';
 import { environment } from '../../../environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { of } from 'rxjs';
-type ModoModal = 'form' | 'alta-masiva' | 'modif-masiva' | null;
+type ModoModal = 'form' | 'alta-masiva' | 'modif-masiva' | 'importar' | null;
 
 @Component({
   selector: 'app-basicos-personalizados',
@@ -28,6 +28,8 @@ export class BasicosPersonalizadosComponent implements OnInit {
   estados: Array<{ estado_id: number; nombre: string }> = [];
   loading = false;
   procesando = false;
+  /** true = panel de filtros plegado. */
+  filtrosColapsados = false;
 
   filtros = {
     q: '',
@@ -387,8 +389,35 @@ get registrosFiltrados(): EmpleadoBasico[] {
     if (match) this.form.empleado_id = Number(match.empleado_id ?? match.id);
   }
 
+  /**
+   * Determina si un empleado está activo.
+   * El backend expone el estado como objeto (`estado.estado_id`) o como número.
+   */
+  esEmpleadoActivo(empleado: any): boolean {
+    if (!empleado) return false;
+
+    const est = empleado.estado;
+    if (est !== null && typeof est === 'object') {
+      if (est.es_activo === 1 || est.es_activo === true) return true;
+      if (est.es_activo === 0 || est.es_activo === false) return false;
+      const id = Number(est.estado_id ?? est.estado_empleado_id ?? est.id);
+      if (Number.isFinite(id)) return id === 1;
+      return String(est.nombre || est.descripcion || '').trim().toLowerCase() === 'activo';
+    }
+
+    if (est !== null && est !== undefined) {
+      const id = Number(est);
+      if (Number.isFinite(id)) return id === 1;
+      return String(est).trim().toLowerCase() === 'activo';
+    }
+
+    // Fallback: si no viene el estado, usar el campo habilitado.
+    return empleado.habilitado === undefined ? true : Number(empleado.habilitado) === 1;
+  }
+
   filtrarEmpleadosMasiva(): void {
-    let lista = this.empleados.slice();
+    // En el alta masiva sólo se ofrecen empleados activos.
+    let lista = this.empleados.filter((e: any) => this.esEmpleadoActivo(e));
 
     const q = String(this.masivaBusqueda || '').trim().toLowerCase();
     if (q) {
@@ -669,6 +698,146 @@ get registrosFiltrados(): EmpleadoBasico[] {
     this.confirmVisible = true;
   }
 
+  // ---------- Importar desde Excel / CSV ----------
+
+  archivoImport: File | null = null;
+  importEnviando = false;
+  importError = '';
+  /** Respuesta del backend con el detalle de la carga. */
+  importResultado: any = null;
+  importJobId: string | null = null;
+  importFechaDesde = '';
+  importFechaHasta = '';
+  importActivo = true;
+
+  abrirImportacion(): void {
+    this.archivoImport = null;
+    this.importError = '';
+    this.importResultado = null;
+    this.importJobId = null;
+    this.importFechaDesde = '';
+    this.importFechaHasta = '';
+    this.importActivo = true;
+    this.abrirModal('importar', 'Importar básicos desde Excel / CSV');
+  }
+
+  /** Permite abrir el selector de archivos con un click en toda la zona. */
+  onArchivoSeleccionado(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input?.files?.[0] || null;
+    this.importError = '';
+    this.importResultado = null;
+    this.importJobId = null;
+
+    if (!file) { this.archivoImport = null; return; }
+
+    const extOk = /\.(xlsx|xls|csv)$/i.test(file.name);
+    if (!extOk) {
+      this.archivoImport = null;
+      this.importError = 'Formato no válido. Se aceptan archivos .xlsx, .xls o .csv.';
+      return;
+    }
+    this.archivoImport = file;
+  }
+
+  quitarArchivo(): void {
+    this.archivoImport = null;
+    this.importError = '';
+    this.importResultado = null;
+  }
+
+  formatearTamano(bytes: number): string {
+    if (!bytes) return '0 B';
+    const unidades = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), unidades.length - 1);
+    return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 2)} ${unidades[i]}`;
+  }
+
+  /** Sube el archivo al backend. dryRun permite previsualizar sin aplicar. */
+  enviarImportacion(dryRun: boolean): void {
+    if (!this.archivoImport || this.importEnviando) return;
+
+    this.importEnviando = true;
+    this.importError = '';
+
+    this.svc.importarDesdeArchivo(this.archivoImport, {
+      dryRun,
+      fechaDesde: this.importFechaDesde || undefined,
+      fechaHasta: this.importFechaHasta || undefined,
+      activo: this.importActivo
+    }).pipe(
+      finalize(() => { this.importEnviando = false; try { this.cdr.detectChanges(); } catch { } })
+    ).subscribe({
+      next: (res: any) => {
+        this.importResultado = res?.data ?? res ?? {};
+        this.importJobId = res?.job_id || this.importResultado?.job_id || null;
+        this.importError = '';
+
+        const summary = this.importResultado?.summary || this.importResultado;
+        const fallidos = Number(summary?.failed ?? summary?.errors ?? 0);
+        const total = Number(summary?.processed ?? summary?.total ?? 0);
+
+        if (dryRun) {
+          this.importTitulo = 'Simulación de carga';
+        } else {
+          this.importTitulo = 'Carga finalizada';
+        }
+        this.importMensaje = this.importResultado?.message
+          || (dryRun
+            ? `Se procesarían ${total} fila(s), ${fallidos} con error.`
+            : `Se procesaron ${total} fila(s), ${fallidos} con error.`);
+        this.importMostrarResultado = true;
+      },
+      error: (err: any) => {
+        const body = err?.error || err?.body || null;
+        this.importError = body?.message || err?.message || 'No se pudo procesar el archivo.';
+        this.importResultado = body;
+        this.importMostrarResultado = true;
+      }
+    });
+  }
+
+  importTitulo = 'Importar básicos desde Excel / CSV';
+  importMensaje = '';
+  importMostrarResultado = false;
+
+  /** Descarga el detalle de la carga en CSV. */
+  exportarDetalleImport(): void {
+    const det = this.importDetalleFilas();
+    if (!det.length) return;
+    const rows = [['legajo', 'fila', 'estado', 'mensaje']];
+    det.forEach((d: any) => rows.push([d.legajo ?? '', d.fila ?? '', d.estado ?? '', d.mensaje ?? '']));
+    const csv = rows.map((r: any[]) => r.map((c: any) => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `import_basicos_${this.importJobId || Date.now()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  /** Normaliza el detalle de la carga a una lista plana para la tabla. */
+  importDetalleFilas(): any[] {
+    const r = this.importResultado || {};
+    const fuente = r.detalle || r.details || r.errors || r.filas || r.rows || [];
+    if (!Array.isArray(fuente)) return [];
+    return fuente.map((f: any, i: number) => {
+      if (typeof f === 'string') {
+        return { fila: i + 1, legajo: '', estado: 'error', mensaje: f };
+      }
+      const errores = f.errors || f.mensaje || f.message || f.error || '';
+      return {
+        fila: f.fila ?? f.row ?? i + 1,
+        legajo: f.legajo ?? '',
+        estado: f.estado ?? f.status ?? (errores ? 'error' : 'ok'),
+        mensaje: Array.isArray(errores) ? errores.join('; ') : String(errores)
+      };
+    });
+  }
+
   // ---------- Modal genérico ----------
 
   abrirModal(modo: ModoModal, titulo: string): void {
@@ -704,6 +873,24 @@ get registrosFiltrados(): EmpleadoBasico[] {
     this.secciones = [];
     this.cargos = [];
     this.cargarRegistros();
+  }
+
+  /** Plega / despliega el panel de filtros. */
+  toggleFiltros(): void {
+    this.filtrosColapsados = !this.filtrosColapsados;
+  }
+
+  /** Cantidad de filtros con valor cargado (para el badge y el botón de limpiar). */
+  get filtrosActivosCount(): number {
+    const f = this.filtros || ({} as any);
+    return [
+      f.q,
+      f.contratacion_tipo_id,
+      f.sucursal_id,
+      f.seccion_id,
+      f.cargo_id,
+      f.estado
+    ].filter((v) => v !== null && v !== undefined && String(v).trim() !== '').length;
   }
 
   empleadoId(e: any): number {

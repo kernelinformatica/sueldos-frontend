@@ -27,6 +27,10 @@
               <i class="bi bi-plus-lg"></i>
             </button>
             -->
+            <button type="button" class="btn-action btn-icon" (click)="abrirImportacion()" title="Importar desde Excel / CSV"
+              [disabled]="procesando">
+              <i class="bi bi-file-earmark-spreadsheet"></i>
+            </button>
             <button type="button" class="btn-action btn-icon" (click)="abrirAltaMasiva()" title="Alta masiva"
               [disabled]="procesando">
               <i class="bi bi-check-square"></i>
@@ -49,58 +53,75 @@
   </app-modal-fotos>
 
   <section class="cargo-list-card">
-    <div class="filtros-panel">
-      <div class="filtro-item">
-        <label>Empleado</label>
-        <input type="text" [(ngModel)]="filtros.q" placeholder="Legajo, apellido, nombre o documento" />
-      </div>
-      <div class="filtro-item">
-        <label>Tipo de Contratacion</label>
-        <select [(ngModel)]="filtros.contratacion_tipo_id">
-          <option value="">Todos</option>
-          <option *ngFor="let c of contrataciones" [value]="c.id">{{ c.nombre }}</option>
-        </select>
-      </div>
-      <div class="filtro-item">
-        <label>Sucursal</label>
-        <select [(ngModel)]="filtros.sucursal_id" (ngModelChange)="onSucursalChange()">
-          <option value="">Todas</option>
-          <option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</option>
-        </select>
-      </div>
-      <div class="filtro-item">
-        <label>Sección</label>
-        <select [(ngModel)]="filtros.seccion_id" [disabled]="!filtros.sucursal_id" (ngModelChange)="onSeccionChange()">
-          <option value="">Todas</option>
-          <option *ngFor="let s of secciones" [value]="s.id">{{ s.nombre }}</option>
-        </select>
-      </div>
-      <div class="filtro-item">
-        <label>Puesto</label>
-        <select [(ngModel)]="filtros.cargo_id" [disabled]="!filtros.seccion_id">
-          <option value="">Todos</option>
-          <option *ngFor="let c of cargos" [value]="c.id">{{ c.nombre }}</option>
-        </select>
-      </div>
-      <div class="filtro-item">
-        <!-- <label>Estado</label>
-        <select [(ngModel)]="filtros.estado" (ngModelChange)="onEstadoChange()">
-          <option value="">Todos</option>
-          <option value="1">Activos</option>
-          <option value="2">Inactivos</option>
-        </select>-->
-
-
-        <label>Estado</label>
-        <select [(ngModel)]="filtros.estado" (ngModelChange)="onEstadoChange()">
-          <option [ngValue]="''">Todos</option>
-          <option *ngFor="let estado of estados" [ngValue]="estado.estado_id">{{ estado.nombre }} </option>
-        </select>
-      </div>
-      <div class="filtro-actions">
-        <button type="button" class="btn-action btn-icon" (click)="limpiarFiltros()" title="Limpiar filtros">
-          <i class="bi bi-eraser-fill"></i>
+    <div class="filtros-box">
+      <div class="filtros-header">
+        <div class="filtros-header-title">
+          <i class="bi bi-funnel-fill"></i>
+          <span>Filtros de búsqueda</span>
+          <span class="filtros-badge" *ngIf="filtrosActivosCount">{{ filtrosActivosCount }} activo{{ filtrosActivosCount === 1 ? '' : 's' }}</span>
+        </div>
+        <button type="button" class="filtros-toggle" (click)="toggleFiltros()" [attr.aria-expanded]="!filtrosColapsados"
+          [attr.aria-label]="filtrosColapsados ? 'Desplegar filtros' : 'Plegar filtros'"
+          [title]="filtrosColapsados ? 'Desplegar filtros' : 'Plegar filtros'">
+          <i class="bi" [class.bi-chevron-up]="filtrosColapsados" [class.bi-chevron-down]="!filtrosColapsados"></i>
         </button>
+      </div>
+
+      <div class="filtros-panel" *ngIf="!filtrosColapsados">
+        <div class="filtro-item filtro-wide">
+          <label for="bpFiltroEmpleado">Empleado</label>
+          <div class="input-search">
+            <i class="bi bi-search"></i>
+            <input id="bpFiltroEmpleado" type="text" [(ngModel)]="filtros.q" placeholder="Legajo, apellido, nombre o documento" />
+          </div>
+        </div>
+
+        <div class="filtro-item">
+          <label for="bpFiltroContratacion">Tipo de Contratación</label>
+          <select id="bpFiltroContratacion" [(ngModel)]="filtros.contratacion_tipo_id">
+            <option value="">Todos</option>
+            <option *ngFor="let c of contrataciones" [value]="c.id">{{ c.nombre }}</option>
+          </select>
+        </div>
+
+        <div class="filtro-item">
+          <label for="bpFiltroEstado">Estado</label>
+          <select id="bpFiltroEstado" [(ngModel)]="filtros.estado" (ngModelChange)="onEstadoChange()">
+            <option [ngValue]="''">Todos</option>
+            <option *ngFor="let estado of estados" [ngValue]="estado.estado_id">{{ estado.nombre }}</option>
+          </select>
+        </div>
+
+        <div class="filtro-item">
+          <label for="bpFiltroSucursal">Sucursal</label>
+          <select id="bpFiltroSucursal" [(ngModel)]="filtros.sucursal_id" (ngModelChange)="onSucursalChange()">
+            <option value="">Todas</option>
+            <option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</option>
+          </select>
+        </div>
+
+        <div class="filtro-item">
+          <label for="bpFiltroSeccion">Sección</label>
+          <select id="bpFiltroSeccion" [(ngModel)]="filtros.seccion_id" [disabled]="!filtros.sucursal_id" (ngModelChange)="onSeccionChange()">
+            <option value="">Todas</option>
+            <option *ngFor="let s of secciones" [value]="s.id">{{ s.nombre }}</option>
+          </select>
+        </div>
+
+        <div class="filtro-item">
+          <label for="bpFiltroCargo">Puesto</label>
+          <select id="bpFiltroCargo" [(ngModel)]="filtros.cargo_id" [disabled]="!filtros.seccion_id">
+            <option value="">Todos</option>
+            <option *ngFor="let c of cargos" [value]="c.id">{{ c.nombre }}</option>
+          </select>
+        </div>
+
+        <div class="filtro-actions">
+          <button type="button" class="btn-action btn-icon" (click)="limpiarFiltros()" title="Limpiar filtros"
+            [disabled]="!filtrosActivosCount">
+            <i class="bi bi-eraser-fill"></i>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -262,11 +283,11 @@
       </div>
       <div class="modal-body">
         <div class="masiva-filtros">
-          <div class="form-field masiva-filtro-busqueda">
-            <label>Buscar empleados</label>
-            <input type="text" [(ngModel)]="masivaBusqueda" (ngModelChange)="filtrarEmpleadosMasiva()"
-              placeholder="Legajo, apellido, nombre o documento" [disabled]="guardando" />
-          </div>
+        <div class="form-field masiva-filtro-busqueda">
+          <label>Buscar empleados</label>
+          <input type="text" [(ngModel)]="masivaBusqueda" (ngModelChange)="filtrarEmpleadosMasiva()"
+            placeholder="Legajo, apellido, nombre o documento" [disabled]="guardando" />
+        </div>
           <div class="form-field">
             <label>Sucursal</label>
             <select [(ngModel)]="masivaFiltros.sucursal_id" (ngModelChange)="onMasivaSucursalChange()"
@@ -293,6 +314,9 @@
           </div>
         </div>
         <div class="empleado-lista">
+          <div class="empleado-lista-header">
+            <span><i class="bi bi-person-check"></i> Solo empleados activos ({{ empleadosFiltrados.length }})</span>
+          </div>
           <label class="empleado-lista-item" *ngFor="let e of empleadosFiltrados">
             <input type="checkbox" [checked]="masivaSeleccion.has(empleadoId(e))"
               (change)="toggleMasiva(empleadoId(e), $any($event.target).checked)" [disabled]="guardando" />
@@ -304,7 +328,7 @@
             </ng-template>
             <span>{{ empleadoLabel(e) }}</span>
           </label>
-          <div *ngIf="!empleadosFiltrados.length" class="empty-state-panel">No hay empleados que coincidan con la
+          <div *ngIf="!empleadosFiltrados.length" class="empty-state-panel">No hay empleados activos que coincidan con la
             búsqueda.</div>
         </div>
         <div class="form-grid">
@@ -380,6 +404,126 @@
           <i class="bi bi-save"></i> {{ guardando ? 'Procesando...' : 'Guardar cambios' }}
         </button>
         <button type="button" class="modal-btn-cancel" (click)="cerrarModal()" [disabled]="guardando">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== Modal importación Excel / CSV ===================== -->
+  <div class="modal-backdrop" *ngIf="modalVisible && modalModo === 'importar'" (click)="cerrarModal()"></div>
+  <div class="modal-container" *ngIf="modalVisible && modalModo === 'importar'">
+    <div class="modal-content bp-modal bp-modal-wide">
+      <div class="modal-header">
+        <span class="modal-title">{{ importTitulo }}</span>
+        <button class="modal-close" (click)="cerrarModal()" [disabled]="importEnviando || guardando">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-hint">El archivo debe tener las columnas <strong>LEGAJO</strong> y <strong>BASICO</strong> (importe). Se aceptan archivos .xlsx, .xls y .csv.</p>
+
+        <!-- Selector de archivo -->
+        <div class="import-dropzone" *ngIf="!archivoImport" [class.is-disabled]="importEnviando">
+          <input type="file" id="inputArchivoImport" accept=".xlsx,.xls,.csv" (change)="onArchivoSeleccionado($event)"
+            [disabled]="importEnviando" hidden />
+          <label for="inputArchivoImport" class="import-dropzone-label">
+            <i class="bi bi-cloud-arrow-up"></i>
+            <strong>Seleccionar archivo</strong>
+            <span>o arrastrá el Excel / CSV acá</span>
+          </label>
+        </div>
+
+        <div class="import-file-card" *ngIf="archivoImport">
+          <i class="bi bi-file-earmark-spreadsheet"></i>
+          <div class="import-file-info">
+            <strong>{{ archivoImport.name }}</strong>
+            <span>{{ formatearTamano(archivoImport.size) }}</span>
+          </div>
+          <button type="button" class="btn-action btn-icon btn-danger-icon" (click)="quitarArchivo()" [disabled]="importEnviando"
+            title="Quitar archivo">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <!-- Valores por defecto -->
+        <div class="form-grid" *ngIf="archivoImport && !importMostrarResultado">
+          <div class="form-field">
+            <label>Fecha desde</label>
+            <input type="date" [(ngModel)]="importFechaDesde" [disabled]="importEnviando" />
+          </div>
+          <div class="form-field">
+            <label>Fecha hasta</label>
+            <input type="date" [(ngModel)]="importFechaHasta" [disabled]="importEnviando" />
+          </div>
+          <div class="form-field">
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="importActivo" [disabled]="importEnviando" /> Activo
+            </label>
+          </div>
+        </div>
+
+        <div class="form-error" *ngIf="importError">{{ importError }}</div>
+
+        <!-- Detalle de la carga -->
+        <div class="import-result" *ngIf="importMostrarResultado">
+          <h4>{{ importTitulo }}</h4>
+          <p *ngIf="importMensaje">{{ importMensaje }}</p>
+          <div class="job-id" *ngIf="importJobId">Job ID: {{ importJobId }}</div>
+
+          <ul class="import-stats" *ngIf="importResultado?.summary || importResultado?.total !== undefined">
+            <li>Total: <strong>{{ importResultado?.summary?.total ?? importResultado?.total ?? 0 }}</strong></li>
+            <li>Procesados: <strong>{{ importResultado?.summary?.processed ?? 0 }}</strong></li>
+            <li>Exitosos: <strong>{{ importResultado?.summary?.succeeded ?? importResultado?.summary?.ok ?? 0 }}</strong></li>
+            <li>Fallidos: <strong>{{ importResultado?.summary?.failed ?? importResultado?.summary?.errors ?? 0 }}</strong></li>
+          </ul>
+
+          <div class="import-actions" *ngIf="importDetalleFilas().length">
+            <button type="button" class="btn-action" (click)="exportarDetalleImport()">
+              <i class="bi bi-download"></i> Exportar detalle (.csv)
+            </button>
+          </div>
+
+          <div class="table-wrap import-table" *ngIf="importDetalleFilas().length">
+            <table class="empleados-table">
+              <thead>
+                <tr>
+                  <th>Fila</th>
+                  <th>Legajo</th>
+                  <th>Estado</th>
+                  <th>Mensaje</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let d of importDetalleFilas()" [class.is-error]="d.estado === 'error'">
+                  <td>{{ d.fila }}</td>
+                  <td>{{ d.legajo || '-' }}</td>
+                  <td>
+                    <span class="state-badge" [class.activo]="d.estado !== 'error'" [class.baja]="d.estado === 'error'">
+                      {{ d.estado }}
+                    </span>
+                  </td>
+                  <td>{{ d.mensaje || '-' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <details>
+            <summary>Ver respuesta completa</summary>
+            <pre>{{ importResultado | json }}</pre>
+          </details>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <ng-container *ngIf="!importMostrarResultado">
+          <button type="button" class="modal-btn-cancel" (click)="cerrarModal()" [disabled]="importEnviando">Cancelar</button>
+          <button type="button" class="modal-btn-ok" (click)="enviarImportacion(true)" [disabled]="!archivoImport || importEnviando">
+            <i class="bi bi-eye"></i> {{ importEnviando ? 'Procesando...' : 'Simular' }}
+          </button>
+          <button type="button" class="modal-btn-ok" (click)="enviarImportacion(false)" [disabled]="!archivoImport || importEnviando">
+            <i class="bi bi-upload"></i> Cargar
+          </button>
+        </ng-container>
+        <button type="button" class="modal-btn-ok" *ngIf="importMostrarResultado" (click)="cerrarModal()">
+          Cerrar
+        </button>
       </div>
     </div>
   </div>
