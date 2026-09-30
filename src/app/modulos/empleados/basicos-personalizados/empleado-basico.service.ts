@@ -111,7 +111,7 @@ export class EmpleadoBasicoService {
     const fd = new FormData();
     fd.append('archivo', archivo, archivo.name);
     // Alias duplicates por si el backend espera otro nombre de campo.
-    fd.append('file', archivo, archivo.name);
+    //fd.append('file', archivo, archivo.name);
     if (opciones.dryRun !== undefined) fd.append('dryRun', String(opciones.dryRun));
     if (opciones.fechaDesde) fd.append('fecha_desde', opciones.fechaDesde);
     if (opciones.fechaHasta) fd.append('fecha_hasta', opciones.fechaHasta);

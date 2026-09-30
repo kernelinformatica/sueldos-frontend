@@ -27,7 +27,12 @@
               <i class="bi bi-plus-lg"></i>
             </button>
             -->
-            <button type="button" class="btn-action btn-icon" (click)="abrirImportacion()" title="Importar desde Excel / CSV"
+           
+            <button type="button" class="btn-action btn-icon" (click)="refrescarEmpleados()" title="Refrescar listado"
+              [disabled]="procesando">
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
+            <button *ngIf="canImportarExcel"  type="button" class="btn-action btn-icon" (click)="abrirImportacion()" title="Importar desde Excel / CSV"
               [disabled]="procesando">
               <i class="bi bi-file-earmark-spreadsheet"></i>
             </button>
@@ -36,7 +41,7 @@
               <i class="bi bi-check-square"></i>
             </button>
           </div>
-          <div>
+          <div style="margin-top: 0.5rem; text-align: right;">
             <span>Total</span>
             <strong>{{ registros.length }}</strong>
           </div>

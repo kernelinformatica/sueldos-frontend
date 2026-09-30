@@ -13,7 +13,7 @@ import { environment } from '../../../environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { of } from 'rxjs';
 type ModoModal = 'form' | 'alta-masiva' | 'modif-masiva' | 'importar' | null;
-
+import { AuthService } from '../../../auth/auth.service';
 @Component({
   selector: 'app-basicos-personalizados',
   standalone: true,
@@ -24,10 +24,12 @@ type ModoModal = 'form' | 'alta-masiva' | 'modif-masiva' | 'importar' | null;
 export class BasicosPersonalizadosComponent implements OnInit {
   registros: EmpleadoBasico[] = [];
   empleados: EmpleadoOption[] = [];
+  
   empleadosFiltrados: EmpleadoOption[] = [];
   estados: Array<{ estado_id: number; nombre: string }> = [];
   loading = false;
   procesando = false;
+  importFinalizada = false;
   /** true = panel de filtros plegado. */
   filtrosColapsados = false;
 
@@ -44,6 +46,29 @@ export class BasicosPersonalizadosComponent implements OnInit {
   secciones: Catalogo[] = [];
   cargos: Catalogo[] = [];
 
+  private has(alias: string): boolean {
+  const perms = this.auth.getPermissions() || [];
+
+  return Array.isArray(perms) && perms.some((p: any) => {
+    return typeof p === 'string'
+      ? p === alias
+      : p?.alias === alias;
+  });
+}
+get canImportarExcel(): boolean {
+  return this.has('sueldo_especial_importar');
+}
+private getPerm(alias: string): any {
+  const perms = this.auth.getPermissions() || [];
+
+  return Array.isArray(perms)
+    ? perms.find((p: any) => {
+        return typeof p === 'string'
+          ? p === alias
+          : p?.alias === alias;
+      })
+    : null;
+}
   private datosEmpleado = new Map<number, any>();
   private avatarsSinImagen = new Set<number>();
 
@@ -55,6 +80,13 @@ export class BasicosPersonalizadosComponent implements OnInit {
     seccion_id: '',
     cargo_id: ''
   };
+
+    
+     
+
+
+
+
   // Selección masiva
   seleccion = new Set<number>();
   get totalSeleccion(): number { return this.seleccion.size; }
@@ -80,6 +112,13 @@ export class BasicosPersonalizadosComponent implements OnInit {
     const sel = this.seleccionados;
     return sel.length > 0 && sel.every(r => this.esBaja(r)) && this.soloRegistrosEnBaja;
   }
+
+
+
+
+
+
+
 
   // Modal genérico
   modalVisible = false;
@@ -114,7 +153,8 @@ export class BasicosPersonalizadosComponent implements OnInit {
     private toast: ToastService,
     private router: Router,
     private cdr: ChangeDetectorRef,
-    private http: HttpClient
+    private http: HttpClient,
+    private auth: AuthService
   ) { }
 
   ngOnInit(): void {
@@ -122,13 +162,16 @@ export class BasicosPersonalizadosComponent implements OnInit {
     this.cargarCatalogos();
     this.cargarEmpleados();
     this.cargarRegistros();
-
+    
 
   }
 
   goTo(path: string): void {
     this.router.navigateByUrl(path);
   }
+
+
+
 
   // ---------- Carga ----------
 
@@ -190,6 +233,14 @@ export class BasicosPersonalizadosComponent implements OnInit {
         }
       );
   }
+
+
+
+  public refrescarEmpleados(): void {
+    this.cargarEmpleados();
+      this.cargarRegistros(true);
+  }
+  
   private cargarEmpleados(): void {
     this.svc.listEmpleados().subscribe((res: any) => {
       const data = Array.isArray(res) ? res : (res?.data || res?.empleados || []);
@@ -787,6 +838,8 @@ get registrosFiltrados(): EmpleadoBasico[] {
             ? `Se procesarían ${total} fila(s), ${fallidos} con error.`
             : `Se procesaron ${total} fila(s), ${fallidos} con error.`);
         this.importMostrarResultado = true;
+         this.importMostrarResultado = true;
+      this.importFinalizada = true;
       },
       error: (err: any) => {
         const body = err?.error || err?.body || null;
@@ -794,7 +847,9 @@ get registrosFiltrados(): EmpleadoBasico[] {
         this.importResultado = body;
         this.importMostrarResultado = true;
       }
+      
     });
+     
   }
 
   importTitulo = 'Importar básicos desde Excel / CSV';
@@ -846,12 +901,30 @@ get registrosFiltrados(): EmpleadoBasico[] {
     this.modalVisible = true;
     try { this.cdr.detectChanges(); } catch { }
   }
-
-  cerrarModal(): void {
-    this.modalVisible = false;
-    this.modalModo = null;
+cerrarModal(): void {
+const refrescar = this.modalModo === 'importar' && this.importFinalizada;
+  if (this.modalModo === 'importar') {
+    this.archivoImport = null;
+    this.importError = '';
+    this.importResultado = null;
+    this.importJobId = null;
+    this.importFechaDesde = '';
+    this.importFechaHasta = '';
+    this.importActivo = true;
+    this.importTitulo = 'Importar básicos desde Excel / CSV';
+    this.importMensaje = '';
+    this.importMostrarResultado = false;
+    this.importEnviando = false;
+    this.importFinalizada = false;
   }
 
+  this.modalVisible = false;
+  this.modalModo = null;
+   if (refrescar) {
+    this.cargarEmpleados();
+     this.cargarRegistros(true);
+  }
+}
   onConfirmClose(confirmado: boolean): void {
     this.confirmVisible = false;
     if (confirmado && this.confirmAccion) this.confirmAccion();
@@ -1051,3 +1124,15 @@ get registrosFiltrados(): EmpleadoBasico[] {
     this.mostrarModalFoto = false;
   }
 }
+
+
+
+
+function has(arg0: string) {
+  throw new Error('Function not implemented.');
+}
+
+function getPerm(arg0: string) {
+  throw new Error('Function not implemented.');
+}
+
