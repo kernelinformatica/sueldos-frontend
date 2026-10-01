@@ -10,6 +10,7 @@ import { AuthService } from '../../auth/auth.service';
 import { LoadingService } from '../../shared/loading-spinner/loading.service';
 import { environment } from '../../environments/environment';
 import { ObraSocialSuggestion, ObraSocialesService } from '../../core/obra-sociales.service';
+import { Localidad, LocalidadService } from '../../core/localidad.service';
 
 interface CatalogoItem {
   id?: number;
@@ -59,6 +60,8 @@ interface EmpleadoFormResponse {
   direccion?: string;
   localidad?: string;
   provincia?: string;
+  localidad_id?: number | null;
+  localidad_detalle?: Localidad;
   telefono?: string;
   email?: string;
   fecha_ingreso?: string | null;
@@ -144,6 +147,13 @@ export class EmpleadosFormComponent implements OnInit {
   private obraSocialSeleccionadaId: number | null = null;
   private obraSocialLastQuery = '';
   private obraSocialSearch$ = new Subject<string>();
+  localidadQuery = '';
+  localidadLoading = false;
+  localidadError = '';
+  localidadResultados: Localidad[] = [];
+  localidadSeleccionada: Localidad | null = null;
+  private localidadLastQuery = '';
+  private localidadSearch$ = new Subject<string>();
   archivosAdjuntos: ArchivoEmpleadoItem[] = [];
   fotoPreviewUrl = '';
   fotoPrincipalError = false;
@@ -189,12 +199,14 @@ export class EmpleadosFormComponent implements OnInit {
     private router: Router,
     private auth: AuthService,
     private obraSocialesSvc: ObraSocialesService,
+    private localidadSvc: LocalidadService,
     private cdr: ChangeDetectorRef,
     private loadingService: LoadingService
   ) {
     this.form = this.createForm();
     this.setLoggedEmpresa();
     this.setupObraSocialSearch();
+    this.setupLocalidadSearch();
     // When sección changes, filtrar cargos asociados
     this.form.get('seccion_id')?.valueChanges.subscribe((val) => {
       this.onSeccionChange(val);
@@ -388,8 +400,7 @@ export class EmpleadosFormComponent implements OnInit {
           estado_civil: res.estado_civil || '',
           nacionalidad: res.nacionalidad || '',
           direccion: res.direccion || '',
-          localidad: res.localidad || '',
-          provincia: res.provincia || '',
+          localidad_id: this.resolveLocalidadId(res),
           telefono: res.telefono || '',
           email: res.email || '',
           fecha_ingreso: this.toInputDate(res.fecha_ingreso),
@@ -1043,8 +1054,7 @@ export class EmpleadosFormComponent implements OnInit {
       estado_civil: [''],
       nacionalidad: ['Argentino'],
       direccion: [''],
-      localidad: [''],
-      provincia: [''],
+      localidad_id: [null as number | null],
       telefono: [''],
       email: ['', [Validators.email]],
       fecha_ingreso: [''],
@@ -1078,6 +1088,7 @@ export class EmpleadosFormComponent implements OnInit {
     return {
       ...value,
       obra_social_id: obraSocialId,
+      localidad_id: Number(value.localidad_id ?? 0) || null,
       cuenta_bancaria_principal: cuentaBancariaPrincipal
     };
   }
@@ -1125,6 +1136,103 @@ export class EmpleadosFormComponent implements OnInit {
     this.obraSocialResultados = [];
     this.obraSocialError = '';
     this.obraSocialLastQuery = '';
+  }
+
+  private resolveLocalidadId(res: EmpleadoFormResponse | any): number | null {
+    const loc: any = res?.localidad_detalle ?? (res?.localidad && typeof res.localidad === 'object' ? res.localidad : null) ?? res?.localidad_obj;
+    const id = Number(res?.localidad_id ?? loc?.id ?? loc?.localidad_id ?? 0) || null;
+    if (id) {
+      const nombre = String(loc?.nombre ?? res?.localidad_nombre ?? (typeof res?.localidad === 'string' ? res.localidad : '') ?? '').trim();
+      const cp = String(loc?.codigo_postal ?? loc?.codigoPostal ?? '').trim();
+      const prov: any = loc?.provincia ?? (loc && typeof loc.provincia === 'object' ? loc.provincia : (res as any)?.provincia);
+      const provinciaNombre = String((prov && typeof prov === 'object' ? prov.nombre : prov) ?? '').trim();
+      this.localidadSeleccionada = {
+        id,
+        nombre,
+        codigo_postal: cp,
+        codigoPostal: cp,
+        provinciaNombre,
+        provinciaCodigoPais: String((prov && typeof prov === 'object' ? prov.codigoPais : '') ?? '').trim()
+      } as Localidad;
+      this.localidadQuery = this.formatLocalidadLabel(this.localidadSeleccionada);
+      this.localidadLastQuery = this.localidadQuery;
+    }
+    return id;
+  }
+
+  formatLocalidadLabel(localidad: Localidad | null): string {
+    if (!localidad) return '';
+    const cp = localidad.codigo_postal || localidad.codigoPostal || '';
+    const partes = [String(localidad.nombre || '').trim()];
+    const provincia = String(localidad.provinciaNombre ?? (typeof localidad.provincia === 'string' ? localidad.provincia : '') ?? '').trim();
+    const pais = String(localidad.provinciaCodigoPais ?? '').trim();
+    if (provincia) partes.push(provincia);
+    if (pais) partes.push(pais);
+    const base = partes.filter(Boolean).join(' - ');
+    return cp ? `${base} - CP ${cp}` : base;
+  }
+
+  onLocalidadInputChange(value: string): void {
+    const normalized = String(value || '').trim();
+    this.localidadQuery = value;
+    this.localidadSeleccionada = null;
+    this.form.patchValue({ localidad_id: null });
+    if (normalized.length < 3) {
+      this.localidadResultados = [];
+      this.localidadLoading = false;
+      this.localidadError = '';
+      return;
+    }
+    this.localidadSearch$.next(normalized);
+  }
+
+  selectLocalidad(localidad: Localidad): void {
+    this.localidadSeleccionada = localidad;
+    this.localidadQuery = this.formatLocalidadLabel(localidad);
+    this.form.patchValue({ localidad_id: localidad.id });
+    this.localidadResultados = [];
+    this.localidadError = '';
+    this.localidadLastQuery = this.localidadQuery;
+  }
+
+  clearLocalidad(): void {
+    this.localidadSeleccionada = null;
+    this.localidadQuery = '';
+    this.form.patchValue({ localidad_id: null });
+    this.localidadResultados = [];
+    this.localidadError = '';
+    this.localidadLastQuery = '';
+  }
+
+  private setupLocalidadSearch(): void {
+    this.localidadSearch$.pipe(debounceTime(300), distinctUntilChanged()).subscribe((query) => {
+      const normalized = String(query || '').trim();
+      if (normalized.length < 3) {
+        this.localidadResultados = [];
+        return;
+      }
+      if (normalized === this.localidadLastQuery) return;
+
+      this.localidadLoading = true;
+      this.localidadError = '';
+      this.localidadSvc.buscar(normalized).pipe(
+        catchError((err) => {
+          this.localidadError = this.displayBackendError(err, 'No se pudieron buscar las localidades.');
+          return of([] as Localidad[]);
+        }),
+        finalize(() => {
+          this.localidadLoading = false;
+          try { this.cdr.detectChanges(); } catch {}
+        })
+      ).subscribe({
+        next: (items) => {
+          this.localidadLastQuery = normalized;
+          this.localidadResultados = (items || [])
+            .slice(0, 30)
+            .sort((a, b) => this.formatLocalidadLabel(a).localeCompare(this.formatLocalidadLabel(b), 'es', { sensitivity: 'base' }));
+        }
+      });
+    });
   }
 
   private setupObraSocialSearch(): void {

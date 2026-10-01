@@ -147,18 +147,40 @@
             <label>Dirección</label>
             <input type="text" formControlName="direccion" placeholder="Calle, número, piso" />
           </div>
-          <div class="field">
+          <div class="field field-wide">
             <label>Localidad</label>
-            <input type="text" formControlName="localidad" />
-          </div>
-          <div class="field">
-            <label>Provincia</label>
-            <select formControlName="provincia">
-              <option value="">Seleccione</option>
-              <option *ngFor="let provincia of provincias; trackBy: trackByProvinciaId" [value]="provincia.nombre">
-                {{ provincia.nombre }}
-              </option>
-            </select>
+            <div class="autocomplete-wrap">
+              <input
+                type="text"
+                [value]="localidadQuery"
+                (input)="onLocalidadInputChange($any($event.target).value)"
+                placeholder="Escribí al menos 3 letras para buscar"
+                autocomplete="off" />
+              <button *ngIf="localidadQuery" type="button" class="clear-localidad" (click)="clearLocalidad()" aria-label="Limpiar localidad">×</button>
+            </div>
+            <div class="autocomplete-panel" *ngIf="localidadLoading || localidadResultados.length || localidadError">
+              <div class="autocomplete-status" *ngIf="localidadLoading">Buscando localidades...</div>
+              <div class="autocomplete-status error" *ngIf="!localidadLoading && localidadError">{{ localidadError }}</div>
+              <ng-container *ngIf="!localidadLoading && !localidadError">
+                <button
+                  type="button"
+                  class="autocomplete-item"
+                  *ngFor="let localidad of localidadResultados"
+                  (click)="selectLocalidad(localidad)">
+                  <span class="autocomplete-content">
+                    <span class="autocomplete-main">
+                      <span class="autocomplete-name">{{ localidad.nombre }}</span>
+                    </span>
+                    <span class="autocomplete-secondary" *ngIf="localidad.provinciaNombre || (localidad.provincia && !$any(localidad.provincia).nombre)">
+                      {{ localidad.provinciaNombre || $any(localidad.provincia).nombre }}
+                      <span *ngIf="localidad.provinciaCodigoPais"> - {{ localidad.provinciaCodigoPais }}</span>
+                    </span>
+                    <span class="autocomplete-secondary" *ngIf="localidad.codigo_postal || localidad.codigoPostal">CP {{ localidad.codigo_postal || localidad.codigoPostal }}</span>
+                  </span>
+                </button>
+                <div class="autocomplete-status" *ngIf="!localidadResultados.length">Sin resultados</div>
+              </ng-container>
+            </div>
           </div>
           <div class="field">
             <label>Teléfono</label>
