@@ -249,8 +249,10 @@
     <div class="result-list" *ngIf="resumenResultado.idsGenerados.length">
       <div class="result-pill" *ngFor="let id of resumenResultado.idsGenerados" style="display:inline-flex;align-items:center;gap:8px;margin:4px;">
         <a routerLink="/sueldos/listado" [queryParams]="{ liquidacion_id: id }">#{{ id }}</a>
-        <button type="button" class="btn-link" (click)="abrirPdf(id)" [disabled]="isDownloading(id)" title="Ver PDF en nueva pestaña">{{ isDownloading(id) ? 'Cargando...' : 'Ver' }}</button>
-        <button type="button" class="btn-link" (click)="descargarPdf(id)" [disabled]="isDownloading(id)" title="Descargar recibo">{{ isDownloading(id) ? '...' : 'Descargar' }}</button>
+        <button *ngIf="puedeVerPdfRecibo" type="button" class="btn-link" (click)="abrirPdf(id)" [disabled]="isDownloading(id)" title="Ver recibo normal">{{ isDownloading(id) ? 'Cargando...' : 'Ver recibo' }}</button>
+        <button *ngIf="puedeVerPdfReciboFirmado" type="button" class="btn-link" (click)="abrirPdfFirmado(id)" [disabled]="isDownloading(id)" title="Ver recibo firmado">{{ isDownloading(id) ? '...' : 'Ver recibo firmado' }}</button>
+        <button *ngIf="puedeVerPdfRecibo" type="button" class="btn-link" (click)="descargarPdf(id)" [disabled]="isDownloading(id)" title="Descargar recibo normal">{{ isDownloading(id) ? '...' : 'Descargar' }}</button>
+        <button *ngIf="puedeVerPdfReciboFirmado" type="button" class="btn-link" (click)="descargarPdfFirmado(id)" [disabled]="isDownloading(id)" title="Descargar recibo firmado">{{ isDownloading(id) ? '...' : 'Descargar firmado' }}</button>
         <span style="color:crimson;font-size:0.85em;" *ngIf="downloadErrors[id]">{{ downloadErrors[id] }}</span>
       </div>
     </div>
@@ -271,6 +273,24 @@
       <tbody>
         <tr *ngFor="let item of detalleParcial">
           <td>{{ item.empleado || '-' }}</td>
+
+  <app-modal-alerta
+    [visible]="pdfErrorModalVisible"
+    [titulo]="pdfErrorModalTitle"
+    [icono]="'bi-exclamation-triangle-fill'"
+    [mostrarSpinner]="false"
+    [bloquearCierre]="false"
+    [esConfirmacion]="false"
+    [accentColor]="'#b42318'"
+    [buttonColor]="'#b42318'"
+    (cerrar)="cerrarModalErrorPdfFirmado()">
+    <div>{{ pdfErrorModalMessage }}</div>
+    <div *ngIf="pdfErrorModalMeta.length" class="modal-reason-wrap" style="margin-top: 0.75rem;">
+      <div *ngFor="let item of pdfErrorModalMeta" style="margin-bottom: 0.35rem;">
+        <strong>{{ item.label }}:</strong> {{ item.value }}
+      </div>
+    </div>
+  </app-modal-alerta>
           <td><span class="state-badge" [ngClass]="estadoBadge(item.estado)">{{ item.estado || 'Procesado' }}</span></td>
           <td>{{ item.total_neto | number:'1.2-2' }}</td>
           <td>{{ item.mensaje || '-' }}</td>

@@ -7,6 +7,8 @@ import { AuthService } from '../../auth/auth.service';
 
 @Injectable({ providedIn: 'root' })
 export class LiquidacionesService {
+  private readonly reciboPdfPath = '/api/liquidaciones';
+
   constructor(private http: HttpClient, private auth: AuthService) {}
 
   private headers() {
@@ -70,12 +72,21 @@ export class LiquidacionesService {
     return this.http.post<any>(`${environment.apiUrl}/api/liquidaciones/${liquidacionId}/anular`, { razon_override: String(razon || '').trim() }, { headers: this.headers() }).pipe(catchError((err) => of({ error: err, data: null })));
   }
 
-  /** Obtiene el PDF de la liquidación/recibo como blob junto con headers */
+  /** Obtiene el PDF de la liquidación/recibo como blob junto con headers. */
   getPdf(liquidacionId: number): Observable<{ blob: Blob | null; headers: any }> {
-    return this.http.get(`${environment.apiUrl}/api/liquidaciones/${liquidacionId}/pdf`, { headers: this.headers(), responseType: 'blob' as 'json', observe: 'response' as 'body' }).pipe(
+    return this.getReciboPdf(liquidacionId);
+  }
+
+  /** Obtiene el PDF firmado digitalmente de la liquidación/recibo como blob junto con headers. */
+  getPdfFirmado(liquidacionId: number): Observable<{ blob: Blob | null; headers: any }> {
+    return this.getReciboPdf(liquidacionId, true);
+  }
+
+  private getReciboPdf(liquidacionId: number, firmado = false): Observable<{ blob: Blob | null; headers: any }> {
+    const suffix = firmado ? '/pdf-firmado' : '/pdf';
+    return this.http.get(`${environment.apiUrl}${this.reciboPdfPath}/${liquidacionId}${suffix}`, { headers: this.headers(), responseType: 'blob' as 'json', observe: 'response' as 'body' }).pipe(
       map((resp: any) => ({ blob: resp?.body || null, headers: resp?.headers || {} })),
-      // on error return null blob so callers manejen el fallo
-      catchError(() => of({ blob: null as any, headers: {} }))
+      catchError((err) => of({ blob: null as any, headers: {}, error: err }))
     );
   }
 

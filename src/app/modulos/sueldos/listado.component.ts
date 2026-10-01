@@ -120,6 +120,10 @@ export class ListadoComponent implements OnInit {
   fotoAmpliada: string | null = null;
   mostrarModalFoto = false;
   tituloModalFoto: any = null;
+  pdfErrorModalVisible = false;
+  pdfErrorModalTitle = 'Error al descargar recibo firmado';
+  pdfErrorModalMessage = '';
+  pdfErrorModalMeta: Array<{ label: string; value: string }> = [];
 
   private pendingAction:
     | { kind: 'bulk-state'; estadoId: number; tipo: 'revision' | 'cerrada' }
@@ -144,6 +148,19 @@ export class ListadoComponent implements OnInit {
   private cargosCache = new Map<number, Array<{ id: number; nombre: string }>>();
 
   constructor(private svc: LiquidacionesService, private route: ActivatedRoute, private cdr: ChangeDetectorRef, private router: Router, private http: HttpClient, private auth: AuthService) { }
+
+  private hasPermission(alias: string): boolean {
+    const perms: any[] = this.auth.getPermissions() || [];
+    return Array.isArray(perms) && perms.some((p: any) => (typeof p === 'string' ? p === alias : p?.alias === alias));
+  }
+
+  get puedeVerPdfRecibo(): boolean {
+    return this.hasPermission('sueldos_descargar_pdf');
+  }
+
+  get puedeVerPdfReciboFirmado(): boolean {
+    return this.hasPermission('sueldos_descargar_pdf_firma');
+  }
 
   ngOnInit(): void {
     this.loadEstados();
@@ -1289,9 +1306,16 @@ export class ListadoComponent implements OnInit {
   }
 
   descargarDetallePdf(liquidacion?: any): void {
+    this.descargarDetallePdfVariant(liquidacion, false);
+  }
+
+  descargarDetallePdfFirmado(liquidacion?: any): void {
+    this.descargarDetallePdfVariant(liquidacion, true);
+  }
+
+  private descargarDetallePdfVariant(liquidacion?: any, firmado = false): void {
     // Si se pasa la liquidación, usamos su id, si no intentamos obtenerla desde el detalle cargado
     const id = liquidacion ? this.liquidacionId(liquidacion) : Number(this.detalle?.liquidacion_id ?? this.detalle?.liquidacion?.id ?? this.detalleNormalizado?.liquidacion_id ?? this.detalleNormalizado?.id ?? 0);
-    debugger
     if (!id) {
       // Fallback: generar la versión HTML/PDF en ventana como antes
       this.openDetalleEnVentana('pdf', liquidacion);
@@ -1302,14 +1326,27 @@ export class ListadoComponent implements OnInit {
     this.detalleLoadingError = '';
     try { this.cdr.detectChanges(); } catch { }
 
-    this.svc.getPdf(id).pipe(
+    const request$ = firmado ? this.svc.getPdfFirmado(id) : this.svc.getPdf(id);
+
+    request$.pipe(
       timeout(30000),
       catchError((err) => {
-        this.detalleLoadingError = this.extractHttpErrorMessage(err, 'No se pudo descargar el PDF.');
+        if (firmado) {
+          this.abrirModalErrorPdfFirmado(err, id);
+        } else {
+          this.detalleLoadingError = this.extractHttpErrorMessage(err, 'No se pudo descargar el PDF.');
+        }
         return of({ blob: null, headers: {} });
       }),
       finalize(() => { this.loadingDetail = false; try { this.cdr.detectChanges(); } catch { } })
     ).subscribe((res: any) => {
+      if (res?.error) {
+        if (firmado) {
+          this.abrirModalErrorPdfFirmado(res.error, id);
+        }
+        return;
+      }
+
       const blob: Blob | null = res?.blob ?? null;
       const headers = res?.headers || {};
       if (!blob) return;
@@ -1324,18 +1361,17 @@ export class ListadoComponent implements OnInit {
       const contentType = String(getHeader('content-type') || getHeader('Content-Type') || '').trim();
       const disposition = String(getHeader('content-disposition') || getHeader('Content-Disposition') || '').trim();
       const fnMatch = disposition ? disposition.match(/filename\*=UTF-8''(.+)|filename="?([^\"]+)"?/) : null;
-      const filename = fnMatch ? decodeURIComponent(fnMatch[1] || fnMatch[2]) : `recibo_${id}.pdf`;
+      const fallbackName = firmado ? `recibo_firmado_${id}.pdf` : `recibo_${id}.pdf`;
+      const filename = fnMatch ? decodeURIComponent(fnMatch[1] || fnMatch[2]) : fallbackName;
 
       const blobUrl = URL.createObjectURL(new Blob([blob], { type: contentType || 'application/pdf' }));
 
       // Si el backend responde PDF, intentamos abrir en nueva pestaña para visualizarlo, sino forzamos descarga
       if (contentType && contentType.toLowerCase().includes('application/pdf')) {
-        // Abrir en nueva pestaña de forma segura usando un enlace con rel="noopener noreferrer"
         const a = document.createElement('a');
         a.href = blobUrl;
         a.target = '_blank';
         a.rel = 'noopener noreferrer';
-        // No establecer download para que el navegador muestre en visor si puede
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -1350,6 +1386,48 @@ export class ListadoComponent implements OnInit {
 
       setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
     });
+  }
+
+  private abrirModalErrorPdfFirmado(err: any, liquidacionId: number): void {
+    this.pdfErrorModalTitle = 'No se pudo descargar el recibo firmado';
+    this.pdfErrorModalMessage = 'El backend rechazó la descarga del PDF firmado.';
+    this.pdfErrorModalMeta = [{ label: 'Liquidación', value: String(liquidacionId) }];
+
+    const apply = (payload: any): void => {
+      const message = String(payload?.message || payload?.error?.message || payload?.error?.mensage || payload?.mensaje || '').trim();
+      if (message) this.pdfErrorModalMessage = message;
+
+      const meta = payload?.meta || payload?.error?.meta || payload?.details || null;
+      if (meta && typeof meta === 'object') {
+        const pairs = Object.entries(meta)
+          .filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== '')
+          .map(([label, value]) => ({ label, value: String(value) }));
+        if (pairs.length) this.pdfErrorModalMeta = [{ label: 'Liquidación', value: String(liquidacionId) }, ...pairs];
+      }
+
+      this.pdfErrorModalVisible = true;
+      try { this.cdr.detectChanges(); } catch { }
+    };
+
+    const raw = err?.error ?? err;
+    if (raw && typeof raw.text === 'function') {
+      raw.text().then((text: string) => {
+        try {
+          apply(JSON.parse(text));
+        } catch {
+          apply({ message: text });
+        }
+      }).catch(() => apply(err));
+      return;
+    }
+
+    apply(err);
+  }
+
+  cerrarModalErrorPdfFirmado(): void {
+    this.pdfErrorModalVisible = false;
+    this.pdfErrorModalMessage = '';
+    this.pdfErrorModalMeta = [];
   }
 
   downloadingRecibos = false;

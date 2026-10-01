@@ -7,6 +7,7 @@ import { catchError, finalize, of, timeout } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
 import { ModalAlertaComponent } from '../../shared/modal-alerta.component';
+import { AuthService } from '../../auth/auth.service';
 import { LiquidacionesService } from './liquidaciones.service';
 
 interface LiquidacionTipoOption { liquidacion_tipo_id: number; nombre: string; descripcion?: string; orden?: number; }
@@ -115,8 +116,25 @@ export class LiquidarComponent implements OnInit {
   confirmSpinner = false;
   downloadingIds = new Set<number>();
   downloadErrors: Record<number, string> = {};
+  pdfErrorModalVisible = false;
+  pdfErrorModalTitle = 'Error al descargar recibo firmado';
+  pdfErrorModalMessage = '';
+  pdfErrorModalMeta: Array<{ label: string; value: string }> = [];
 
-  constructor(private svc: LiquidacionesService, private http: HttpClient, private cdr: ChangeDetectorRef) {}
+  constructor(private svc: LiquidacionesService, private http: HttpClient, private cdr: ChangeDetectorRef, private auth: AuthService) {}
+
+  private hasPermission(alias: string): boolean {
+    const perms: any[] = this.auth.getPermissions() || [];
+    return Array.isArray(perms) && perms.some((p: any) => (typeof p === 'string' ? p === alias : p?.alias === alias));
+  }
+
+  get puedeVerPdfRecibo(): boolean {
+    return this.hasPermission('sueldos_descargar_pdf');
+  }
+
+  get puedeVerPdfReciboFirmado(): boolean {
+    return this.hasPermission('sueldos_descargar_pdf_firma');
+  }
 
   ngOnInit(): void {
     this.cargarTipos();
@@ -133,25 +151,47 @@ export class LiquidarComponent implements OnInit {
     this.fetchPdfAndHandle(id, true);
   }
 
-  descargarPdf(id: number): void {
-    this.fetchPdfAndHandle(id, false);
+  abrirPdfFirmado(id: number): void {
+    this.fetchPdfAndHandle(id, true, true);
   }
 
-  private fetchPdfAndHandle(id: number, openInNewTab: boolean): void {
+  descargarPdf(id: number): void {
+    this.fetchPdfAndHandle(id, false, false);
+  }
+
+  descargarPdfFirmado(id: number): void {
+    this.fetchPdfAndHandle(id, false, true);
+  }
+
+  private fetchPdfAndHandle(id: number, openInNewTab: boolean, firmado = false): void {
     const lid = Number(id);
     if (!lid) return;
     this.downloadErrors[lid] = '';
     this.downloadingIds.add(lid);
     this.cdr.detectChanges();
 
-    this.svc.getPdf(lid).pipe(finalize(() => {
+    const request$ = firmado ? this.svc.getPdfFirmado(lid) : this.svc.getPdf(lid);
+
+    request$.pipe(finalize(() => {
       this.downloadingIds.delete(lid);
       this.cdr.detectChanges();
     })).subscribe({
       next: (res: any) => {
+        if (res?.error) {
+          if (firmado) {
+            this.abrirModalErrorPdfFirmado(res.error, lid);
+          } else {
+            this.downloadErrors[lid] = res.error?.message || 'Error al descargar el PDF.';
+          }
+          return;
+        }
         const blob: Blob | null = res?.blob ?? null;
         if (!blob) {
-          this.downloadErrors[lid] = 'No se pudo descargar el PDF.';
+          if (firmado) {
+            this.abrirModalErrorPdfFirmado(res?.error || null, lid);
+          } else {
+            this.downloadErrors[lid] = 'No se pudo descargar el PDF.';
+          }
           return;
         }
         const blobUrl = URL.createObjectURL(new Blob([blob], { type: (res?.headers?.get ? res.headers.get('content-type') : res?.headers?.['content-type']) || 'application/pdf' }));
@@ -168,7 +208,7 @@ export class LiquidarComponent implements OnInit {
         }
         const a = document.createElement('a');
         a.href = blobUrl;
-        a.download = `recibo_${lid}.pdf`;
+        a.download = firmado ? `recibo_firmado_${lid}.pdf` : `recibo_${lid}.pdf`;
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -178,6 +218,48 @@ export class LiquidarComponent implements OnInit {
         this.downloadErrors[lid] = err?.message || 'Error al descargar el PDF.';
       }
     });
+  }
+
+  private abrirModalErrorPdfFirmado(err: any, liquidacionId: number): void {
+    this.pdfErrorModalTitle = 'No se pudo descargar el recibo firmado';
+    this.pdfErrorModalMessage = 'El backend rechazó la descarga del PDF firmado.';
+    this.pdfErrorModalMeta = [{ label: 'Liquidación', value: String(liquidacionId) }];
+
+    const apply = (payload: any): void => {
+      const message = String(payload?.message || payload?.error?.message || payload?.mensaje || '').trim();
+      if (message) this.pdfErrorModalMessage = message;
+
+      const meta = payload?.meta || payload?.error?.meta || null;
+      if (meta && typeof meta === 'object') {
+        const pairs = Object.entries(meta)
+          .filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== '')
+          .map(([label, value]) => ({ label, value: String(value) }));
+        if (pairs.length) this.pdfErrorModalMeta = [{ label: 'Liquidación', value: String(liquidacionId) }, ...pairs];
+      }
+
+      this.pdfErrorModalVisible = true;
+      try { this.cdr.detectChanges(); } catch { }
+    };
+
+    const raw = err?.error ?? err;
+    if (raw && typeof raw.text === 'function') {
+      raw.text().then((text: string) => {
+        try {
+          apply(JSON.parse(text));
+        } catch {
+          apply({ message: text });
+        }
+      }).catch(() => apply(err));
+      return;
+    }
+
+    apply(err);
+  }
+
+  cerrarModalErrorPdfFirmado(): void {
+    this.pdfErrorModalVisible = false;
+    this.pdfErrorModalMessage = '';
+    this.pdfErrorModalMeta = [];
   }
 
   cargarEstadosLiquidaciones(): void {

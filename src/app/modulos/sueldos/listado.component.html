@@ -164,8 +164,11 @@
           </td>
           <td><span class="review-badge" *ngIf="liq.requiere_revision || liq.tiene_observaciones">Revisión</span></td>
           <td>
-            <button type="button" class="icon-action-btn icon-action-pdf" (click)="descargarDetallePdf(liq)" aria-label="Descargar PDF" title="Descargar PDF">
+            <button *ngIf="puedeVerPdfRecibo" type="button" class="icon-action-btn icon-action-pdf" (click)="descargarDetallePdf(liq)" aria-label="Descargar PDF" title="Descargar PDF">
               <i class="bi bi-file-earmark-pdf"></i>
+            </button>
+            <button *ngIf="puedeVerPdfReciboFirmado" type="button" class="icon-action-btn icon-action-pdf" (click)="descargarDetallePdfFirmado(liq)" aria-label="Descargar PDF firmado" title="Descargar PDF firmado">
+              <i class="bi bi-shield-check"></i>
             </button>
           </td>
           <td>
@@ -211,8 +214,11 @@
           <button type="button" class="icon-action-btn icon-action-print" (click)="imprimirDetalle()" [disabled]="loadingDetail || !detalle" aria-label="Imprimir" title="Imprimir">
             <i class="bi bi-printer"></i>
           </button>
-          <button type="button" class="icon-action-btn icon-action-pdf" (click)="descargarDetallePdf()" [disabled]="loadingDetail || !detalle" aria-label="Descargar PDF" title="Descargar PDF">
+          <button *ngIf="puedeVerPdfRecibo" type="button" class="icon-action-btn icon-action-pdf" (click)="descargarDetallePdf()" [disabled]="loadingDetail || !detalle" aria-label="Descargar PDF" title="Descargar PDF">
             <i class="bi bi-file-earmark-pdf"></i>
+          </button>
+          <button *ngIf="puedeVerPdfReciboFirmado" type="button" class="icon-action-btn icon-action-pdf" (click)="descargarDetallePdfFirmado()" [disabled]="loadingDetail || !detalle" aria-label="Descargar PDF firmado" title="Descargar PDF firmado">
+            <i class="bi bi-shield-check"></i>
           </button>
           <button type="button" class="icon-action-btn icon-action-delete" (click)="detalleVisible = false" aria-label="Cerrar" title="Cerrar">
             <i class="bi bi-x-lg"></i>
@@ -339,6 +345,24 @@
     <div *ngIf="modalReasonRequired" class="modal-reason-wrap">
       <label class="modal-reason-label">Motivo</label>
       <textarea [(ngModel)]="modalReason" rows="3" class="modal-reason-input" placeholder="Escribí el motivo..." [disabled]="modalSpinner"></textarea>
+    </div>
+  </app-modal-alerta>
+
+  <app-modal-alerta
+    [visible]="pdfErrorModalVisible"
+    [titulo]="pdfErrorModalTitle"
+    [icono]="'bi-exclamation-triangle-fill'"
+    [mostrarSpinner]="false"
+    [bloquearCierre]="false"
+    [esConfirmacion]="false"
+    [accentColor]="'#b42318'"
+    [buttonColor]="'#b42318'"
+    (cerrar)="cerrarModalErrorPdfFirmado()">
+    <div>{{ pdfErrorModalMessage }}</div>
+    <div *ngIf="pdfErrorModalMeta.length" class="modal-reason-wrap" style="margin-top: 0.75rem;">
+      <div *ngFor="let item of pdfErrorModalMeta" style="margin-bottom: 0.35rem;">
+        <strong>{{ item.label }}:</strong> {{ item.value }}
+      </div>
     </div>
   </app-modal-alerta>
 </section>
