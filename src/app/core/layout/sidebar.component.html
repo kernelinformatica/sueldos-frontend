@@ -1,7 +1,6 @@
 <nav [ngClass]="{'sidebar': true, 'd-flex': true, 'flex-column': true, 'collapsed': collapsed}" >
   <div class="sidebar-brand d-flex align-items-center justify-content-center py-3 position-relative">
     <img [src]="logoSrc" (error)="onLogoError($event)" alt="Logo" class="sidebar-logo" />
-    <!-- Botón de colapsar menú eliminado -->
   </div>
   <hr class="sidebar-divider my-2" />
   <div class="sidebar-heading d-flex align-items-center px-3" style="position: relative; min-height: 40px;">

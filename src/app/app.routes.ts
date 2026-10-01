@@ -4,6 +4,7 @@ import { LoginComponent } from './auth/login.component';
 
 import { ModuleSelectorComponent } from './module-selector/module-selector.component';
 import { AuthGuard } from './auth/auth.guard';
+import { RolesPermisosGuard } from './modulos/roles-permisos/roles-permisos.guard';
 
 
 export const routes: Routes = [
@@ -50,6 +51,11 @@ export const routes: Routes = [
       { path: 'libros', loadComponent: () => import('./modulos/sueldos/libros-sueldos/libros-sueldos.component').then(m => m.LibrosSueldosComponent) },
       { path: 'libros/generar', loadComponent: () => import('./modulos/sueldos/libros-sueldos/libro-generar.component').then(m => m.LibroGenerarComponent) },
       { path: 'libros/:id', loadComponent: () => import('./modulos/sueldos/libros-sueldos/libro-detalle.component').then(m => m.LibroDetalleComponent) }
+    ]
+  },
+  { path: 'admin/roles-permisos', canActivate: [RolesPermisosGuard], loadComponent: () => import('./modulos/roles-permisos/roles-permisos-layout.component').then(m => m.RolesPermisosLayoutComponent),
+    children: [
+      { path: '', loadComponent: () => import('./modulos/roles-permisos/roles-permisos-admin.component').then(m => m.RolesPermisosAdminComponent) }
     ]
   },
  

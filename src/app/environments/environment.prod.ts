@@ -7,7 +7,7 @@ export const environment = {
 };
 export const app = {
    name: 'Kernel Informatica - Sueldos',
-   version: '1.0.5',
+   version: '1.0.6',
    description: 'Sistema de gestión integral de Sueldos.',
    empresaId:0
 };  

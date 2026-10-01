@@ -26,14 +26,6 @@
   font-size: 0.95rem !important;
 }
 
-.navbar.navbar-custom .d-flex.align-items-center {
-  transition: margin-left 0.2s cubic-bezier(0.4,0,0.2,1);
-  margin-left: 0;
-}
-.navbar.navbar-custom.sidebar-collapsed .d-flex.align-items-center {
-  margin-left: -160px !important;
-}
-
 .navbar.navbar-custom.sidebar-collapsed {
   padding-left: 60px !important;
 }

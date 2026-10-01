@@ -89,10 +89,17 @@ export class ModuleSelectorComponent implements OnInit {
   private cargarPermisosMenu() {
     const user = this.auth.getUser();
     const permisos = Array.isArray(user?.permisos) ? user.permisos : [];
+    const canAccessRolesPermisos = this.auth.canAccessRolesPermisos();
 
     const visibles = permisos
       .filter((permiso: PermisoMenu) => Number(permiso?.estado ?? 1) !== 0)
       .filter((permiso: PermisoMenu) => (Number(permiso?.esMenu ?? 0) === 1) || permiso?.esMenu === true)
+      .filter((permiso: PermisoMenu) => {
+        const alias = String(permiso?.alias || '').trim().toLowerCase();
+        const ruta = String(permiso?.router || '').trim().toLowerCase();
+        const esRolesPermisos = alias === 'roles_permisos' || alias === 'permisos_abm' || ruta.includes('roles-permisos');
+        return esRolesPermisos ? canAccessRolesPermisos : true;
+      })
       .sort((a: PermisoMenu, b: PermisoMenu) => Number(a.orden ?? 0) - Number(b.orden ?? 0));
 
     const grupos = new Map<string, PermisoMenu[]>();

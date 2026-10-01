@@ -29,6 +29,8 @@ const ALIAS_A_RUTA: Record<string, string> = {
   secciones: '/admin/secciones',
   cargos: '/admin/cargos',
   sucursales: '/admin/sucursales',
+  roles_permisos: '/admin/roles-permisos',
+  permisos_abm: '/admin/roles-permisos',
   // Sueldos
   sueldos: '/sueldos',
   liquidar: '/sueldos/liquidar',

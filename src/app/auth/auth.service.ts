@@ -87,6 +87,15 @@ export class AuthService {
     return collected;
   }
 
+  hasPermission(alias: string): boolean {
+    const target = String(alias || '').trim().toLowerCase();
+    if (!target) return false;
+    return this.getPermissions().some((perm: any) => {
+      const rawAlias = typeof perm === 'string' ? perm : perm?.alias;
+      return String(rawAlias || '').trim().toLowerCase() === target;
+    });
+  }
+
   isSuperAdmin(): boolean {
     const user = this.getUser();
     const candidates = [
@@ -107,6 +116,10 @@ export class AuthService {
       const normalized = String(value || '').toLowerCase().replace(/[\s-]+/g, '_');
       return normalized === 'super_admin' || normalized === 'super-administrador' || normalized === 'super_administrador' || normalized === 'superadministrador';
     });
+  }
+
+  canAccessRolesPermisos(): boolean {
+    return this.isSuperAdmin() && this.hasPermission('permisos_abm');
   }
 
   isLoggedIn(): boolean {

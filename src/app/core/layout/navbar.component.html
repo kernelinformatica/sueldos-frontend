@@ -4,7 +4,8 @@
   crossorigin="anonymous" />
 
 <nav class="navbar navbar-expand-lg navbar-dark navbar-custom"
-  [style.paddingLeft]="showSidebarToggle ? (sidebarCollapsed ? '100px' : '260px') : '0'">
+  [class.sidebar-collapsed]="!!sidebarCollapsed"
+  [style.paddingLeft.px]="showSidebarToggle ? (sidebarCollapsed ? 60 : 220) : 0">
   <div class="container-fluid p-0">
 
     <div class="d-flex align-items-center gap-2 w-100" style="justify-content: flex-start;">
