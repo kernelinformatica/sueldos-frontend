@@ -23,10 +23,12 @@ export interface PermisoDto {
   grupo?: string | null;
   ruta?: string | null;
   es_menu?: boolean;
+  estado_id?: number;
   estado?: number | boolean;
 }
 
 export interface RolPermisosPayload {
+  permisos?: number[];
   permisoIds?: number[];
   permiso_ids?: number[];
 }

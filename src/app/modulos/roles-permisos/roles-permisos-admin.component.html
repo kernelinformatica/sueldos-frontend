@@ -1,28 +1,28 @@
 <div class="listado-empleados text-sm roles-permisos-shell">
-  <app-loading-spinner></app-loading-spinner>
-
-  <div class="listado-top">
+  <app-loading-spinner [visible]="isBusy" [centered]="true" [text]="busyLabel" [backdropOpacity]="0.12" [size]="34"></app-loading-spinner>
+  <div class="hero-card">
     <div>
-      <h3>Roles y permisos</h3>
-      <p>Administración de alta seguridad <span class="badge">{{ filteredRoles.length }}</span></p>
+      <p class="eyebrow">Módulos / Permisos</p>
+      <h1>Gestión de Permisos</h1>
+      <p>Administración y control de permisos del sistema.</p>
     </div>
-    <div class="listado-actions">
+    <div class="hero-actions">
       <button type="button" class="btn-action btn-icon" title="Roles" (click)="activeTab = 'roles'">
         <i class="bi bi-shield-lock"></i>
       </button>
-      <button type="button" class="btn-action btn-icon" title="Permisos" (click)="activeTab = 'permisos'">
+      <button type="button" class="btn-action btn-icon" title="Catálogo de Permisos Globales" (click)="openPermisosCatalogo()">
         <i class="bi bi-key"></i>
       </button>
     </div>
   </div>
 
-  <div class="filtros-box">
+  <div class="filtros-box" *ngIf="activeTab === 'roles' || (activeTab === 'permisos' && permisosSubTab === 'catalogo')">
     <div class="filtros-header">
       <div class="filtros-header-title">
         <i class="bi bi-funnel-fill"></i>
         <span>Filtros y búsqueda</span>
       </div>
-      <div class="filtros-badge">{{ activeTab === 'roles' ? filteredRoles.length : filteredPermisos.length }} visibles</div>
+      <div class="filtros-badge">{{ visibleItemsCount }} visibles</div>
     </div>
 
     <div class="filtros-panel">
@@ -30,20 +30,37 @@
         <label>Buscar roles</label>
         <input type="text" [(ngModel)]="searchRoles" placeholder="Nombre, alias o descripción" />
       </div>
-      <div class="filtro-item filtro-wide" *ngIf="activeTab === 'permisos'">
-        <label>Buscar permisos</label>
-        <input type="text" [(ngModel)]="searchPermisos" placeholder="Nombre, alias, módulo o grupo" />
+      <div class="filtros-permisos-row" *ngIf="activeTab === 'permisos' && permisosSubTab === 'catalogo'">
+        <div class="filtro-item filtro-busqueda-permisos">
+          <label>Buscar permisos</label>
+          <input type="text" [(ngModel)]="searchPermisos" placeholder="Nombre, alias, módulo o grupo" />
+        </div>
+        <div class="filtro-item filtro-estado-permisos">
+          <label>Estado</label>
+          <select [(ngModel)]="permisoEstadoFilter">
+            <option value="todos">Todos</option>
+            <option value="activos">Activos</option>
+            <option value="inactivos">Inactivos</option>
+          </select>
+        </div>
       </div>
     </div>
   </div>
 
-  <section class="grid-shell">
+  
+
+  <section class="grid-shell" [class.grid-shell-assignment]="activeTab === 'permisos' && permisosSubTab === 'asignacion'">
     <article class="panel list-panel" *ngIf="activeTab === 'roles'">
       <div class="panel-header">
         <h4>Roles</h4>
-        <button type="button" class="btn-action btn-icon" (click)="newRol()" aria-label="Nuevo rol" title="Nuevo rol">
-          <i class="bi bi-plus-lg"></i>
-        </button>
+        <div class="panel-header-actions">
+          <button type="button" class="btn-action btn-icon" (click)="openPermisosCatalogo()" aria-label="Catálogo global" title="Catálogo global">
+            <i class="bi bi-key"></i>
+          </button>
+          <button type="button" class="btn-action btn-icon" (click)="newRol()" aria-label="Nuevo rol" title="Nuevo rol">
+            <i class="bi bi-plus-lg"></i>
+          </button>
+        </div>
       </div>
 
       <div class="table-wrap" *ngIf="!loadingRoles; else rolesLoading">
@@ -53,20 +70,27 @@
               <th>ID</th>
               <th>Nombre</th>
               <th>Alias</th>
-              <th>Tipo</th>
-              <th>Acciones</th>
+              <th class="actions-column"></th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let rol of filteredRoles" [class.active-row]="selectedRolId === rol.id" (click)="selectRol(rol)">
               <td>{{ rol.id || '-' }}</td>
-              <td>{{ rol.nombre }}</td>
-              <td><span class="mono">{{ rol.alias }}</span></td>
-              <td><span class="pill" [class.pill-danger]="rol.alias === 'super_administrador'">{{ rol.alias === 'super_administrador' ? 'Protegido' : 'Normal' }}</span></td>
               <td>
+                <span class="entity-cell">
+                  <i class="bi entity-icon" [ngClass]="rolIcon(rol)"></i>
+                  {{ rol.nombre }}
+                </span>
+              </td>
+              <td><span class="mono">{{ rol.alias }}</span></td>
+              
+              <td class="actions-column">
                 <div class="row-actions row-actions-right">
                   <button type="button" class="btn-action btn-icon" (click)="selectRol(rol); $event.stopPropagation()" aria-label="Editar rol" title="Editar rol">
                     <i class="bi bi-pencil-square"></i>
+                  </button>
+                  <button type="button" class="btn-action btn-icon" (click)="openAsignacionMasivaForRol(rol); $event.stopPropagation()" aria-label="Asignar permisos" title="Asignar permisos">
+                    <i class="bi bi-diagram-3"></i>
                   </button>
                   <button type="button" class="btn-action btn-icon btn-danger" *ngIf="rol.alias !== 'super_administrador'" (click)="confirmDelete('rol', rol.id || 0, undefined, '¿Eliminar este rol?'); $event.stopPropagation()" aria-label="Eliminar rol" title="Eliminar rol">
                     <i class="bi bi-trash"></i>
@@ -88,8 +112,10 @@
 
     <article class="panel detail-panel" *ngIf="activeTab === 'roles'">
       <div class="panel-header">
-        <h4>Detalle de rol</h4>
-        <span class="hint" *ngIf="selectedRol">{{ selectedRol.alias }}</span>
+        <h4 class="detail-panel-title">
+          <i class="bi" [ngClass]="currentRolHeaderIcon"></i>
+         {{ currentRolHeaderTitle }}
+        </h4>
       </div>
 
       <form [formGroup]="roleForm" class="form-grid" (ngSubmit)="saveRol()">
@@ -109,7 +135,7 @@
         </label>
         <div class="form-actions full">
           <button type="submit" class="btn-action btn-icon btn-primary" [disabled]="saving" aria-label="Guardar rol" title="Guardar rol">
-            <i class="bi bi-save"></i>
+            <i class="bi bi-floppy-fill"></i>
           </button>
           <button type="button" class="btn-action btn-icon" (click)="newRol()" aria-label="Limpiar formulario" title="Limpiar formulario">
             <i class="bi bi-eraser-fill"></i>
@@ -118,22 +144,87 @@
       </form>
 
       <div class="panel-subtitle">Permisos del rol seleccionado</div>
+      <div class="selected-role-banner" *ngIf="selectedRol">
+        <div class="selected-role-banner-label">
+          <i class="bi bi-pin-angle-fill"></i>
+          <span>Rol seleccionado:  {{ selectedRol?.nombre || selectedRol?.alias }}</span>
+        </div>
+      
+        <div class="selected-role-banner-meta">
+          <span class="mono">{{ selectedRol?.alias }}</span>
+          <span class="badge-permisos">
+{{ rolPermisos.length }} permisos
+</span>
+        </div>
+      </div>
+      <div class="perm-role-actions" *ngIf="selectedRolId">
+        <div class="perm-role-actions-summary">
+          <span><strong>{{ rolPermisosSelectedCount }}</strong> seleccionado(s)</span>
+          <span class="bulk-summary-sep"></span>
+          <span><strong>{{ rolPermisosSelectedRemovableCount }}</strong> a quitar</span>
+        </div>
+        <div class="perm-role-actions-buttons">
+          <button type="button" class="btn-action btn-danger bulk-btn" (click)="removeSelectedRolPermisos()" [disabled]="saving || rolPermisosSelectedRemovableCount === 0">
+            <i class="bi bi-dash-lg"></i>
+            <span>Quitar seleccionados</span>
+            <span class="bulk-btn-count" *ngIf="rolPermisosSelectedRemovableCount">{{ rolPermisosSelectedRemovableCount }}</span>
+          </button>
+          <button type="button" class="btn-action bulk-btn bulk-btn-ghost" (click)="clearRolPermisoSelection()" [disabled]="rolPermisosSelectedCount === 0">
+            <i class="bi bi-x-circle"></i>
+            <span>Limpiar selección</span>
+          </button>
+        </div>
+      </div>
       <div class="perm-list" *ngIf="selectedRolId; else noRolSelected">
+        <div class="empty-state perm-loading-state" *ngIf="loadingRolPermisos">
+          <i class="bi bi-arrow-repeat spin"></i>
+          <span>Cargando permisos del rol...</span>
+        </div>
         <div class="perm-group" *ngFor="let grupo of groupedRolPermisos">
-          <button type="button" class="perm-group-header" (click)="toggleGrupoPermisos(grupo.grupo)">
-            <div class="perm-group-title">
+          <div class="perm-group-header">
+            <button type="button" class="perm-group-toggle" (click)="toggleGrupoPermisos(grupo.grupo)" aria-label="Desplegar o plegar grupo">
               <i class="bi" [ngClass]="isGrupoExpanded(grupo.grupo) ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+            </button>
+            <label class="perm-group-check">
+              <input
+                type="checkbox"
+                [checked]="isRolPermisosGroupChecked(grupo.grupo)"
+                [indeterminate]="isRolPermisosGroupIndeterminate(grupo.grupo)"
+                (change)="toggleRolPermisosGroupSelection(grupo.grupo, $any($event.target).checked)" />
+            </label>
+            <div class="perm-group-title">
               <strong>{{ grupo.grupo }}</strong>
             </div>
-            <span class="badge badge-success">{{ grupo.permisos.length }}</span>
-          </button>
+            <div class="perm-group-actions">
+              <span class="badge badge-primary">{{ grupo.permisos.length }}</span>
+              <button
+                type="button"
+                class="btn-action btn-icon btn-danger perm-group-remove"
+                (click)="removeRolPermisosByGroup(grupo.grupo)"
+                [disabled]="saving"
+                aria-label="Quitar permisos del grupo"
+                title="Quitar permisos del grupo">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </div>
           <div class="perm-group-body" *ngIf="isGrupoExpanded(grupo.grupo)">
             <div class="perm-row" *ngFor="let permiso of grupo.permisos">
               <div class="perm-info">
-                <strong class="perm-name">{{ permiso.nombre || permiso.alias || 'Sin nombre' }}</strong>
-                <div class="perm-alias">{{ permiso.alias || 'Sin alias' }}</div>
+                <div class="perm-name-line">
+                  <strong class="perm-name"><i class="bi perm-icon" [ngClass]="permisoIcon(permiso)"></i>{{ permiso.nombre || permiso.descripcion || 'Sin nombre' }}</strong>
+                  <span class="perm-inline-alias mono">{{ permiso.alias || 'Sin alias' }}</span>
+                </div>
+                <div class="perm-desc">{{ permiso.descripcion || 'Sin descripción' }}</div>
               </div>
               <div class="row-actions row-actions-right">
+                <label class="perm-row-check">
+                  <input
+                    type="checkbox"
+                    [checked]="isRolPermisoSelected(permiso.id || 0)"
+                    (change)="toggleRolPermisoSelection(permiso.id || 0)"
+                    (click)="$event.stopPropagation()" />
+                </label>
                 <button type="button" class="btn-action btn-icon btn-danger" *ngIf="permiso.alias !== 'permisos_abm'" (click)="removePermisoFromRol(permiso)" aria-label="Quitar permiso" title="Quitar permiso">
                   <i class="bi bi-x-lg"></i>
                 </button>
@@ -147,71 +238,156 @@
         <div class="empty-state">Seleccione un rol para ver y administrar sus permisos.</div>
       </ng-template>
 
-      <div class="panel-subtitle">Asignación y copia</div>
+      <div class="panel-subtitle">Copiar permisos entre roles</div>
       <div class="copy-box" [formGroup]="copyForm">
-        <label>
-          <span>Rol origen</span>
-          <select formControlName="rolOrigenId">
-            <option [ngValue]="null">Seleccione</option>
-            <option *ngFor="let rol of roles" [ngValue]="rol.id">{{ rol.nombre }}</option>
-          </select>
-        </label>
-        <label>
-          <span>Rol destino</span>
-          <select formControlName="rolDestinoId">
-            <option [ngValue]="null">Seleccione</option>
-            <option *ngFor="let rol of roles" [ngValue]="rol.id">{{ rol.nombre }}</option>
-          </select>
-        </label>
-        <button type="button" class="btn-action btn-icon btn-primary" (click)="openCopyAction()" [disabled]="!selectedRolId" [class.is-disabled]="!selectedRolId" aria-label="Copiar permisos" title="Copiar permisos">
-          <i class="bi bi-files"></i>
-        </button>
+        <div class="copy-intro">
+          <div class="copy-intro-icon">
+            <i class="bi bi-files"></i>
+          </div>
+          <div class="copy-intro-copy">
+            <strong>Tomá los permisos de un rol origen y aplicalos a otro rol.</strong>
+            <p>El rol que estás viendo se carga como origen para que la copia sea más rápida y menos ambigua.</p>
+          </div>
+        </div>
+
+        <div class="copy-grid">
+          <label class="copy-card">
+            <span>Rol origen</span>
+            <select formControlName="rolOrigenId">
+              <option [ngValue]="null">Seleccione</option>
+              <option *ngFor="let rol of roles" [ngValue]="rol.id">{{ rol.nombre }}</option>
+            </select>
+            <small>Se copiarán los permisos de <strong>{{ copySourceRole?.nombre || copySourceRole?.alias || 'un rol origen' }}</strong>.</small>
+          </label>
+
+          <div class="copy-arrow" aria-hidden="true">
+            <i class="bi bi-arrow-right"></i>
+          </div>
+
+          <label class="copy-card">
+            <span>Rol destino</span>
+            <select formControlName="rolDestinoId">
+              <option [ngValue]="null">Seleccione</option>
+              <option *ngFor="let rol of roles" [ngValue]="rol.id">{{ rol.nombre }}</option>
+            </select>
+            <small>Recibirá la configuración del origen seleccionado.</small>
+          </label>
+        </div>
+
+        <div class="copy-preview" [class.is-ready]="canCopyPermisos">
+          <div class="copy-preview-label">Vista previa</div>
+          <div class="copy-preview-value">{{ copyPreviewLabel }}</div>
+        </div>
+
+        <div class="copy-actions">
+          <button
+            type="button"
+            class="btn-action btn-primary copy-btn"
+            (click)="openCopyAction()"
+            [disabled]="saving || !canCopyPermisos"
+            [class.is-disabled]="saving || !canCopyPermisos"
+            aria-label="Copiar permisos"
+            title="Copiar permisos">
+            <i class="bi bi-files"></i>
+            <span>Copiar permisos</span>
+          </button>
+          <button type="button" class="btn-action copy-btn copy-btn-secondary" (click)="copyForm.patchValue({ rolDestinoId: null })" [disabled]="saving || !copyDestinationRole">
+            <i class="bi bi-eraser"></i>
+            <span>Limpiar destino</span>
+          </button>
+        </div>
       </div>
     </article>
 
-    <article class="panel list-panel" *ngIf="activeTab === 'permisos'">
+    <article class="panel list-panel" *ngIf="activeTab === 'permisos' && permisosSubTab === 'catalogo'">
       <div class="panel-header">
-        <h4>Permisos</h4>
+        <h4>Catálogo de permisos</h4>
         <button type="button" class="btn-action btn-icon" (click)="newPermiso()" aria-label="Nuevo permiso" title="Nuevo permiso">
           <i class="bi bi-plus-lg"></i>
         </button>
       </div>
 
+      <div class="panel-subtitle panel-subtitle-catalog">
+        Estos permisos son globales del sistema. Para quitar permisos de un rol usá la pestaña <strong>Roles</strong> y la sección <strong>Asignación masiva de permisos</strong>.
+      </div>
+
+      <div class="selected-role-banner selected-role-banner-compact" *ngIf="selectedRol">
+        <div class="selected-role-banner-label">
+          <i class="bi bi-person-badge-fill"></i>
+          <span>Rol activo para asignación: {{ selectedRol?.nombre || selectedRol?.alias }}</span>
+        </div>
+       
+        <div class="selected-role-banner-meta">
+ 
+
+  <span class="badge-permisos" *ngIf="rolPermisos.length > 0">
+    {{ rolPermisos.length }} permisos
+  </span>
+</div>
+      </div>
+
       <div class="table-wrap" *ngIf="!loadingPermisos; else permisosLoading">
-        <table>
-          <thead>
-            <tr>
-              <th><input type="checkbox" [checked]="selectedPermisoIds.size === filteredPermisos.length && filteredPermisos.length > 0" (change)="selectAllFilteredPermisos($any($event.target).checked)" /></th>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Alias</th>
-              <th>Módulo</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let permiso of filteredPermisos" [class.active-row]="selectedPermisoId === permiso.id" (click)="selectPermiso(permiso)">
-              <td><input type="checkbox" [checked]="isSelectedPermiso(permiso.id || 0)" (click)="$event.stopPropagation()" (change)="togglePermisoSelection(permiso.id || 0)" /></td>
-              <td>{{ permiso.id || '-' }}</td>
-              <td>{{ permiso.nombre }}</td>
-              <td><span class="mono">{{ permiso.alias }}</span></td>
-              <td>{{ permiso.modulo || '-' }}</td>
-              <td>
-                <div class="row-actions row-actions-right">
-                  <button type="button" class="btn-action btn-icon" (click)="selectPermiso(permiso); $event.stopPropagation()" aria-label="Editar permiso" title="Editar permiso">
-                    <i class="bi bi-pencil-square"></i>
-                  </button>
-                  <button type="button" class="btn-action btn-icon btn-danger" *ngIf="permiso.alias !== 'permisos_abm'" (click)="confirmDelete('permiso', permiso.id || 0, undefined, '¿Eliminar este permiso?'); $event.stopPropagation()" aria-label="Eliminar permiso" title="Eliminar permiso">
-                    <i class="bi bi-trash"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
-            <tr *ngIf="!filteredPermisos.length">
-              <td colspan="6" class="empty-state">No hay permisos para mostrar.</td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="perm-groups-list" *ngIf="groupedFilteredPermisos.length; else permisosEmpty">
+          <div class="perm-group" *ngFor="let item of groupedFilteredPermisos">
+            <button type="button" class="perm-group-header" (click)="togglePermisoGroup(item.grupo)">
+              <i class="bi perm-group-caret" [class.bi-caret-down-fill]="isPermisoGroupExpanded(item.grupo)" [class.bi-caret-right-fill]="!isPermisoGroupExpanded(item.grupo)"></i>
+              <span class="perm-group-title">{{ item.grupo }}</span>
+              <span class="perm-group-meta">{{ item.permisos.length }} permiso(s)</span>
+              <span class="perm-group-meta" *ngIf="item.modulo">{{ item.modulo }}</span>
+            </button>
+            <div class="perm-group-body" *ngIf="isPermisoGroupExpanded(item.grupo)">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Descripción</th>
+                    <th>Módulo</th>
+                    <th>Estado</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let permiso of item.permisos" [class.active-row]="selectedPermisoId === permiso.id" (click)="selectPermiso(permiso)">
+                    <td>{{ permiso.id || '-' }}</td>
+                    <td>
+                      <div class="perm-table-name">
+                        <span class="entity-cell">
+                          <i class="bi entity-icon" [ngClass]="permisoIcon(permiso)"></i>
+                          {{ permiso.nombre }}
+                        </span>
+                        <span class="perm-inline-alias mono">{{ permiso.alias || 'Sin alias' }}</span>
+                      </div>
+                    </td>
+                    <td><span class="perm-desc">{{ permiso.descripcion || 'Sin descripción' }}</span></td>
+                    <td>{{ permiso.modulo || '-' }}</td>
+                    <td>
+                      <span class="pill" [class.pill-success]="permisoEstadoId(permiso) === 1" [class.pill-danger]="permisoEstadoId(permiso) === 0">
+                        {{ permisoEstadoLabel(permiso) }}
+                      </span>
+                    </td>
+                    <td>
+                      <div class="row-actions row-actions-right">
+                        <button type="button" class="btn-action btn-icon" (click)="selectPermiso(permiso); $event.stopPropagation()" aria-label="Editar permiso" title="Editar permiso">
+                          <i class="bi bi-pencil-square"></i>
+                        </button>
+                        <button type="button" class="btn-action btn-icon btn-state btn-danger" *ngIf="permisoEstadoId(permiso) === 1 && permiso.alias !== 'permisos_abm'" (click)="togglePermisoEstado(permiso); $event.stopPropagation()" aria-label="Desactivar permiso" title="Desactivar permiso">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                        <button type="button" class="btn-action btn-icon btn-state btn-success" *ngIf="permisoEstadoId(permiso) === 0" (click)="togglePermisoEstado(permiso); $event.stopPropagation()" aria-label="Activar permiso" title="Activar permiso">
+                          <i class="bi bi-check-circle"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <ng-template #permisosEmpty>
+          <div class="empty-state">No hay permisos para mostrar.</div>
+        </ng-template>
       </div>
 
       <ng-template #permisosLoading>
@@ -219,13 +395,18 @@
       </ng-template>
     </article>
 
-    <article class="panel detail-panel" *ngIf="activeTab === 'permisos'">
+    <article class="panel detail-panel" *ngIf="activeTab === 'permisos' && permisosSubTab === 'catalogo'">
+      
+
       <div class="panel-header">
-        <h4>Detalle de permiso</h4>
-        <span class="hint" *ngIf="selectedPermiso">{{ selectedPermiso.alias }}</span>
+        <h4>Detalle de permiso global</h4>
+        <span class="hint">
+          <i class="bi" [ngClass]="permisoIconFromForm(permisoForm.get('grupo')?.value, permisoForm.get('modulo')?.value, permisoForm.get('alias')?.value)"></i>
+          {{ currentPermisoTitle }} · {{ currentPermisoEstadoLabel }}
+        </span>
       </div>
 
-      <form [formGroup]="permisoForm" class="form-grid" (ngSubmit)="savePermiso()">
+      <form [formGroup]="permisoForm" class="form-grid" (ngSubmit)="$event.preventDefault(); savePermiso()">
         <label>
           <span>Nombre</span>
           <input formControlName="nombre" type="text" />
@@ -236,7 +417,16 @@
         </label>
         <label>
           <span>Módulo</span>
-          <input formControlName="modulo" type="text" />
+          <select formControlName="modulo">
+            <option *ngFor="let modulo of permisoModuloOptions" [value]="modulo">{{ modulo }}</option>
+          </select>
+        </label>
+        <label>
+          <span>Estado</span>
+          <select formControlName="estado_id">
+            <option [ngValue]="1">Activo</option>
+            <option [ngValue]="0">Inactivo</option>
+          </select>
         </label>
         <label>
           <span>Grupo</span>
@@ -247,38 +437,135 @@
           <textarea formControlName="descripcion" rows="3"></textarea>
         </label>
         <div class="form-actions full">
-          <button type="submit" class="btn-action btn-icon btn-primary" [disabled]="saving" aria-label="Guardar permiso" title="Guardar permiso">
-            <i class="bi bi-save"></i>
+          <button type="button" class="btn-action btn-icon btn-primary" (click)="savePermiso()" [disabled]="saving" aria-label="Guardar permiso" title="Guardar permiso">
+            <i class="bi bi-floppy-fill"></i>
           </button>
           <button type="button" class="btn-action btn-icon" (click)="newPermiso()" aria-label="Limpiar formulario" title="Limpiar formulario">
             <i class="bi bi-eraser-fill"></i>
           </button>
         </div>
       </form>
+    </article>
 
-      <div class="panel-subtitle">Acciones masivas del rol seleccionado</div>
-      <div class="mass-actions">
-        <button type="button" class="btn-action btn-icon btn-primary" (click)="assignManySelected()" [disabled]="!selectedRolId" [class.is-disabled]="!selectedRolId" aria-label="Asignar seleccionados" title="Asignar seleccionados">
-          <i class="bi bi-check2-square"></i>
-        </button>
-        <button type="button" class="btn-action btn-icon btn-danger" (click)="removeManySelected()" [disabled]="!selectedRolId" [class.is-disabled]="!selectedRolId" aria-label="Quitar seleccionados" title="Quitar seleccionados">
-          <i class="bi bi-trash"></i>
-        </button>
-        <button type="button" class="btn-action btn-icon" (click)="replacePermisos()" [disabled]="!selectedRolId" [class.is-disabled]="!selectedRolId" aria-label="Reemplazar permisos" title="Reemplazar permisos">
-          <i class="bi bi-arrow-repeat"></i>
-        </button>
+    <article class="panel detail-panel" *ngIf="activeTab === 'permisos' && permisosSubTab === 'asignacion'">
+      <div class="permissions-hero">
+        <div class="permissions-hero-main">
+          <div class="permissions-hero-icon">
+            <i class="bi bi-shield-lock-fill"></i>
+          </div>
+          <div class="permissions-hero-copy">
+            <div class="permissions-hero-kicker">Asignación masiva de permisos</div>
+            <div class="permissions-hero-title">
+              Rol: {{ selectedRol?.nombre || 'Seleccione un rol en la pestaña Roles' }}
+            </div>
+            <div class="permissions-hero-meta" *ngIf="selectedRol; else noRolSeleccionado">
+              <span class="mono">{{ selectedRol?.alias }}</span>
+              <span class="permissions-hero-dot">•</span>
+              <span>{{ rolPermisos.length }} permiso(s) asignado(s)</span>
+              <span class="permissions-hero-dot">•</span>
+              <span>ID {{ selectedRol?.id }}</span>
+            </div>
+            <ng-template #noRolSeleccionado>
+              <div class="permissions-hero-meta">
+                Seleccione un rol en <strong>Roles</strong> para ver y administrar su catálogo de permisos.
+              </div>
+            </ng-template>
+          </div>
+        </div>
       </div>
 
-      <div class="panel-subtitle">Asignación individual</div>
-      <div class="single-assign">
-        <select [(ngModel)]="selectedPermisoId">
-          <option [ngValue]="null">Seleccione un permiso</option>
-          <option *ngFor="let permiso of filteredPermisos" [ngValue]="permiso.id">{{ permiso.nombre }} - {{ permiso.alias }}</option>
-        </select>
-        <button type="button" class="btn-action btn-icon btn-primary" (click)="assignSelectedPermiso()" [disabled]="!selectedRolId || !selectedPermisoId" [class.is-disabled]="!selectedRolId || !selectedPermisoId" aria-label="Asignar al rol" title="Asignar al rol">
-          <i class="bi bi-arrow-right-circle"></i>
-        </button>
+      <div class="bulk-box" *ngIf="bulkHasRol; else sinRolParaMasivo">
+        <div class="bulk-context">
+          <i class="bi bi-shield-lock-fill"></i>
+          <span>Asignando al rol <strong>{{ selectedRol?.nombre || selectedRol?.alias }}</strong></span>
+          <span class="bulk-counter">{{ rolPermisos.length }} permiso(s) ya asignados</span>
+        </div>
+
+        <div class="bulk-toolbar">
+          <div class="bulk-search">
+            <i class="bi bi-search"></i>
+            <input type="text" [(ngModel)]="bulkSearch" placeholder="Buscar permiso, alias, módulo o grupo..." />
+          </div>
+          <div class="bulk-filter" role="group" aria-label="Filtro de permisos">
+            <button type="button" [class.is-active]="bulkFilter === 'sin'" (click)="bulkFilter = 'sin'">
+              <i class="bi bi-plus-circle"></i> Sin asignar
+            </button>
+            <button type="button" [class.is-active]="bulkFilter === 'con'" (click)="bulkFilter = 'con'">
+              <i class="bi bi-check-circle"></i> Ya asignados
+            </button>
+            <button type="button" [class.is-active]="bulkFilter === 'todos'" (click)="bulkFilter = 'todos'">
+              <i class="bi bi-list-ul"></i> Todos
+            </button>
+          </div>
+        </div>
+
+        <div class="bulk-list">
+          <div class="bulk-group" *ngFor="let grupo of bulkGroups">
+            <div class="bulk-group-header">
+              <button type="button" class="bulk-caret" (click)="toggleBulkGroup(grupo.grupo)" [attr.aria-label]="'Desplegar ' + grupo.grupo">
+                <i class="bi" [ngClass]="isBulkGroupExpanded(grupo.grupo) ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+              </button>
+              <label class="bulk-group-check">
+                <input type="checkbox" [checked]="isBulkGroupChecked(grupo.grupo)" [indeterminate]="isBulkGroupIndeterminate(grupo.grupo)" (change)="toggleBulkGroupSelection(grupo.grupo, $any($event.target).checked)" />
+                <span class="bulk-group-name"><strong>{{ grupo.grupo }}</strong></span>
+              </label>
+              <span class="bulk-group-count">{{ bulkSelectedInGroup(grupo.grupo).selected }}/{{ grupo.permisos.length }}</span>
+            </div>
+
+            <div class="bulk-group-body" *ngIf="isBulkGroupExpanded(grupo.grupo)">
+              <div class="bulk-item" *ngFor="let permiso of grupo.permisos" [class.is-selected]="isSelectedPermiso(permiso.id || 0)">
+                <label class="bulk-item-label">
+                  <input type="checkbox" [checked]="isSelectedPermiso(permiso.id || 0)" (change)="togglePermisoSelection(permiso.id || 0)" />
+                  <i class="bi bulk-item-icon" [ngClass]="permisoIcon(permiso)"></i>
+                  <span class="bulk-item-text">
+                    <span class="bulk-item-name">{{ permiso.nombre || permiso.alias }} (alias: {{ permiso.alias || 'Sin alias' }})</span>
+                    <span class="bulk-item-desc">{{ permiso.descripcion || 'Sin descripción' }}</span>
+                  </span>
+                  <span class="bulk-item-modulo">{{ permiso.modulo || '-' }}</span>
+                  <span class="bulk-state" [class.is-on]="isAssignedToSelectedRol(permiso)">
+                    <i class="bi" [ngClass]="isAssignedToSelectedRol(permiso) ? 'bi-check-circle-fill' : 'bi-dash-circle'"></i>
+                    {{ isAssignedToSelectedRol(permiso) ? 'Asignado' : 'No asignado' }}
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="empty-state" *ngIf="!bulkGroups.length">No hay permisos para mostrar con el filtro actual.</div>
+        </div>
+
+        <div class="bulk-summary">
+          <span><strong>{{ bulkSelectedCount }}</strong> seleccionado(s)</span>
+          <span class="bulk-summary-sep"></span>
+          <span><strong>{{ bulkToAssignCount }}</strong> a asignar</span>
+          <span class="bulk-summary-sep"></span>
+          <span><strong>{{ bulkToRemoveCount }}</strong> a quitar</span>
+        </div>
+
+        <div class="bulk-actions">
+          <button type="button" class="btn-action btn-primary bulk-btn" (click)="assignManySelected()" [disabled]="saving || bulkToAssignCount === 0">
+            <i class="bi bi-plus-lg"></i>
+            <span>Asignar al rol</span>
+            <span class="bulk-btn-count" *ngIf="bulkToAssignCount">{{ bulkToAssignCount }}</span>
+          </button>
+          <button type="button" class="btn-action btn-danger bulk-btn" (click)="removeManySelected()" [disabled]="saving || bulkToRemoveCount === 0">
+            <i class="bi bi-dash-lg"></i>
+            <span>Quitar del rol</span>
+            <span class="bulk-btn-count" *ngIf="bulkToRemoveCount">{{ bulkToRemoveCount }}</span>
+          </button>
+          <button type="button" class="btn-action bulk-btn" (click)="replacePermisos()" [disabled]="saving" title="Deja el rol con exactamente los permisos seleccionados">
+            <i class="bi bi-arrow-repeat"></i>
+            <span>Reemplazar todo</span>
+          </button>
+          <button type="button" class="btn-action bulk-btn bulk-btn-ghost" (click)="clearBulkSelection()" [disabled]="bulkSelectedCount === 0">
+            <i class="bi bi-x-circle"></i>
+            <span>Limpiar selección</span>
+          </button>
+        </div>
       </div>
+      <ng-template #sinRolParaMasivo>
+        <div class="empty-state">Seleccione un rol para asignar permisos.</div>
+      </ng-template>
     </article>
   </section>
 
@@ -291,5 +578,27 @@
     [accentColor]="'#d32f2f'"
     [buttonColor]="'#d32f2f'"
     (cerrar)="onDeleteModalClose($event)">
+  </app-modal-alerta>
+
+  <app-modal-alerta
+    [visible]="deleteErrorModalVisible"
+    [titulo]="deleteErrorModalTitle"
+    [mensaje]="deleteErrorModalMessage"
+    [icono]="deleteErrorModalIcon"
+    [accentColor]="'#d32f2f'"
+    [buttonColor]="'#d32f2f'"
+    [esConfirmacion]="false"
+    (cerrar)="closeDeleteErrorModal()">
+  </app-modal-alerta>
+
+  <app-modal-alerta
+    [visible]="permisoEstadoConfirmVisible"
+    [titulo]="permisoEstadoConfirmTitle"
+    [mensaje]="permisoEstadoConfirmMessage"
+    [icono]="'bi bi-exclamation-triangle-fill'"
+    [accentColor]="'#d32f2f'"
+    [buttonColor]="'#d32f2f'"
+    [esConfirmacion]="true"
+    (cerrar)="onPermisoEstadoConfirmClose($event)">
   </app-modal-alerta>
 </div>

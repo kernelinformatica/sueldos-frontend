@@ -71,7 +71,7 @@ export class RolesPermisosService {
   }
 
   replacePermisos(rolId: number, permisoIds: number[]): Observable<ApiResponse<any>> {
-    return this.http.put<ApiResponse<any>>(`${this.baseUrl}/roles/${rolId}/permisos/reemplazar`, { permisoIds });
+    return this.http.put<ApiResponse<any>>(`${this.baseUrl}/roles/${rolId}/permisos/reemplazar`, { permisos: permisoIds });
   }
 
   copiarPermisos(payload: CopiarPermisosPayload): Observable<ApiResponse<any>> {
