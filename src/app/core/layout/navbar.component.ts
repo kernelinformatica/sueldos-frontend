@@ -1,5 +1,6 @@
 
 import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { app } from '../../environments/environment';
 import { NgIf, CommonModule } from '@angular/common';
 import { AuthService } from '../../auth/auth.service';
@@ -7,7 +8,7 @@ import { AuthService } from '../../auth/auth.service';
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [NgIf, CommonModule],
+  imports: [NgIf, CommonModule, RouterLink],
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.scss']
 })
@@ -124,4 +125,3 @@ export class NavbarComponent {
     this.auth.logout();
   }
 }
-

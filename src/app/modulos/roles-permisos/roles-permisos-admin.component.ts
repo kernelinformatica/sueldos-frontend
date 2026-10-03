@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Subject, timeout, takeUntil } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../auth/auth.service';
@@ -16,7 +17,7 @@ type PermisosSubTabKey = 'catalogo' | 'asignacion';
 @Component({
   selector: 'app-roles-permisos-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, LoadingSpinnerComponent, ModalAlertaComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, LoadingSpinnerComponent, ModalAlertaComponent],
   templateUrl: './roles-permisos-admin.component.html',
   styleUrls: ['./roles-permisos-admin.component.scss']
 })
@@ -85,6 +86,7 @@ export class RolesPermisosAdminComponent implements OnInit {
       descripcion: ['', [Validators.maxLength(255)]],
       modulo: ['admin', [Validators.required]],
       estado_id: [1, [Validators.required]],
+      es_menu: [0, [Validators.required]],
       grupo: ['', [Validators.maxLength(80)]]
     });
 
@@ -136,6 +138,26 @@ export class RolesPermisosAdminComponent implements OnInit {
     if (this.loadingRoles) return 'Cargando roles...';
     if (this.loadingPermisos) return 'Cargando permisos...';
     return 'Procesando...';
+  }
+
+  get heroTitle(): string {
+    return this.activeTab === 'roles' ? 'Gestión de Roles' : 'Gestión de Permisos';
+  }
+
+  get heroSubtitle(): string {
+    return 'Elegí Roles o Permisos para administrar sus elementos desde arriba.';
+  }
+
+  get heroSelectedRoleLabel(): string {
+    if (this.activeTab !== 'roles') {
+      return '';
+    }
+    if (!this.selectedRol) {
+      return 'Rol seleccionado: ninguno';
+    }
+    const nombre = this.selectedRol.nombre || this.selectedRol.alias || 'Sin nombre';
+    const alias = this.selectedRol.alias ? ` · ${this.selectedRol.alias}` : '';
+    return `Rol seleccionado: ${nombre}${alias}`;
   }
 
   get copySourceRole(): RolDto | null {
@@ -543,6 +565,21 @@ export class RolesPermisosAdminComponent implements OnInit {
     this.permisosSubTab = 'catalogo';
   }
 
+  openNuevoPermiso(): void {
+    this.openPermisosCatalogo();
+    this.newPermiso();
+  }
+
+  showRolesTab(): void {
+    this.activeTab = 'roles';
+    this.permisosSubTab = 'catalogo';
+  }
+
+  showPermisosTab(): void {
+    this.activeTab = 'permisos';
+    this.permisosSubTab = 'catalogo';
+  }
+
   openAsignacionMasivaForRol(rol: RolDto): void {
     this.selectRol(rol);
     this.activeTab = 'permisos';
@@ -558,6 +595,7 @@ export class RolesPermisosAdminComponent implements OnInit {
       descripcion: permiso?.descripcion ?? '',
       modulo: permiso?.modulo ?? 'admin',
       estado_id: this.permisoEstadoId(permiso) ? 1 : 0,
+      es_menu: this.permisoEsMenu(permiso),
       grupo: permiso?.grupo ?? ''
     });
   }
@@ -570,7 +608,7 @@ export class RolesPermisosAdminComponent implements OnInit {
   }
 
   newPermiso(): void {
-    this.permisoForm.reset({ id: null, nombre: '', alias: '', descripcion: '', modulo: 'admin', estado_id: 1, grupo: '' });
+    this.permisoForm.reset({ id: null, nombre: '', alias: '', descripcion: '', modulo: 'admin', estado_id: 1, es_menu: 0, grupo: '' });
     this.selectedPermisoId = null;
   }
 
@@ -636,7 +674,8 @@ export class RolesPermisosAdminComponent implements OnInit {
       descripcion: String(raw.descripcion || '').trim() || null,
       modulo,
       grupo: String(raw.grupo || '').trim() || null,
-      estado: estadoId
+      estado: estadoId,
+      es_menu: Number(raw.es_menu) === 1 ? 1 : 0
     };
 
     if (this.isDuplicatePermisoAlias(payload.alias, raw.id)) {
@@ -670,6 +709,15 @@ export class RolesPermisosAdminComponent implements OnInit {
     }
     this.permisos = nextPermisos;
     this.rolPermisos = this.rolPermisos.map((item) => Number(item?.id) === id ? { ...item, ...permiso } : item);
+  }
+
+  permisoEsMenu(permiso: PermisoDto | null | undefined): 0 | 1 {
+    const raw = permiso?.es_menu ?? (permiso as any)?.esMenu ?? (permiso as any)?.es_menu_id;
+    return Number(raw) === 1 || raw === true ? 1 : 0;
+  }
+
+  permisoEsMenuLabel(permiso: PermisoDto | null | undefined): string {
+    return this.permisoEsMenu(permiso) === 1 ? 'Sí' : 'No';
   }
 
   permisoEstadoId(permiso: PermisoDto | null | undefined): 0 | 1 {
@@ -990,6 +1038,7 @@ export class RolesPermisosAdminComponent implements OnInit {
       return;
     }
     this.deleteContext = { type, id, rolId };
+    this.deleteModalTitle = type === 'permiso' ? 'Eliminar permiso' : 'Confirmar eliminación';
     this.deleteModalMessage = message || '¿Está seguro de eliminar el registro?';
     this.deleteModalVisible = true;
   }

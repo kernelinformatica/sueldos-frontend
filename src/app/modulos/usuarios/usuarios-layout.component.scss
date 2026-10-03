@@ -1,0 +1,19 @@
+.usuarios-shell {
+  margin-left: 240px;
+  padding: 1rem 1.5rem 2rem;
+  padding-top: 60px;
+  min-height: calc(100vh - 60px);
+  transition: margin-left 0.2s ease;
+}
+
+.usuarios-shell.collapsed {
+  margin-left: 88px;
+}
+
+@media (max-width: 991.98px) {
+  .usuarios-shell,
+  .usuarios-shell.collapsed {
+    margin-left: 0;
+    padding-top: 56px;
+  }
+}

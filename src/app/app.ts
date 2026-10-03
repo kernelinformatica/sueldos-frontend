@@ -2,13 +2,15 @@ import { Component, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { ToastContainerComponent } from './core/toast-container.component';
 import { FloatingQuickAccessComponent } from './core/layout/floating-quick-access.component';
+import { LoadingScreenComponent } from './shared/loading-screen/loading-screen.component';
 import { filter } from 'rxjs';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, ToastContainerComponent, FloatingQuickAccessComponent],
+  imports: [RouterOutlet, ToastContainerComponent, FloatingQuickAccessComponent, LoadingScreenComponent],
   template: `
     <router-outlet></router-outlet>
+    <app-loading-screen></app-loading-screen>
     <app-toast-container></app-toast-container>
      @if (!isLogin()) {
       <app-floating-quick-access></app-floating-quick-access>

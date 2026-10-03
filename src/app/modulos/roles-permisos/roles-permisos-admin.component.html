@@ -1,18 +1,30 @@
 <div class="listado-empleados text-sm roles-permisos-shell">
   <app-loading-spinner [visible]="isBusy" [centered]="true" [text]="busyLabel" [backdropOpacity]="0.12" [size]="34"></app-loading-spinner>
   <div class="hero-card">
-    <div>
-      <p class="eyebrow">Módulos / Permisos</p>
-      <h1>Gestión de Permisos</h1>
-      <p>Administración y control de permisos del sistema.</p>
-    </div>
-    <div class="hero-actions">
-      <button type="button" class="btn-action btn-icon" title="Roles" (click)="activeTab = 'roles'">
-        <i class="bi bi-shield-lock"></i>
-      </button>
-      <button type="button" class="btn-action btn-icon" title="Catálogo de Permisos Globales" (click)="openPermisosCatalogo()">
-        <i class="bi bi-key"></i>
-      </button>
+    <div class="hero-card-content">
+      <div>
+        <div class="module-breadcrumb">
+          <a routerLink="/modulos">Módulos</a>
+          <span>/</span>
+          <span>Roles y Permisos</span>
+        </div>
+        <h1>{{ heroTitle }}</h1>
+        <p>{{ heroSubtitle }}</p>
+        <div class="hero-role-chip" *ngIf="heroSelectedRoleLabel">
+          <i class="bi bi-person-badge-fill"></i>
+          <span>{{ heroSelectedRoleLabel }}</span>
+        </div>
+      </div>
+      <div class="hero-actions">
+        <button type="button" class="btn-action hero-action-btn" [class.btn-primary]="activeTab === 'roles'" [class.is-active]="activeTab === 'roles'" (click)="showRolesTab()" aria-label="Ir a roles" title="Roles">
+          <i class="bi bi-diagram-3"></i>
+          <span>Roles</span>
+        </button>
+        <button type="button" class="btn-action hero-action-btn" [class.btn-primary]="activeTab === 'permisos'" [class.is-active]="activeTab === 'permisos'" (click)="showPermisosTab()" aria-label="Ir a permisos" title="Permisos">
+          <i class="bi bi-key"></i>
+          <span>Permisos</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -343,12 +355,13 @@
                     <th>Nombre</th>
                     <th>Descripción</th>
                     <th>Módulo</th>
+                    <th>Es menú</th>
                     <th>Estado</th>
                     <th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let permiso of item.permisos" [class.active-row]="selectedPermisoId === permiso.id" (click)="selectPermiso(permiso)">
+                  <tr *ngFor="let permiso of item.permisos" [class.active-row]="selectedPermisoId === permiso.id" [class.perm-row-disabled]="permisoEstadoId(permiso) === 0" (click)="selectPermiso(permiso)">
                     <td>{{ permiso.id || '-' }}</td>
                     <td>
                       <div class="perm-table-name">
@@ -362,20 +375,32 @@
                     <td><span class="perm-desc">{{ permiso.descripcion || 'Sin descripción' }}</span></td>
                     <td>{{ permiso.modulo || '-' }}</td>
                     <td>
+                      <span class="pill" [class.pill-info]="permisoEsMenu(permiso) === 1">
+                        <i class="bi" [ngClass]="permisoEsMenu(permiso) === 1 ? 'bi-grid-1x2-fill' : 'bi-grid'"></i>
+                        {{ permisoEsMenuLabel(permiso) }}
+                      </span>
+                    </td>
+                    <td>
                       <span class="pill" [class.pill-success]="permisoEstadoId(permiso) === 1" [class.pill-danger]="permisoEstadoId(permiso) === 0">
                         {{ permisoEstadoLabel(permiso) }}
                       </span>
                     </td>
                     <td>
                       <div class="row-actions row-actions-right">
+                        <!-- Desactivar / Activar: solo cambia el estado, no borra el permiso -->
+                        <button type="button" class="btn-action btn-icon btn-state btn-warning" *ngIf="permisoEstadoId(permiso) === 1 && permiso.alias !== 'permisos_abm'" (click)="togglePermisoEstado(permiso); $event.stopPropagation()" aria-label="Desactivar permiso" title="Desactivar permiso">
+                          <i class="bi bi-toggle-on"></i>
+                        </button>
+                        <button type="button" class="btn-action btn-icon btn-state btn-success" *ngIf="permisoEstadoId(permiso) === 0" (click)="togglePermisoEstado(permiso); $event.stopPropagation()" aria-label="Activar permiso" title="Activar permiso">
+                          <i class="bi bi-toggle-off"></i>
+                        </button>
                         <button type="button" class="btn-action btn-icon" (click)="selectPermiso(permiso); $event.stopPropagation()" aria-label="Editar permiso" title="Editar permiso">
                           <i class="bi bi-pencil-square"></i>
                         </button>
-                        <button type="button" class="btn-action btn-icon btn-state btn-danger" *ngIf="permisoEstadoId(permiso) === 1 && permiso.alias !== 'permisos_abm'" (click)="togglePermisoEstado(permiso); $event.stopPropagation()" aria-label="Desactivar permiso" title="Desactivar permiso">
+
+                        <!-- Eliminar: borra definitivamente el permiso del catálogo -->
+                        <button type="button" class="btn-action btn-icon btn-danger" *ngIf="permiso.alias !== 'permisos_abm'" (click)="confirmDelete('permiso', permiso.id || 0, undefined, '¿Eliminar definitivamente el permiso <strong>' + (permiso.nombre || permiso.alias) + '</strong>?<br>Esta acción no se puede deshacer y afecta a todos los roles que lo tengan asignado.'); $event.stopPropagation()" aria-label="Eliminar permiso" title="Eliminar permiso">
                           <i class="bi bi-trash"></i>
-                        </button>
-                        <button type="button" class="btn-action btn-icon btn-state btn-success" *ngIf="permisoEstadoId(permiso) === 0" (click)="togglePermisoEstado(permiso); $event.stopPropagation()" aria-label="Activar permiso" title="Activar permiso">
-                          <i class="bi bi-check-circle"></i>
                         </button>
                       </div>
                     </td>
@@ -396,7 +421,7 @@
     </article>
 
     <article class="panel detail-panel" *ngIf="activeTab === 'permisos' && permisosSubTab === 'catalogo'">
-      
+
 
       <div class="panel-header">
         <h4>Detalle de permiso global</h4>
@@ -426,6 +451,13 @@
           <select formControlName="estado_id">
             <option [ngValue]="1">Activo</option>
             <option [ngValue]="0">Inactivo</option>
+          </select>
+        </label>
+        <label>
+          <span>¿Es menú?</span>
+          <select formControlName="es_menu">
+            <option [ngValue]="0">No — no aparece en el selector de módulos</option>
+            <option [ngValue]="1">Sí — se muestra en el selector de módulos</option>
           </select>
         </label>
         <label>

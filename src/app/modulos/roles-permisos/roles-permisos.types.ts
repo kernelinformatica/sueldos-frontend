@@ -22,7 +22,7 @@ export interface PermisoDto {
   modulo?: string | null;
   grupo?: string | null;
   ruta?: string | null;
-  es_menu?: boolean;
+  es_menu?: boolean | number;
   estado_id?: number;
   estado?: number | boolean;
 }

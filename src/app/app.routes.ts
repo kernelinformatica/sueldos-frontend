@@ -53,6 +53,15 @@ export const routes: Routes = [
       { path: 'libros/:id', loadComponent: () => import('./modulos/sueldos/libros-sueldos/libro-detalle.component').then(m => m.LibroDetalleComponent) }
     ]
   },
+  { path: 'admin/usuarios', canActivate: [AuthGuard], loadChildren: () => import('./modulos/usuarios/usuarios.routes').then(m => m.usuariosRoutes) },
+  {
+    path: 'mi-perfil',
+    canActivate: [AuthGuard],
+    loadComponent: () => import('./modulos/usuarios/usuarios-layout.component').then(m => m.UsuariosLayoutComponent),
+    children: [
+      { path: 'cambiar-password', loadComponent: () => import('./modulos/usuarios/usuario-password.component').then(m => m.UsuarioPasswordComponent) }
+    ]
+  },
   { path: 'admin/roles-permisos', canActivate: [RolesPermisosGuard], loadComponent: () => import('./modulos/roles-permisos/roles-permisos-layout.component').then(m => m.RolesPermisosLayoutComponent),
     children: [
       { path: '', loadComponent: () => import('./modulos/roles-permisos/roles-permisos-admin.component').then(m => m.RolesPermisosAdminComponent) }

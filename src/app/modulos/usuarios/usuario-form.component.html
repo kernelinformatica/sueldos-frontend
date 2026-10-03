@@ -1,0 +1,120 @@
+<div class="usuario-form-shell">
+  <app-loading-spinner></app-loading-spinner>
+
+  <div class="hero-card">
+    <div class="hero-card-content">
+      <div>
+        <div class="module-breadcrumb">
+          <a routerLink="/modulos">Módulos</a>
+          <span>/</span>
+          <a routerLink="/admin/usuarios">Usuarios</a>
+          <span>/</span>
+          <span>{{ titulo }}</span>
+        </div>
+        <h1>{{ titulo }}</h1>
+        <p>Datos del usuario y asignación de rol</p>
+      </div>
+      <div class="hero-actions">
+        <button type="button" class="btn-action btn-icon" (click)="volver()" title="Volver al listado" aria-label="Volver al listado">
+          <i class="bi bi-arrow-left"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-card">
+    <form [formGroup]="form" (ngSubmit)="guardar()">
+      <div class="form-grid">
+        <div class="field">
+          <label for="rol">Rol</label>
+          <select id="rol" formControlName="rol_id">
+            <option [ngValue]="null">Seleccione un rol</option>
+            <option *ngFor="let rol of roles" [ngValue]="rol.rol_id || rol.id">
+              {{ rol.nombre || 'Sin nombre' }}
+            </option>
+          </select>
+          <small class="field-error" *ngIf="form.get('rol_id')?.touched && form.get('rol_id')?.invalid">Debe seleccionar un rol.</small>
+        </div>
+
+        <div class="field">
+          <label for="username">Usuario</label>
+          <input id="username" type="text" formControlName="username" maxlength="50" placeholder="Ingrese el username" />
+          <small class="field-error" *ngIf="form.get('username')?.touched && form.get('username')?.invalid">Ingrese un username válido.</small>
+        </div>
+
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" formControlName="email" maxlength="150" placeholder="correo@dominio.com" />
+          <small class="field-error" *ngIf="form.get('email')?.touched && form.get('email')?.invalid">Ingrese un email válido.</small>
+        </div>
+
+        <div class="field">
+          <label for="nombre">Nombre</label>
+          <input id="nombre" type="text" formControlName="nombre" maxlength="100" placeholder="Nombre" />
+          <small class="field-error" *ngIf="form.get('nombre')?.touched && form.get('nombre')?.invalid">Ingrese el nombre.</small>
+        </div>
+
+        <div class="field">
+          <label for="apellido">Apellido</label>
+          <input id="apellido" type="text" formControlName="apellido" maxlength="100" placeholder="Apellido" />
+          <small class="field-error" *ngIf="form.get('apellido')?.touched && form.get('apellido')?.invalid">Ingrese el apellido.</small>
+        </div>
+
+        <ng-container *ngIf="!isEditMode">
+          <div class="field">
+            <label for="password">Contraseña</label>
+            <input id="password" type="password" formControlName="password" autocomplete="new-password" placeholder="Contraseña" />
+            <small class="field-error" *ngIf="passwordControl?.touched && passwordControl?.invalid">Ingrese una contraseña segura.</small>
+          </div>
+
+          <div class="field">
+            <label for="confirm_password">Confirmar contraseña</label>
+            <input id="confirm_password" type="password" formControlName="confirm_password" autocomplete="new-password" placeholder="Confirme la contraseña" />
+            <small class="field-error" *ngIf="confirmPasswordControl?.touched && (confirmPasswordControl?.invalid || form.errors?.['passwordMismatch'])">Las contraseñas no coinciden.</small>
+          </div>
+        </ng-container>
+
+        <div class="field">
+          <label for="estado">Estado</label>
+          <select id="estado" formControlName="estado_id">
+            <option [ngValue]="1">Activo</option>
+            <option [ngValue]="2">Inactivo</option>
+          </select>
+        </div>
+      </div>
+
+      <div *ngIf="error" class="form-error-box">
+        {{ error }}
+      </div>
+
+      <div class="form-footer">
+        <button type="button" class="btn-secondary-action" (click)="volver()">Cancelar</button>
+        <button type="submit" class="btn-primary-action" [disabled]="saving">
+          {{ saving ? 'Guardando...' : submitLabel }}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <app-modal-alerta
+    [visible]="resultVisible"
+    [titulo]="resultTitle"
+    [mensaje]="resultMessage"
+    [icono]="'bi bi-check-circle-fill'"
+    [accentColor]="'#198754'"
+    [buttonColor]="'#198754'"
+    [esConfirmacion]="false"
+    (cerrar)="cerrarResultado()">
+  </app-modal-alerta>
+
+  <app-modal-alerta
+    [visible]="errorVisible"
+    [titulo]="errorTitle"
+    [mensaje]="errorMessage"
+    [icono]="'bi bi-exclamation-triangle-fill'"
+    [accentColor]="'#d32f2f'"
+    [buttonColor]="'#d32f2f'"
+    [esConfirmacion]="false"
+    (cerrar)="cerrarError()">
+  </app-modal-alerta>
+</div>

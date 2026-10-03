@@ -1,0 +1,21 @@
+<div
+  class="boot-overlay"
+  [class.is-hiding]="hiding()"
+  role="status"
+  aria-live="polite"
+  aria-busy="true"
+  aria-label="Cargando la aplicación"
+>
+  <div class="boot-card">
+    <div class="boot-spinner" aria-hidden="true">
+      <span class="boot-spinner-track"></span>
+      <span class="boot-spinner-arc"></span>
+    </div>
+
+    <p class="boot-text">Cargando...</p>
+
+    <div class="boot-bar" aria-hidden="true">
+      <span class="boot-bar-fill"></span>
+    </div>
+  </div>
+</div>

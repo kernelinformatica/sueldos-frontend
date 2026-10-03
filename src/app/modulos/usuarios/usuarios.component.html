@@ -1,0 +1,202 @@
+<div class="listado-usuarios text-sm">
+  <app-loading-spinner></app-loading-spinner>
+
+  <div class="hero-card">
+    <div class="hero-card-content">
+      <div>
+        <div class="module-breadcrumb">
+          <a routerLink="/modulos">Módulos</a>
+          <span>/</span>
+          <span>Usuarios</span>
+        </div>
+        <h1>Usuarios</h1>
+        <p>
+          Gestión de usuarios
+          <span class="badge">{{ total }}</span>
+        </p>
+      </div>
+      <div class="hero-actions">
+        <button type="button" class="btn-action btn-icon" (click)="recargar()" aria-label="Recargar listado" title="Recargar listado">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+        <button *ngIf="canCreate" type="button" class="btn-action btn-primary hero-action-btn" (click)="crearUsuario()" aria-label="Nuevo usuario" title="Nuevo usuario">
+          <i class="bi bi-person-plus-fill"></i>
+          <span>Nuevo usuario</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="filtros-box">
+    <div class="filtros-header">
+      <div class="filtros-header-title">
+        <i class="bi bi-funnel-fill"></i>
+        <span>Filtros de búsqueda</span>
+        <span class="filtros-badge" *ngIf="filtrosActivosCount">{{ filtrosActivosCount }} activo{{ filtrosActivosCount === 1 ? '' : 's' }}</span>
+      </div>
+      <div class="filtros-header-meta">
+        <span>Estado: {{ estadoLabelSeleccionado }}</span>
+      </div>
+    </div>
+
+    <div class="filtros-panel">
+      <div class="filtro-item filtro-wide">
+        <label for="searchUsuarios">Buscar usuarios</label>
+        <div class="input-search">
+          <i class="bi bi-search"></i>
+          <input id="searchUsuarios" type="text" [ngModel]="search" (ngModelChange)="onSearchInput($event)" placeholder="Buscar por usuario, email, nombre o apellido" />
+        </div>
+      </div>
+
+      <div class="filtro-item">
+        <label for="empresaFiltro">Empresa</label>
+        <select id="empresaFiltro" [ngModel]="empresaIdFiltro" (ngModelChange)="onEmpresaChange($event)" [disabled]="!canChangeEmpresa">
+          <option [ngValue]="null">Todas</option>
+          <option *ngFor="let empresa of empresas" [ngValue]="empresa.empresa_id || empresa.id">
+            {{ empresa.nombre_fantasia || empresa.nombre || empresa.codigo_empresa || empresa.codigo || 'Sin nombre' }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filtro-item">
+        <label for="rolFiltro">Rol</label>
+        <select id="rolFiltro" [ngModel]="rolIdFiltro" (ngModelChange)="onRolChange($event)">
+          <option [ngValue]="null">Todos</option>
+          <option *ngFor="let rol of roles" [ngValue]="rol.rol_id || rol.id">
+            {{ rol.nombre || 'Sin nombre' }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filtro-item filtro-small">
+        <label for="estadoFiltro">Estado</label>
+        <select id="estadoFiltro" [ngModel]="estadoFiltro" (ngModelChange)="onEstadoChange($event)">
+          <option [ngValue]="null">Todos</option>
+          <option [ngValue]="1">Activo</option>
+          <option [ngValue]="2">Inactivo</option>
+        </select>
+      </div>
+
+      <div class="filtro-actions">
+        <button type="button" class="btn-action btn-icon" (click)="limpiarFiltros()" aria-label="Limpiar filtros" title="Limpiar filtros" [disabled]="!filtrosActivosCount">
+          <i class="bi bi-eraser-fill"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-box">
+    Cargando usuarios...
+  </div>
+
+  <div *ngIf="!loading && error" class="error-box">
+    {{ error }}
+  </div>
+
+  <div *ngIf="!loading && !error && usuarios.length === 0" class="empty-box">
+    No hay usuarios para mostrar.
+  </div>
+
+  <div *ngIf="!loading && !error && usuarios.length > 0" class="table-wrap">
+    <table class="usuarios-table">
+      <thead>
+        <tr>
+          <th>Usuario</th>
+          <th>Nombre</th>
+          <th>Apellido</th>
+          <th>Email</th>
+          <th>Empresa</th>
+          <th>Rol</th>
+          <th>Estado</th>
+          <th>Último acceso</th>
+          <th>Cambio de contraseña</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let usuario of usuarios" [class.usuario-row-inactive]="!isActive(usuario)">
+          <td>
+            <div class="usuario-cell">
+              <div class="usuario-avatar">
+                <i class="bi bi-person-fill"></i>
+              </div>
+              <div>
+                <div class="usuario-nombre">{{ usuarioUsername(usuario) }}</div>
+                <div class="usuario-meta" *ngIf="isBlocked(usuario)">
+                  <span class="badge-locked">Bloqueado</span>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td>{{ usuario?.nombre || '-' }}</td>
+          <td>{{ usuario?.apellido || '-' }}</td>
+          <td>{{ usuario?.email || '-' }}</td>
+          <td>{{ empresaLabel(usuario) }}</td>
+          <td>{{ rolLabel(usuario) }}</td>
+          <td>
+            <span class="badge-state" [class.badge-state-inactive]="!isActive(usuario)">
+              {{ estadoLabel(usuario) }}
+            </span>
+          </td>
+          <td>{{ usuario?.ultimo_acceso ? (usuario?.ultimo_acceso | date:'dd/MM/yyyy HH:mm') : '-' }}</td>
+          <td>{{ usuario?.password_fecha_cambio ? (usuario?.password_fecha_cambio | date:'dd/MM/yyyy HH:mm') : '-' }}</td>
+          <td>
+            <div class="row-actions">
+              <button *ngIf="puedeEditar(usuario)" type="button" class="btn-action btn-icon" (click)="editarUsuario(usuario)" title="Editar usuario" aria-label="Editar usuario">
+                <i class="bi bi-pencil-square"></i>
+              </button>
+              <button *ngIf="puedeResetear(usuario)" type="button" class="btn-action btn-icon" (click)="cambiarPassword(usuario)" title="Cambiar contraseña" aria-label="Cambiar contraseña">
+                <i class="bi bi-key-fill"></i>
+              </button>
+              <button *ngIf="puedeDesbloquear(usuario)" type="button" class="btn-action btn-icon" (click)="abrirConfirmacion(usuario, 'desbloquear')" title="Desbloquear usuario" aria-label="Desbloquear usuario">
+                <i class="bi bi-unlock-fill"></i>
+              </button>
+              <button *ngIf="puedeActivar(usuario)" type="button" class="btn-action btn-icon" (click)="abrirConfirmacion(usuario, 'activar')" title="Activar usuario" aria-label="Activar usuario">
+                <i class="bi bi-toggle-on"></i>
+              </button>
+              <button *ngIf="puedeDesactivar(usuario)" type="button" class="btn-action btn-icon btn-danger" (click)="abrirConfirmacion(usuario, 'desactivar')" title="Desactivar usuario" aria-label="Desactivar usuario">
+                <i class="bi bi-toggle-off"></i>
+              </button>
+              <button *ngIf="canChangeStatus && !!usuario?.usuario_id" type="button" class="btn-action btn-icon btn-danger" (click)="abrirConfirmacion(usuario, 'eliminar')" title="Eliminar usuario" aria-label="Eliminar usuario">
+                <i class="bi bi-trash-fill"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination-bar" *ngIf="totalPages > 1">
+    <div class="pagination-info">
+      Mostrando página {{ page }} de {{ totalPages }} · {{ total }} registros
+    </div>
+    <div class="pagination-actions">
+      <select [ngModel]="limit" (ngModelChange)="cambiarLimite($event)">
+        <option [ngValue]="10">10</option>
+        <option [ngValue]="20">20</option>
+        <option [ngValue]="50">50</option>
+      </select>
+      <button type="button" class="btn-action btn-icon" (click)="irPagina(page - 1)" [disabled]="page <= 1" title="Página anterior" aria-label="Página anterior">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      <button type="button" class="btn-action btn-icon" (click)="irPagina(page + 1)" [disabled]="page >= totalPages" title="Siguiente página" aria-label="Siguiente página">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <app-modal-alerta
+    [visible]="confirmVisible"
+    [titulo]="confirmTitle"
+    [mensaje]="confirmMessage"
+    [icono]="confirmIcon"
+    [esConfirmacion]="true"
+    [bloquearCierre]="confirmSpinner"
+    [mostrarSpinner]="confirmSpinner"
+    [textoSpinner]="confirmSpinnerText"
+    [accentColor]="confirmAccentColor"
+    [buttonColor]="confirmButtonColor"
+    (cerrar)="cerrarConfirmacion($event)">
+  </app-modal-alerta>
+</div>
