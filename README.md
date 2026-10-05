@@ -35,6 +35,13 @@ ng build
 
 This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
 
+### SPA routing in production
+
+Internal navigation must use Angular `Router` or `routerLink`, not `window.location.href`.
+The web server must also serve `index.html` for frontend routes such as
+`/admin/conceptos/grupos/editar?id=45` when opened directly or refreshed.
+Keep API requests and static assets outside this fallback so their real errors are preserved.
+
 ## Running unit tests
 
 To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:

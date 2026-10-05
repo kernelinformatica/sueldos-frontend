@@ -727,6 +727,16 @@
   overflow: visible;
 }
 
+// Ancla el desplegable de obras sociales justo debajo de su campo,
+// por encima de los campos siguientes.
+.obra-social-field {
+  position: relative;
+  z-index: 20;
+  overflow: visible;
+}
+.obra-social-field .autocomplete-wrap { z-index: 2; }
+.obra-social-field .autocomplete-panel { z-index: 41; }
+
 .autocomplete-wrap { position:relative; }
 .autocomplete-wrap input { padding-right:2.2rem; }
 .clear-localidad { position:absolute; right:0.4rem; top:50%; transform:translateY(-50%); border:0; background:transparent; color:#667085; font-size:1.2rem; line-height:1; cursor:pointer; }

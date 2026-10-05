@@ -42,11 +42,27 @@
   width: 220px;
   border-radius: 12px;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 0.28s ease,
+    filter 0.28s ease;
   background: rgba(255, 255, 255, 0.92);
   border: 2px solid transparent;
   position: relative;
   overflow: hidden;
+  transform-origin: center center;
+  will-change: transform, box-shadow;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(40, 53, 147, 0.08), rgba(255, 255, 255, 0));
+    opacity: 0;
+    transition: opacity 0.28s ease;
+    pointer-events: none;
+  }
 
   // Animación de entrada escalonada (delay via --enter-delay)
   &.module-card--enter {
@@ -195,9 +211,18 @@
   }
 
   &:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 8px 24px rgba(0, 188, 212, 0.25);
+    transform: translateY(-7px);
+    box-shadow: 0 14px 32px rgba(0, 188, 212, 0.28);
     border-color: var(--primary-color);
+    filter: saturate(1.05);
+
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  &:active {
+    transform: translateY(-3px);
   }
 
   .module-icon {
@@ -263,16 +288,15 @@
 }
 
 .module-row {
-  overflow-x: auto;
+  overflow: visible;
   padding: 0.25rem 0.25rem 0.75rem;
-  scroll-snap-type: x proximity;
   width: 100%;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
 .module-row .module-card {
   flex: 0 0 auto;
-  scroll-snap-align: start;
 }
 
 @keyframes moduleCardEnter {

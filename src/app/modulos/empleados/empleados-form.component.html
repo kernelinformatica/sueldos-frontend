@@ -155,7 +155,8 @@
                 [value]="localidadQuery"
                 (input)="onLocalidadInputChange($any($event.target).value)"
                 placeholder="Escribí al menos 3 letras para buscar"
-                autocomplete="off" />
+                  autocomplete="off" />
+              <input formControlName="localidad_id" type="hidden" />
               <button *ngIf="localidadQuery" type="button" class="clear-localidad" (click)="clearLocalidad()" aria-label="Limpiar localidad">×</button>
             </div>
             <div class="autocomplete-panel" *ngIf="localidadLoading || localidadResultados.length || localidadError">
@@ -306,7 +307,7 @@
               </option>
             </select>
           </div>
-          <div class="field field-wide">
+          <div class="field field-wide obra-social-field">
             <label>Obra social</label>
             <div class="autocomplete-wrap">
               <input
@@ -316,8 +317,7 @@
                 placeholder="Buscar por código o nombre"
                 autocomplete="off" />
               <button *ngIf="obraSocialQuery" type="button" class="clear-localidad" (click)="clearObraSocial()" aria-label="Limpiar obra social">×</button>
-            </div>
-            <div class="autocomplete-panel" *ngIf="obraSocialLoading || obraSocialResultados.length || obraSocialError">
+              <div class="autocomplete-panel" *ngIf="obraSocialLoading || obraSocialResultados.length || obraSocialError">
               <div class="autocomplete-status" *ngIf="obraSocialLoading">Buscando obras sociales...</div>
               <div class="autocomplete-status error" *ngIf="!obraSocialLoading && obraSocialError">{{ obraSocialError }}</div>
               <ng-container *ngIf="!obraSocialLoading && !obraSocialError">
@@ -336,8 +336,8 @@
                 </button>
                 <div class="autocomplete-status" *ngIf="!obraSocialResultados.length">Sin resultados</div>
               </ng-container>
+              </div>
             </div>
-            
           </div>
           <div class="field">
             <label>Estado empleado  </label>

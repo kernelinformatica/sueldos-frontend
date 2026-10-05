@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { GruposService } from './grupos.service';
 import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
@@ -33,7 +33,7 @@ export class GruposComponent implements OnInit {
   errorModalMessage = '';
   errorModalIcon = 'bi bi-exclamation-triangle-fill';
 
-  constructor(private svc: GruposService, private cdr: ChangeDetectorRef, private toast: ToastService, private auth: AuthService) {}
+  constructor(private svc: GruposService, private cdr: ChangeDetectorRef, private toast: ToastService, private auth: AuthService, private router: Router) {}
 
   ngOnInit(): void { this.load(); }
 
@@ -59,18 +59,20 @@ export class GruposComponent implements OnInit {
   get canDelete() { try { const p = this.auth.getPermissions()||[]; return p.some((x:any)=> typeof x==='string'? x==='grupos_eliminar' : x?.alias==='grupos_eliminar'); } catch { return false; } }
 
   newGrupo() {
-    // navigate to the group form route - route should be added in app routes; fallback: open /admin/conceptos/grupos/alta
-    window.location.href = '/admin/conceptos/grupos/alta';
+    this.router.navigate(['/admin/conceptos/grupos/alta']);
   }
 
-  edit(gr:any) { window.location.href = `/admin/conceptos/grupos/editar?id=${gr.grupo_id || gr.id}`; }
+  edit(gr: { grupo_id?: number; id?: number }) {
+    const id = gr?.grupo_id || gr?.id;
+    if (!id) { this.toast.error('Grupo inválido'); return; }
+    this.router.navigate(['/admin/conceptos/grupos/editar'], { queryParams: { id } });
+  }
 
   relacionar(gr:any) {
     if (!this.canRelate) { this.toast.error('Sin permisos para relacionar conceptos'); return; }
     const id = gr?.grupo_id || gr?.id;
     if (!id) { this.toast.error('Grupo inválido'); return; }
-    // Navega a la pantalla de relación (se diseñará luego)
-    window.location.href = `/admin/conceptos/grupos/relacionar?id=${id}`;
+    this.router.navigate(['/admin/conceptos/grupos/relacionar'], { queryParams: { id } });
   }
 
   toggleConceptos(gr:any) {
