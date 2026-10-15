@@ -8,7 +8,11 @@ import { CommonModule } from '@angular/common';
   template: `
     <div class="modal-backdrop" *ngIf="visible" (click)="onBackdropClick()"></div>
     <div class="modal-container" *ngIf="visible">
-      <div class="modal-content">
+      <div class="modal-content"
+        [style.width]="width"
+        [style.minWidth]="minWidth"
+        [style.maxWidth]="maxWidth"
+        [style.maxHeight]="maxHeight">
         <div class="modal-header">
           <span *ngIf="icono" class="modal-icono" [ngClass]="icono" [style.color]="accentColor" style="margin-right:0.7em;font-size:1.3em;"></span>
           <span class="modal-title">{{ titulo }}</span>
@@ -39,7 +43,7 @@ import { CommonModule } from '@angular/common';
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0,0,0,0.25);
-      z-index: 1000;
+      z-index: 3000;
       animation: fadeIn 0.2s;
     }
     .modal-container {
@@ -48,13 +52,12 @@ import { CommonModule } from '@angular/common';
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 1001;
+      z-index: 3001;
       pointer-events: none;
     }
     .modal-content {
       background: #fff;
       border-radius: 12px;
-      width: 50vw;
       min-width: 320px;
       max-width: 480px;
       margin: 0 auto;
@@ -100,6 +103,7 @@ import { CommonModule } from '@angular/common';
       color: #444;
       min-width: 200px;
       text-align: left;
+      overflow: auto;
     }
     .modal-spinner-wrap {
       display: flex;
@@ -168,6 +172,10 @@ export class ModalAlertaComponent {
   @Input() bloquearCierre: boolean = false;
   @Input() accentColor = '#198754';
   @Input() buttonColor = '#198754';
+  @Input() width = '50vw';
+  @Input() minWidth = '320px';
+  @Input() maxWidth = '480px';
+  @Input() maxHeight = 'none';
   @Output() cerrar = new EventEmitter<boolean>();
 
   onClose(confirmado: boolean = false) {

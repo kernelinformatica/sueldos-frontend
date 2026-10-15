@@ -1,0 +1,233 @@
+<section class="detalle-page">
+  <app-loading-spinner [visible]="loading" [centered]="true" text="Cargando generación..."></app-loading-spinner>
+
+  <button type="button" class="btn-back" (click)="volver()">
+    <i class="bi bi-arrow-left"></i> Volver a generaciones
+  </button>
+
+  <div class="hero-card">
+    <div class="module-breadcrumb">
+      <a routerLink="/modulos">Módulos</a>
+      <span>/</span>
+      <a routerLink="/admin/impositivos">Impositivos</a>
+      <span>/</span>
+      <a routerLink="/admin/impositivos/sicoss">SICOS</a>
+      <span>/</span>
+      <span>Generación #{{ generacionId }}</span>
+    </div>
+    <h1>Generación SICOS #{{ generacionId }}</h1>
+    <p>Detalle de empleados y exportación del archivo ARCA.</p>
+    <div class="hero-acciones">
+      <button type="button" class="btn-secondary" (click)="abrirConfiguracionConceptos()" *ngIf="puedeConfigurarConceptos">
+        <i class="bi bi-diagram-3"></i> Configurar conceptos AFIP
+      </button>
+      <button type="button" class="btn-primary" (click)="abrirExport()" *ngIf="puedeExportar">
+        <i class="bi bi-file-earmark-arrow-up"></i> Subir archivo ARCA
+      </button>
+    </div>
+  </div>
+
+  <div class="config-help-card" *ngIf="puedeConfigurarConceptos">
+    <div class="config-help-icon"><i class="bi bi-diagram-3"></i></div>
+    <div class="config-help-content">
+      <h2>Configuración de conceptos SICOS / AFIP</h2>
+      <p>
+        Desde aquí podés ir al maestro de conceptos para asociar reglas, grupos y códigos AFIP.
+        Si no ves la información esperada, revisá el catálogo de conceptos de la empresa.
+      </p>
+    </div>
+  </div>
+
+  <div *ngIf="errorMsg" class="alert-error">{{ errorMsg }}</div>
+
+  <!-- Encabezado -->
+  <div class="meta-card" *ngIf="header">
+    <div class="meta-item">
+      <span>Período</span>
+      <strong>{{ periodoLegible }}</strong>
+    </div>
+    <div class="meta-item">
+      <span>Tipo de liquidación</span>
+      <strong>{{ header.tipo_liquidacion || '-' }}</strong>
+    </div>
+    <div class="meta-item">
+      <span>Estado</span>
+      <strong>{{ header.estado || '-' }}</strong>
+    </div>
+    <div class="meta-item">
+      <span>Empleados</span>
+      <strong>{{ header.total_empleados ?? items.length }}</strong>
+    </div>
+    <div class="meta-item">
+      <span>Remuneración total</span>
+      <strong>{{ money(header.total_rem ?? suma('rem_total')) }}</strong>
+    </div>
+    <div class="meta-item">
+      <span>Creada</span>
+      <strong>{{ fechaHora(header.created_at) }}</strong>
+    </div>
+    <div class="meta-item" *ngIf="totalAdvertencias > 0">
+      <span>Con advertencias</span>
+      <strong class="warn">{{ totalAdvertencias }}</strong>
+    </div>
+  </div>
+
+  <!-- Tabla de empleados -->
+  <div class="table-wrap" *ngIf="!loading && items.length > 0">
+    <table class="detalle-table">
+      <thead>
+        <tr>
+          <th>CUIL</th>
+          <th>Nombre</th>
+          <th class="num">Rem. total</th>
+          <th class="num">Asig. fam.</th>
+          <th class="num">Ap. voluntario</th>
+          <th class="num">Adic. OS</th>
+          <th class="num">Actividad</th>
+          <th class="num">Condición</th>
+          <th class="num">Zona</th>
+          <th>Advertencias</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of items" [class.con-warning]="advertencias(p).length > 0">
+          <td class="mono">{{ p.cuil }}</td>
+          <td>{{ p.nombre || '-' }}</td>
+          <td class="num">{{ money(p.rem_total) }}</td>
+          <td class="num">{{ money(p.asig_fam_pagadas) }}</td>
+          <td class="num">{{ money(p.imp_aporte_voluntario) }}</td>
+          <td class="num">{{ money(p.imp_adicional_os) }}</td>
+          <td class="num">{{ p.cod_actividad ?? '-' }}</td>
+          <td class="num">{{ p.cod_condicion ?? '-' }}</td>
+          <td class="num">{{ p.cod_zona ?? '-' }}</td>
+          <td class="small">
+            <span *ngIf="advertencias(p).length === 0">-</span>
+            <ul class="lista-warnings" *ngIf="advertencias(p).length > 0">
+              <li *ngFor="let w of advertencias(p)">{{ w }}</li>
+            </ul>
+          </td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2">Totales</td>
+          <td class="num">{{ money(suma('rem_total')) }}</td>
+          <td class="num">{{ money(suma('asig_fam_pagadas')) }}</td>
+          <td class="num">{{ money(suma('imp_aporte_voluntario')) }}</td>
+          <td class="num">{{ money(suma('imp_adicional_os')) }}</td>
+          <td colspan="4"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div class="empty-state" *ngIf="!loading && items.length === 0 && !errorMsg">
+    <p>La generación no tiene empleados para mostrar.</p>
+  </div>
+
+  <!-- Historial de archivos exportados -->
+  <div class="historial-card">
+    <div class="historial-head">
+      <h2><i class="bi bi-clock-history"></i> Archivos exportados</h2>
+      <button type="button" class="btn-secondary tiny" (click)="cargarExportaciones()"
+        [disabled]="exportacionesLoading">
+        <i class="bi" [ngClass]="exportacionesLoading ? 'bi-arrow-repeat spin' : 'bi-arrow-clockwise'"></i>
+        Recargar
+      </button>
+    </div>
+
+    <div class="historial-loading" *ngIf="exportacionesLoading">
+      <i class="bi bi-arrow-repeat spin"></i> Cargando exportaciones...
+    </div>
+
+    <div class="table-wrap" *ngIf="!exportacionesLoading && exportaciones.length > 0">
+      <table class="detalle-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Archivo</th>
+            <th>Formato</th>
+            <th>Hash SHA-256</th>
+            <th>Fecha</th>
+            <th class="acciones">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let e of exportaciones">
+            <td class="mono">{{ e.exportacion_id }}</td>
+            <td>{{ e.nombre_archivo || '-' }}</td>
+            <td>{{ e.formato || 'ARCA' }}</td>
+            <td class="mono hash-cell">{{ e.hash_contenido || e.hash || '-' }}</td>
+            <td class="small">{{ fechaHora(e.created_at) }}</td>
+            <td class="acciones">
+              <button type="button" class="icon-btn" (click)="descargar(e)"
+                [disabled]="descargandoId === e.exportacion_id"
+                title="Descargar archivo" aria-label="Descargar archivo">
+                <i class="bi"
+                  [ngClass]="descargandoId === e.exportacion_id ? 'bi-arrow-repeat spin' : 'bi-download'"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="historial-vacio" *ngIf="!exportacionesLoading && exportaciones.length === 0">
+      Todavía no hay archivos exportados para esta generación.
+    </div>
+  </div>
+
+  <!-- Modal exportar ARCA -->
+  <app-modal-alerta
+    [visible]="exportVisible"
+    titulo="Subir archivo ARCA"
+    [esConfirmacion]="false"
+    [mostrarSpinner]="exportando"
+    [bloquearCierre]="exportando"
+    (cerrar)="cerrarExport()">
+    <div *ngIf="!exportResultado" class="modal-export">
+      <div class="form-group">
+        <label>Nombre del archivo <span class="requerido">*</span></label>
+        <input class="form-control" type="text" [(ngModel)]="exportNombreArchivo" maxlength="120" [disabled]="exportando" />
+      </div>
+      <div class="form-group">
+        <label>Versión de layout</label>
+        <input class="form-control" type="text" [(ngModel)]="exportVersionLayout" maxlength="20" [disabled]="exportando" />
+      </div>
+      <div class="form-group">
+        <label>Archivo ARCA (.txt) <span class="requerido">*</span></label>
+        <input type="file" accept=".txt" (change)="onArchivoSeleccionado($event)" [disabled]="exportando" />
+      </div>
+
+      <div *ngIf="exportContenido" class="vista-previa">
+        <p class="vp-titulo"><i class="bi bi-eye"></i> Vista previa (primeras 10 líneas)</p>
+        <pre><code><span *ngFor="let l of exportVistaPrevia">{{ l }}
+</span></code></pre>
+      </div>
+
+      <div class="export-hint">
+        <i class="bi bi-info-circle"></i>
+        El archivo se envía al backend ya serializado. El sistema no genera el contenido ARCA automáticamente.
+      </div>
+
+      <div *ngIf="exportError" class="alert-error inline">{{ exportError }}</div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-primary" (click)="confirmarExport()" [disabled]="exportando">
+          <i class="bi" [ngClass]="exportando ? 'bi-arrow-repeat spin' : 'bi-cloud-arrow-up'"></i>
+          Subir
+        </button>
+        <button type="button" class="btn-secondary" (click)="cerrarExport()" [disabled]="exportando">Cerrar</button>
+      </div>
+    </div>
+
+    <div *ngIf="exportResultado" class="export-resultado">
+      <i class="bi bi-check-circle-fill"></i>
+      <div>
+        <p>Archivo exportado correctamente.</p>
+        <p class="hash-line">Archivo: <strong>{{ exportResultado.nombre_archivo }}</strong></p>
+        <p class="hash-line">Hash SHA-256: <code>{{ exportResultado.hash }}</code></p>
+      </div>
+    </div>
+  </app-modal-alerta>
+</section>

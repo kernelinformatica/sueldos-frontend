@@ -1,0 +1,406 @@
+<section class="sicoss-page">
+  <app-loading-spinner [visible]="loading" [centered]="true" text="Cargando generaciones..."></app-loading-spinner>
+
+  <div class="hero-card">
+    <div class="module-breadcrumb">
+      <a routerLink="/modulos">Módulos</a>
+      <span>/</span>
+      <a routerLink="/admin/impositivos">Impositivos</a>
+      <span>/</span>
+      <a routerLink="/admin/impositivos/subsistemas">Subsistemas</a>
+      <span>/</span>
+      <span>SICOS</span>
+    </div>
+    <h1>SICOS / ARCA</h1>
+    <p>Generaciones de Seguridad Social y exportación del archivo ARCA.</p>
+    <div class="hero-acciones">
+      <button type="button" class="btn-primary" (click)="abrirGenerar()" *ngIf="puedeCrear" [disabled]="loading">
+        <i class="bi bi-plus-lg"></i> Nueva generación
+      </button>
+      <a routerLink="/admin/impositivos/sicoss/configuracion" class="btn-secondary" *ngIf="puedeConfigurarSicoss">
+        <i class="bi bi-gear"></i> Configuración
+      </a>
+    </div>
+  </div>
+
+  <div class="filters-card">
+    <div class="filters-body">
+      <label>
+        <span>Mes</span>
+        <select [(ngModel)]="filtroMes">
+          <option value="">Todos</option>
+          <option *ngFor="let m of meses" [ngValue]="m.valor">{{ m.nombre }}</option>
+        </select>
+      </label>
+      <label>
+        <span>Año</span>
+        <input type="number" [(ngModel)]="filtroAnio" placeholder="2026" />
+      </label>
+      <label>
+        <span>Estado</span>
+        <select [(ngModel)]="filtroEstado">
+          <option value="">Todos</option>
+          <option value="creada">Creada</option>
+          <option value="exportada">Exportada</option>
+          <option value="con_errores">Con errores</option>
+        </select>
+      </label>
+      <div class="filter-actions">
+        <button type="button" class="btn-primary" (click)="buscar()" [disabled]="loading">
+          <i class="bi bi-search"></i> Buscar
+        </button>
+        <button type="button" class="btn-secondary" (click)="limpiarFiltros()">Limpiar</button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="errorMsg" class="alert-error">{{ errorMsg }}</div>
+
+  <div class="table-wrap" *ngIf="!loading && generacionesFiltradas.length > 0">
+    <table class="sicoss-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Período</th>
+          <th>Tipo</th>
+          <th class="num">Empleados</th>
+          <th>Estado</th>
+          <th>Creada</th>
+          <th class="acciones">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let g of generacionesFiltradas">
+          <td class="mono">#{{ g.generacion_id }}</td>
+          <td>{{ g.nombre || '-' }}</td>
+          <td>{{ periodoLegible(g) }}</td>
+          <td>{{ g.tipo_liquidacion || '-' }}</td>
+          <td class="num">{{ g.total_empleados ?? '-' }}</td>
+          <td>
+            <span class="state-badge" [ngClass]="estadoClass(g.estado)">{{ g.estado || 's/e' }}</span>
+          </td>
+          <td class="small">{{ fecha(g.created_at) }}</td>
+          <td class="acciones">
+            <div class="row-actions">
+              <button type="button" class="icon-btn" (click)="verGeneracion(g)"
+                title="Ver detalle / exportar" aria-label="Ver detalle">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="paginador">
+      <button type="button" class="btn-secondary" (click)="irPagina(-1)" [disabled]="page <= 1">
+        <i class="bi bi-chevron-left"></i> Anterior
+      </button>
+      <span class="resultados">Página {{ page }} de {{ totalPaginas }} · {{ total }} generación(es)</span>
+      <button type="button" class="btn-secondary" (click)="irPagina(1)" [disabled]="page >= totalPaginas">
+        Siguiente <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="empty-state" *ngIf="!loading && generacionesFiltradas.length === 0">
+    <p>No hay generaciones SICOS para el período seleccionado.</p>
+    <button type="button" class="btn-primary" (click)="abrirGenerar()" *ngIf="puedeCrear">Generar la primera</button>
+  </div>
+
+  <!-- Asistente de generación: período + tipo + ámbito → vista previa → generar -->
+  <app-modal-alerta
+    class="sicoss-generar-modal"
+    [visible]="generarVisible"
+    titulo="Nueva generación SICOS"
+    [esConfirmacion]="false"
+    [mostrarSpinner]="generando"
+    [bloquearCierre]="generando"
+    (cerrar)="cerrarGenerar()">
+    <div class="modal-generar">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Mes <span class="requerido">*</span></label>
+          <select class="form-control" [(ngModel)]="genModel.mes" [disabled]="generando || previsualizando">
+            <option *ngFor="let m of meses" [ngValue]="m.valor">{{ m.nombre }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Año <span class="requerido">*</span></label>
+          <input class="form-control" type="number" [(ngModel)]="genModel.anio" min="2000" max="2100"
+            [disabled]="generando || previsualizando" />
+        </div>
+        <div class="form-group">
+          <label>Tipo de liquidación <span class="requerido">*</span></label>
+          <select class="form-control" [(ngModel)]="genModel.tipo_liquidacion" [disabled]="generando || previsualizando">
+            <option value="">Seleccione...</option>
+            <option *ngFor="let t of tiposLiquidacion" [value]="t.nombre">{{ t.nombre }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-checkboxes">
+        <div class="checkbox-row">
+          <input id="sicoss-todos" type="checkbox" [(ngModel)]="genModel.todos" [disabled]="generando || previsualizando" />
+          <label for="sicoss-todos">Todos los empleados</label>
+        </div>
+        <div class="checkbox-row">
+          <input id="sicoss-subsistemas" type="checkbox" [(ngModel)]="genModel.incluir_subsistemas" [disabled]="generando || previsualizando" />
+          <label for="sicoss-subsistemas">Incluir subsistemas</label>
+        </div>
+      </div>
+
+      <!-- Selector de empleados: se muestra al desmarcar "Todos los empleados" -->
+      <div class="selector-empleados" *ngIf="!genModel.todos">
+        <div class="selector-head">
+          <div class="form-group">
+            <label>Buscar empleado</label>
+            <input class="form-control" type="text" [(ngModel)]="busquedaEmpleado"
+              (ngModelChange)="buscarEmpleado()" placeholder="Legajo, CUIL o apellido"
+              [disabled]="generando || previsualizando" />
+          </div>
+          <div class="selector-acciones">
+            <span class="seleccionados-count">{{ seleccionados.size }} seleccionado(s)</span>
+            <button type="button" class="btn-secondary tiny" (click)="seleccionarTodosFiltrados()"
+              [disabled]="generando || previsualizando || padronFiltrado.length === 0">
+              Seleccionar todos los filtrados
+            </button>
+            <button type="button" class="btn-secondary tiny" (click)="limpiarSeleccion()"
+              [disabled]="generando || previsualizando || seleccionados.size === 0">
+              Limpiar
+            </button>
+          </div>
+        </div>
+
+        <div class="padron-loading" *ngIf="padronLoading">
+          <i class="bi bi-arrow-repeat spin"></i> Cargando padrón...
+        </div>
+
+        <div class="padron-tabla" *ngIf="!padronLoading">
+          <table class="sicoss-table">
+            <thead>
+              <tr>
+                <th class="col-check">
+                  <input type="checkbox" [checked]="todosPaginaSeleccionados"
+                    (change)="toggleTodosPagina()" [disabled]="generando || previsualizando"
+                    aria-label="Seleccionar todos los de la página" />
+                </th>
+                <th>Legajo</th>
+                <th>CUIL</th>
+                <th>Apellido y nombre</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let e of padronPagina" [class.fila-seleccionada]="estaSeleccionado(e.empleado_id)">
+                <td class="col-check">
+                  <input type="checkbox" [checked]="estaSeleccionado(e.empleado_id)"
+                    (change)="toggleEmpleado(e.empleado_id)" [disabled]="generando || previsualizando"
+                    [attr.aria-label]="'Seleccionar ' + nombreEmpleado(e)" />
+                </td>
+                <td class="mono">{{ e.legajo || '-' }}</td>
+                <td class="mono">{{ e.cuil || '-' }}</td>
+                <td>{{ nombreEmpleado(e) }}</td>
+              </tr>
+              <tr *ngIf="padronPagina.length === 0">
+                <td colspan="4" class="padron-vacio">Sin empleados para el filtro.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="padron-paginador" *ngIf="padronTotalPaginas > 1">
+            <button type="button" class="btn-secondary tiny" (click)="irPaginaPadron(-1)"
+              [disabled]="paginaPadron <= 1">
+              <i class="bi bi-chevron-left"></i> Anterior
+            </button>
+            <span class="padron-pagina">Página {{ paginaPadron }} de {{ padronTotalPaginas }}</span>
+            <button type="button" class="btn-secondary tiny" (click)="irPaginaPadron(1)"
+              [disabled]="paginaPadron >= padronTotalPaginas">
+              Siguiente <i class="bi bi-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="previewError" class="alert-error inline">{{ previewError }}</div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" (click)="previsualizar()"
+          [disabled]="previsualizando || generando">
+          <i class="bi" [ngClass]="previsualizando ? 'bi-arrow-repeat spin' : 'bi-eye'"></i>
+          Vista previa
+        </button>
+        <button type="button" class="btn-primary" (click)="confirmarGenerar()"
+          [disabled]="generando || previsualizando || !preview">
+          <i class="bi" [ngClass]="generando ? 'bi-arrow-repeat spin' : 'bi-gear'"></i>
+          GENERAR INFORMACIÓN
+        </button>
+        <button type="button" class="btn-secondary" (click)="cerrarGenerar()" [disabled]="generando">
+          Cerrar
+        </button>
+      </div>
+
+      <!-- Resultado de la vista previa -->
+      <div *ngIf="preview" class="preview-panel">
+        <div class="preview-toolbar">
+          <div class="preview-summary-cards">
+            <div class="preview-card ok">
+              <span>Incluidos</span>
+              <strong>{{ previewIncludedCount }}</strong>
+            </div>
+            <div class="preview-card warn">
+              <span>Excluidos sin cerrada</span>
+              <strong>{{ previewExcludedClosed }}</strong>
+            </div>
+            <div class="preview-card warn">
+              <span>Excluidos rem 0</span>
+              <strong>{{ previewExcludedZero }}</strong>
+            </div>
+            <div class="preview-card ok">
+              <span>Total remuneraciones</span>
+              <strong>{{ money(previewTotalRemCents / 100) }}</strong>
+            </div>
+          </div>
+          <div class="preview-actions">
+            <button type="button" class="btn-secondary tiny" (click)="downloadPreviewJson()">
+              <i class="bi bi-filetype-json"></i> JSON
+            </button>
+            <button type="button" class="btn-secondary tiny" (click)="downloadPreviewTxt()">
+              <i class="bi bi-filetype-txt"></i> TXT
+            </button>
+          </div>
+        </div>
+
+        <div class="preview-meta">
+          <label class="preview-search">
+            <span>Buscar en preview</span>
+            <input type="text" [(ngModel)]="previewFiltro" (ngModelChange)="syncPreviewSelection()" placeholder="Legajo, nombre o CUIL" />
+          </label>
+          <label class="preview-sort">
+            <span>Ordenar</span>
+            <select [(ngModel)]="previewSort" (ngModelChange)="syncPreviewSelection()">
+              <option value="rem_desc">Rem. total (mayor)</option>
+              <option value="rem_asc">Rem. total (menor)</option>
+            </select>
+          </label>
+          <div class="preview-warnings" *ngIf="previewWarnings.length > 0">
+            {{ previewWarnings.length }} advertencia(s) globales.
+          </div>
+        </div>
+
+        <div class="preview-resumen-alert" *ngIf="previewHasFallbackWarning">
+          <i class="bi bi-exclamation-triangle"></i>
+          Se usó sueldo de la categoría (convenio) por falta de sueldo básico vigente.
+        </div>
+
+        <div class="preview-layout">
+          <div class="preview-list">
+            <table class="sicoss-table preview-table">
+              <thead>
+                <tr>
+                  <th>Legajo</th>
+                  <th>Nombre</th>
+                  <th>CUIL</th>
+                  <th class="num">Rem. total</th>
+                  <th class="num">Conceptos</th>
+                  <th>Estado / alertas</th>
+                  <th class="acciones">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let p of previewRows" [class.con-warning]="previewAdvertencias(p).length > 0" [class.is-selected]="isPreviewSelected(p)">
+                  <td class="mono">{{ p.legajo || '-' }}</td>
+                  <td>{{ previewNombre(p) }}</td>
+                  <td class="mono">{{ formatCuil(p) }}</td>
+                  <td class="num">{{ money((p.remuneracion_total_cents ?? p.rem_total_cents ?? (p.remuneracion_total ?? p.rem_total ?? 0) * 100) / 100) }}</td>
+                  <td class="num">{{ previewConceptos(p).length }}</td>
+                  <td class="small">
+                    <span class="preview-badge" *ngIf="previewAdvertencias(p).length === 0">OK</span>
+                    <span class="preview-badge warn" *ngIf="previewAdvertencias(p).length > 0">WARN</span>
+                    <div class="preview-row-alerts" *ngIf="previewAdvertencias(p).length > 0">
+                      <div *ngFor="let w of previewAdvertencias(p)">{{ w }}</div>
+                    </div>
+                  </td>
+                  <td class="acciones">
+                    <button type="button" class="icon-btn" (click)="openPreviewDetail(p)" [attr.aria-label]="'Ver detalle de ' + previewNombre(p)">
+                      <i class="bi bi-chevron-right"></i>
+                    </button>
+                  </td>
+                </tr>
+                <tr *ngIf="previewRows.length === 0">
+                  <td colspan="7" class="padron-vacio">No hay filas que coincidan con el filtro.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <aside class="preview-drawer" [class.open]="!!previewSelected">
+            <ng-container *ngIf="previewSelected; else drawerEmpty">
+              <div class="preview-detail">
+                <div class="preview-detail-header">
+                  <div>
+                    <strong>{{ previewNombre(previewSelected) }}</strong>
+                    <div class="preview-subtitle mono">{{ formatCuil(previewSelected) }}</div>
+                  </div>
+                  <button type="button" class="icon-btn close-drawer" (click)="closePreviewDetail()" aria-label="Cerrar detalle">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </div>
+                <div class="preview-detail-grid">
+                  <div><span>Legajo</span><strong>{{ previewSelected.legajo || '-' }}</strong></div>
+                  <div><span>Empresa</span><strong>{{ previewSelected.empresa_id ?? '-' }}</strong></div>
+                  <div><span>Período</span><strong>{{ previewSelected.periodo_id ?? '-' }}</strong></div>
+                  <div><span>Source</span><strong>{{ previewSelected.used_row?.source || '-' }}</strong></div>
+                </div>
+                <div class="preview-detail-grid compact">
+                  <div><span>Source ID</span><strong>{{ previewSelected.used_row?.source_id ?? '-' }}</strong></div>
+                  <div><span>Conceptos</span><strong>{{ previewConceptos(previewSelected).length }}</strong></div>
+                  <div><span>Rem. total</span><strong>{{ money((previewSelected.remuneracion_total_cents ?? previewSelected.rem_total_cents ?? (previewSelected.remuneracion_total ?? previewSelected.rem_total ?? 0) * 100) / 100) }}</strong></div>
+                  <div><span>Warnings</span><strong>{{ previewAdvertencias(previewSelected).length }}</strong></div>
+                </div>
+                <div class="preview-detail-grid compact">
+                  <div><span>Datos faltantes</span><strong>{{ previewMissingDatosCount }}</strong></div>
+                  <div><span>Configuración</span><strong>{{ previewConfiguracionActual?.tipo_liquidacion || previewConfiguracionActual?.mes || '-' }}</strong></div>
+                  <div><span>Diagnóstico</span><strong>{{ previewDiagnostico?.mensaje || previewDiagnostico?.estado || '-' }}</strong></div>
+                  <div><span>Alertas globales</span><strong>{{ previewWarnings.length }}</strong></div>
+                </div>
+                <div class="preview-detail-table" *ngIf="previewSelectedConceptos().length > 0">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Código</th>
+                        <th>Descripción</th>
+                        <th class="num">Monto</th>
+                        <th>Fuente</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let c of previewSelectedConceptos()">
+                        <td class="mono">{{ c.codigo }}</td>
+                        <td>{{ c.descripcion }}</td>
+                        <td class="num">{{ money((c.amount_cents ?? (c.amount ?? 0) * 100) / 100) }}</td>
+                        <td>{{ c.source || '-' }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <details class="preview-json">
+                  <summary>Ver payload JSON</summary>
+                  <pre>{{ previewDetalleJson(previewSelected) }}</pre>
+                </details>
+              </div>
+            </ng-container>
+            <ng-template #drawerEmpty>
+              <div class="preview-drawer-empty">
+                <i class="bi bi-info-circle"></i>
+                <p>Seleccioná una fila para ver el detalle auditable y los conceptos del cálculo.</p>
+              </div>
+            </ng-template>
+          </aside>
+        </div>
+      </div>
+
+      <div *ngIf="generacionError" class="alert-error inline">{{ generacionError }}</div>
+    </div>
+  </app-modal-alerta>
+</section>

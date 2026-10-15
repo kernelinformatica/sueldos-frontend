@@ -1,0 +1,144 @@
+<section class="subsistemas-page">
+  <app-loading-spinner [visible]="loading" [centered]="true" text="Cargando subsistemas..."></app-loading-spinner>
+
+  <div class="hero-card">
+    <div class="module-breadcrumb">
+      <a routerLink="/modulos">Módulos</a>
+      <span>/</span>
+      <a routerLink="/admin/impositivos">Impositivos</a>
+      <span>/</span>
+      <span>Subsistemas</span>
+    </div>
+    <h1>Subsistemas</h1>
+    <p>Catálogo de subsistemas habilitados para la empresa.</p>
+  </div>
+
+  <div class="tabs-card">
+    <button type="button" class="tab" [class.active]="categoria === 'sicoss'" (click)="cambiarCategoria('sicoss')">
+      <i class="bi bi-shield-check"></i> Seguridad Social (SICOS)
+    </button>
+    <button type="button" class="tab" [class.active]="categoria === 'impositivo'"
+      (click)="cambiarCategoria('impositivo')">
+      <i class="bi bi-bank"></i> Impositivo
+    </button>
+  </div>
+
+  <div class="filters-card">
+    <div class="filters-body">
+      <label>
+        <span>Buscar</span>
+        <input type="text" [(ngModel)]="buscar" placeholder="Código o nombre" />
+      </label>
+      <label>
+        <span>Estado</span>
+        <select [(ngModel)]="estadoFiltro">
+          <option value="1">1 = Activo</option>
+          <option value="2">2 = Inactivo</option>
+          <option value="">Todos</option>
+        </select>
+      </label>
+      <div class="filter-actions">
+        <button type="button" class="btn-secondary" (click)="cargar()" [disabled]="loading">
+          <i class="bi bi-arrow-clockwise"></i> Recargar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="errorMsg" class="alert-error">{{ errorMsg }}</div>
+
+  <div class="table-wrap" *ngIf="!loading && subsistemasFiltrados.length > 0">
+    <table class="subsistemas-table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Nombre</th>
+          <th>Estado</th>
+          <th class="acciones">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let s of subsistemasFiltrados">
+          <td class="mono">{{ s.codigo || '-' }}</td>
+          <td>{{ s.nombre || '-' }}</td>
+          <td>
+            <span class="state-badge" [ngClass]="estadoClass(s)">{{ etiquetaEstado(s) }}</span>
+          </td>
+          <td class="acciones">
+            <div class="row-actions">
+              <button type="button" class="btn-primary small" (click)="usar(s)">
+                <i class="bi" [ngClass]="esSicoss(s) ? 'bi-arrow-right-circle' : 'bi-box-arrow-up-right'"></i>
+                {{ esSicoss(s) ? 'Usar SICOS' : 'Usar' }}
+              </button>
+              
+              <button type="button" class="icon-btn" (click)="editar(s)" [disabled]="!puedeEditarSubsistemas"
+                title="Editar subsistema" aria-label="Editar subsistema">
+                <i class="bi bi-pencil-square"></i>
+              </button>
+              <button type="button" class="icon-btn danger" (click)="eliminar(s)" [disabled]="!puedeEliminarSubsistemas"
+                title="Eliminar subsistema" aria-label="Eliminar subsistema">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="empty-state" *ngIf="!loading && subsistemasFiltrados.length === 0">
+    <p>No hay subsistemas para la categoría seleccionada.</p>
+  </div>
+
+  <app-modal-alerta
+    [visible]="editModalVisible"
+    [titulo]="editModalTitle"
+    [mensaje]="editModalMessage"
+    [esConfirmacion]="true"
+    [mostrarSpinner]="editModalSpinner"
+    [bloquearCierre]="editModalSpinner"
+    [icono]="'bi bi-pencil-square'"
+    [accentColor]="'#283593'"
+    [buttonColor]="'#283593'"
+    (cerrar)="onEditModalClose($event)">
+    <div class="edit-form" *ngIf="!editModalSpinner">
+      <label>
+        <span>Código</span>
+        <input type="text" [(ngModel)]="editForm.codigo" />
+      </label>
+      <label>
+        <span>Nombre</span>
+        <input type="text" [(ngModel)]="editForm.nombre" />
+      </label>
+      <label>
+        <span>Estado</span>
+        <button
+          type="button"
+          class="power-toggle"
+          [class.active]="editForm.estado_id === 1"
+          [class.inactive]="editForm.estado_id === 2"
+          (click)="toggleEditEstado()"
+          [disabled]="editModalSpinner">
+          <i class="bi" [ngClass]="editForm.estado_id === 1 ? 'bi-toggle-on' : 'bi-toggle-off'"></i>
+          <span>{{ editForm.estado_id === 1 ? 'Activo' : 'Inactivo' }}</span>
+        </button>
+        <small class="power-hint">
+          {{ editForm.estado_id === 1 ? 'El subsistema quedará habilitado.' : 'El subsistema quedará deshabilitado.' }}
+        </small>
+      </label>
+    </div>
+  </app-modal-alerta>
+
+  <app-modal-alerta
+    [visible]="deleteModalVisible"
+    [titulo]="deleteModalTitle"
+    [mensaje]="deleteModalMessage"
+    [esConfirmacion]="true"
+    [mostrarSpinner]="deleteModalSpinner"
+    [bloquearCierre]="deleteModalSpinner"
+    [icono]="'bi bi-trash'"
+    [accentColor]="'#b91c1c'"
+    [buttonColor]="'#b91c1c'"
+    (cerrar)="onDeleteModalClose($event)">
+  </app-modal-alerta>
+</section>

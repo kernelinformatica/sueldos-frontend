@@ -1,0 +1,549 @@
+<section class="sicoss-config sicoss-page">
+  <app-loading-spinner [visible]="loadingAny" [centered]="true" text="Cargando configuración SICOSS..."></app-loading-spinner>
+
+  <div class="hero-card">
+    <div class="module-breadcrumb">
+      <a routerLink="/modulos">Módulos</a>
+      <span>/</span>
+      <a routerLink="/admin/impositivos">Impositivos</a>
+      <span>/</span>
+      <a routerLink="/admin/impositivos/sicoss">SICOS</a>
+      <span>/</span>
+      <span>Configuración SICOSS</span>
+    </div>
+    <div class="hero-head">
+      <div>
+        <h1>Configuración SICOSS</h1>
+        <p>Definí cómo cada concepto impacta en las bases SICOSS y en sus vínculos LSD.</p>
+      </div>
+      <div class="hero-actions">
+        <a routerLink="/admin/impositivos/sicoss" class="btn-secondary">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+        <button type="button" class="btn-primary" (click)="guardarConfiguracionGlobal()" title="Guardar configuración" aria-label="Guardar configuración">
+          <i class="bi bi-floppy"></i>
+        </button>
+        <button type="button" class="btn-secondary" (click)="refreshPreviewNotice()" title="Refrescar preview" aria-label="Refrescar preview">
+          <i class="bi bi-arrow-repeat"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <app-modal-alerta></app-modal-alerta>
+
+  <div *ngIf="accessDenied" class="alert-error">
+    No tenés permisos para acceder a la configuración SICOSS.
+  </div>
+
+  <div *ngIf="!accessDenied" class="page-grid sicoss-config-grid">
+    <div class="tabs-card sicoss-tabs" style="grid-column: 1 / -1; margin-bottom: 0;">
+      <button type="button" class="tab" [class.active]="activeTab === 'conceptos'" (click)="activeTab = 'conceptos'">Conceptos SICOSS</button>
+      <button type="button" class="tab" [class.active]="activeTab === 'bases'" (click)="activeTab = 'bases'">Bases / Clasificación</button>
+      <button type="button" class="tab" [class.active]="activeTab === 'validaciones'" (click)="activeTab = 'validaciones'">Validaciones</button>
+      <button type="button" class="tab" [class.active]="activeTab === 'avanzadas'" (click)="activeTab = 'avanzadas'">Avanzadas</button>
+    </div>
+
+    <div class="left-column" *ngIf="activeTab === 'conceptos'">
+      <div class="two-card-grid">
+        <div class="panel">
+        <div class="panel-head">
+          <h2>Conceptos SICOSS</h2>
+          <div class="panel-tools">
+            <span class="count">{{ conceptosFiltradosParaAgregar.length }}</span>
+            <button type="button" class="icon-btn" (click)="toggleSection('conceptos')" [attr.aria-label]="collapseConceptos ? 'Expandir conceptos' : 'Colapsar conceptos'">
+              <i class="bi" [ngClass]="collapseConceptos ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
+            </button>
+          </div>
+        </div>
+        <div class="panel-body" *ngIf="!collapseConceptos">
+          <div class="filters-card">
+          <div class="form-grid filters-inline">
+            <label class="full-span">
+              <span>Buscar concepto</span>
+              <input type="text" [(ngModel)]="conceptoSearch" placeholder="Código o descripción" />
+            </label>
+            <label>
+              <span>Estado</span>
+              <select [(ngModel)]="coberturaFilter">
+                <option value="todos">Todos</option>
+                <option value="sin_configuracion">Sin configuración</option>
+                <option value="con_configuracion">Con configuración</option>
+              </select>
+            </label>
+            <label>
+              <span>Base SICOSS</span>
+              <select [(ngModel)]="baseFilter">
+                <option *ngFor="let base of basesDisponiblesFiltro" [value]="base">{{ base === 'TODAS' ? 'Todas' : 'Base ' + base }}</option>
+              </select>
+            </label>
+            <label>
+              <span>Clasificación</span>
+              <select [(ngModel)]="clasificacionFilter">
+                <option value="TODAS">Todas</option>
+                <option *ngFor="let clasif of clasificacionOptions" [value]="clasif">{{ clasif }}</option>
+              </select>
+            </label>
+          </div>
+          </div>
+          <div class="hero-mini mb-3">
+            <strong>{{ coberturaLabel }}</strong>
+            <span class="ms-2 text-muted">·</span>
+            <span class="ms-2 text-muted">Base: {{ baseFilter === 'TODAS' ? 'Todas' : 'Base ' + baseFilter }}</span>
+          </div>
+
+          <div class="list-group sicoss-list concept-picker">
+            <button
+              type="button"
+              class="list-group-item list-group-item-action"
+              *ngFor="let concepto of conceptosFiltradosParaAgregar; trackBy: trackByConcepto"
+              [class.active]="selectedConceptoId === concepto.concepto_id"
+              (click)="selectConcepto(concepto.concepto_id)">
+              <div class="d-flex justify-content-between align-items-start gap-2">
+                <div class="text-start">
+                  <div class="fw-semibold">{{ concepto.codigo }} — {{ concepto.nombre || concepto.descripcion }}</div>
+                  <small class="opacity-75" *ngIf="concepto.activo === false">Inactivo</small>
+                </div>
+                <i class="bi bi-chevron-right text-primary"></i>
+              </div>
+            </button>
+          </div>
+
+          <div *ngIf="!conceptosFiltradosParaAgregar.length" class="empty-note">
+            No hay conceptos que coincidan con el filtro.
+          </div>
+        </div>
+      </div>
+
+        <div class="panel">
+        <div class="panel-head">
+          <h2>Conceptos sin configuración</h2>
+          <div class="panel-tools">
+            <span class="count">{{ conceptosSinConfiguracion.length }}</span>
+            <button type="button" class="icon-btn" (click)="toggleSection('sin_configuracion')" [attr.aria-label]="collapseSinConfiguracion ? 'Expandir conceptos sin configuración' : 'Colapsar conceptos sin configuración'">
+              <i class="bi" [ngClass]="collapseSinConfiguracion ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
+            </button>
+          </div>
+        </div>
+        <div class="panel-body compact-body" *ngIf="!collapseSinConfiguracion">
+          <div class="filters-card compact">
+            <div class="form-grid">
+              <label class="full-span">
+                <span>Buscar concepto sin configuración</span>
+                <input type="text" [(ngModel)]="conceptoSinConfigSearch" placeholder="Código o descripción" />
+              </label>
+            </div>
+          </div>
+          <div class="empty-note" *ngIf="!conceptosSinConfiguracion.length">
+            Todos los conceptos visibles tienen al menos una relación SICOSS.
+          </div>
+          <div class="table-wrap" *ngIf="conceptosSinConfiguracion.length">
+            <table class="sicoss-table">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Descripción</th>
+                  <th class="text-end">Abrir</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let concepto of conceptosSinConfiguracion">
+                  <td class="mono">{{ concepto.codigo }}</td>
+                  <td>{{ concepto.descripcion }}</td>
+                  <td class="text-end">
+                    <button type="button" class="icon-btn" (click)="selectConcepto(concepto.concepto_id)" title="Configurar concepto" aria-label="Configurar concepto">
+                      <i class="bi bi-sliders"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <div class="two-card-grid mt-3">
+        <div class="panel">
+        <div class="panel-head">
+          <h2>Conceptos con configuración SICOSS</h2>
+          <div class="panel-tools">
+            <span class="count">{{ conceptosConfigurados.length }}</span>
+            <button type="button" class="icon-btn" (click)="toggleSection('historia')" [attr.aria-label]="collapseMapaHistorico ? 'Expandir conceptos configurados' : 'Colapsar conceptos configurados'">
+              <i class="bi" [ngClass]="collapseMapaHistorico ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
+            </button>
+          </div>
+        </div>
+        <div class="panel-body compact-body" *ngIf="!collapseMapaHistorico">
+          <div class="empty-note" *ngIf="!conceptosConfiguradosSnapshot.length">
+            No hay conceptos configurados con esos filtros.
+          </div>
+          <div class="table-wrap" *ngIf="conceptosConfiguradosSnapshot.length">
+            <table class="sicoss-table">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Descripción</th>
+                  <th>Resumen SICOSS</th>
+                  <th class="text-end">Abrir</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let concepto of conceptosConfiguradosSnapshot">
+                  <td class="mono">{{ concepto.codigo }}</td>
+                  <td>{{ concepto.descripcion }}</td>
+                  <td>
+                    {{ resumenSicossConcepto(concepto.concepto_id) }}
+                  </td>
+                  <td class="text-end">
+                    <button type="button" class="icon-btn" (click)="selectConcepto(concepto.concepto_id)" title="Editar configuración" aria-label="Editar configuración">
+                      <i class="bi bi-sliders"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="empty-note" *ngIf="!conceptosConfigurados.length">
+            No hay conceptos configurados todavía.
+          </div>
+        </div>
+      </div>
+
+        <div class="panel">
+        <div class="panel-head">
+          <h2>Conceptos por base SICOSS</h2>
+          <div class="panel-tools">
+            <span class="count">{{ resumenBasesSicoss.length }}</span>
+            <button type="button" class="icon-btn" (click)="toggleSection('bases')" [attr.aria-label]="collapseBases ? 'Expandir bases SICOSS' : 'Colapsar bases SICOSS'">
+              <i class="bi" [ngClass]="collapseBases ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
+            </button>
+          </div>
+        </div>
+        <div class="panel-body" *ngIf="!collapseBases">
+          <div class="table-wrap">
+            <table class="sicoss-table">
+              <thead>
+                <tr>
+                  <th>Base</th>
+                  <th>Cantidad</th>
+                  <th>Conceptos</th>
+                  <th class="text-end">Abrir</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let base of resumenBasesSicoss">
+                  <td class="mono">{{ base.base === 'TOTAL' ? 'TOTAL' : 'Base ' + base.base }}</td>
+                  <td>{{ base.cantidad }}</td>
+                  <td>
+                    <span class="base-chip me-1" *ngFor="let concepto of conceptosDeBase(base.base).slice(0, 3)">
+                      <span class="mono">{{ concepto.codigo }}</span>
+                    </span>
+                    <span *ngIf="!conceptosDeBase(base.base).length" class="text-muted">Sin conceptos</span>
+                    <span *ngIf="conceptosDeBase(base.base).length > 3" class="text-muted ms-1">+{{ conceptosDeBase(base.base).length - 3 }} más</span>
+                  </td>
+                  <td class="text-end">
+                    <button type="button" class="icon-btn" (click)="filtrarPorBase(base.base)" title="Filtrar por base" aria-label="Filtrar por base">
+                      <i class="bi bi-funnel"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <div class="right-column" *ngIf="activeTab === 'conceptos'">
+      <div class="panel detail-summary">
+        <div class="panel-head">
+          <h2>Detalle rápido del concepto</h2>
+          <div class="panel-tools">
+            <span class="count">{{ selectedConceptoLabel }}</span>
+            <button type="button" class="icon-btn" (click)="abrirDetalleConcepto()" [disabled]="!selectedConceptoId" title="Abrir detalle completo" aria-label="Abrir detalle completo">
+              <i class="bi bi-arrows-angle-expand"></i>
+            </button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <ng-container *ngIf="selectedConcepto as concepto; else sinConcepto">
+            <div class="hero-mini">
+              <div class="fw-semibold">{{ concepto.codigo }} — {{ concepto.nombre || concepto.descripcion }}</div>
+              <div class="text-muted small">
+                {{ concepto.grupo_nombre || 'Sin grupo visible' }}
+                <span *ngIf="concepto.activo === false"> · Inactivo</span>
+              </div>
+            </div>
+            <div class="compact-status-grid mt-3">
+              <div>
+                <span>Base</span>
+                <strong>{{ conceptoConfiguracionDraft.baseSicoss === 'TODAS' ? 'Sin base' : conceptoConfiguracionDraft.baseSicoss }}</strong>
+              </div>
+              <div>
+                <span>Clasificación</span>
+                <strong>{{ conceptoConfiguracionDraft.clasificacion }}</strong>
+              </div>
+              <div>
+                <span>Rem. 10</span>
+                <strong>Derivada (no mapear)</strong>
+              </div>
+              <div>
+                <span>Detraer</span>
+                <strong>{{ conceptoConfiguracionDraft.afectaDetraer ? 'Sí' : 'No' }}</strong>
+              </div>
+            </div>
+            <div class="empty-note mt-3">
+              Abrí el detalle completo para editar bases, clasificación y relaciones LSD.
+            </div>
+          </ng-container>
+          <ng-template #sinConcepto>
+            <div class="empty-note">Seleccioná un concepto para ver su detalle.</div>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel mt-3" *ngIf="activeTab === 'bases'">
+        <div class="panel-head">
+          <h2>Equivalencias SICOSS</h2>
+          <div class="panel-tools">
+            <span class="count">{{ baseEquivalencias.length }}</span>
+          <button type="button" class="icon-btn" (click)="toggleSection('equivalencias')" [attr.aria-label]="collapseEquivalencias ? 'Expandir equivalencias SICOSS' : 'Colapsar equivalencias SICOSS'">
+            <i class="bi" [ngClass]="collapseEquivalencias ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
+            </button>
+          </div>
+        </div>
+        <div class="panel-body" *ngIf="!collapseEquivalencias">
+          <div class="table-wrap">
+            <table class="sicoss-table">
+              <thead>
+                <tr>
+                  <th>Código lógico</th>
+                  <th>Base</th>
+                  <th>Etiqueta</th>
+                  <th>Rol</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of baseEquivalencias">
+                  <td class="mono">{{ row.codigo }}</td>
+                  <td>{{ row.base === 'TOTAL' ? 'TOTAL' : 'Base ' + row.base }}</td>
+                  <td>{{ row.etiqueta }}</td>
+                  <td>{{ row.rol }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    <div class="panel mt-3" *ngIf="activeTab === 'validaciones'">
+      <div class="panel-head">
+        <h2>Mapa histórico SICOSS</h2>
+        <div class="panel-tools">
+          <span class="count">{{ legacyMappingFiltrada.length }}</span>
+          <button type="button" class="icon-btn" (click)="toggleSection('historia')" [attr.aria-label]="collapseMapaHistorico ? 'Expandir mapa histórico' : 'Colapsar mapa histórico'">
+            <i class="bi" [ngClass]="collapseMapaHistorico ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
+          </button>
+        </div>
+      </div>
+      <div class="panel-body" *ngIf="!collapseMapaHistorico">
+        <div class="table-wrap">
+          <table class="sicoss-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Base</th>
+                <th>Liquidación</th>
+                <th>Uso histórico</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of legacyMappingFiltrada">
+                <td class="mono">{{ row.id }}</td>
+                <td>{{ row.base }}</td>
+                <td>{{ row.liqui }}</td>
+                <td>{{ row.label }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="empty-note compact mt-3">
+          Esta leyenda replica la lógica histórica de <span class="mono">sue_inf_sicos_param</span> para facilitar la configuración operativa.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!accessDenied && activeTab === 'avanzadas'" class="sicoss-tabs-placeholder">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Avanzadas</h2>
+      </div>
+      <div class="panel-body">
+        <div class="filters-card compact">
+          <div class="form-grid">
+            <label class="full-span">
+              <span>Observaciones</span>
+              <input type="text" [(ngModel)]="configuracionSnapshot.observaciones" />
+            </label>
+            <label>
+              <span>Versión</span>
+              <input type="text" [(ngModel)]="configuracionSnapshot.version" />
+            </label>
+            <label>
+              <span>Importe a detraer fijo</span>
+              <input type="number" [(ngModel)]="importeADetraerFijoInput" />
+            </label>
+          </div>
+        </div>
+        <div class="empty-note">
+          El detalle completo del concepto se abre como modal para no romper la lectura de la pantalla.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <app-modal-alerta
+    [visible]="showConceptoDetalleModal"
+    titulo="Detalle SICOSS del concepto"
+    [esConfirmacion]="false"
+    [bloquearCierre]="false"
+    width="72vw"
+    [maxWidth]="'1080px'"
+    [minWidth]="'760px'"
+    [maxHeight]="'90vh'"
+    (cerrar)="cerrarDetalleConcepto()">
+    <div class="detail-modal" *ngIf="selectedConcepto as concepto">
+      <div class="hero-mini">
+        <div class="fw-semibold">{{ concepto.codigo }} — {{ concepto.nombre || concepto.descripcion }}</div>
+        <div class="text-muted small">{{ concepto.grupo_nombre || 'Sin grupo visible' }}</div>
+        <div *ngIf="detalleGuardadoMensaje" class="save-feedback mt-2" [class.success]="detalleGuardadoEstado === 'success'" [class.error]="detalleGuardadoEstado === 'error'" [class.saving]="detalleGuardadoEstado === 'saving'">
+          <i class="bi" [ngClass]="detalleGuardadoEstado === 'saving' ? 'bi-arrow-repeat spin' : (detalleGuardadoEstado === 'error' ? 'bi-x-circle-fill' : 'bi-check-circle-fill')"></i>
+          <span>{{ detalleGuardadoMensaje }}</span>
+          <small *ngIf="detalleGuardadoEn" class="ms-2 opacity-75">({{ detalleGuardadoEn }})</small>
+        </div>
+      </div>
+
+      <div class="subpanel mt-3">
+        <div class="subpanel-head">
+          <div>
+            <div class="subpanel-title"><i class="bi bi-bounding-box-circles"></i> <strong>Bases SICOSS</strong></div>
+            <div class="subpanel-subtitle">Usá un perfil AFIP. Rem. 10 no se mapea: es Rem. 2 menos el importe a detraer.</div>
+          </div>
+          <button type="button" class="icon-btn save-btn" (click)="guardarRemuneraciones()" [disabled]="!puedeEditarRemuneraciones || savingRemuneraciones" title="Guardar bases" aria-label="Guardar bases">
+            <i class="bi" [ngClass]="savingRemuneraciones ? 'bi-arrow-repeat spin' : 'bi-floppy'"></i>
+          </button>
+        </div>
+        <div class="form-grid mb-3">
+          <label class="full-span field-block">
+            <span>Perfil AFIP</span>
+            <select class="field-select" [ngModel]="perfilSeleccionado" (ngModelChange)="aplicarPerfil($event)">
+              <option value="">Personalizado</option>
+              <option *ngFor="let perfil of perfilesAfip" [value]="perfil.codigo">{{ perfil.nombre }}</option>
+            </select>
+          </label>
+          <label class="field-block">
+            <span>Vigencia desde</span>
+            <input type="date" [(ngModel)]="fechaVigenciaDesde" />
+          </label>
+        </div>
+        <div class="empty-note">{{ perfilHint }}</div>
+        <div class="options-box">
+          <label class="checkbox-row" *ngFor="let rem of remuneracionOptions" [class.active]="selectedRemuneraciones.has(rem)">
+            <input type="checkbox" [checked]="selectedRemuneraciones.has(rem)" (change)="toggleRemuneracion(rem, $any($event.target).checked)" [disabled]="!puedeEditarRemuneraciones" />
+            <span>{{ remLabel(rem) }}</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="subpanel mt-3">
+        <div class="subpanel-head">
+          <div>
+            <div class="subpanel-title"><i class="bi bi-tags-fill"></i> <strong>Clasificación funcional</strong></div>
+            <div class="subpanel-subtitle">La base SICOSS y la clasificación se guardan juntas para el concepto seleccionado.</div>
+          </div>
+          <button type="button" class="btn-secondary save-text-btn" (click)="guardarConfiguracionGeneral()" [disabled]="!selectedConceptoId || savingGeneral" title="Guardar base y clasificación" aria-label="Guardar base y clasificación">
+            <i class="bi" [ngClass]="savingGeneral ? 'bi-arrow-repeat spin' : 'bi-check2-circle'"></i>
+            <span>{{ savingGeneral ? 'Guardando...' : 'Guardar' }}</span>
+          </button>
+        </div>
+        <div class="form-grid">
+          <label class="full-span field-block">
+            <span>Base SICOSS destino</span>
+            <select class="field-select" [(ngModel)]="conceptoConfiguracionDraft.baseSicoss">
+              <option *ngFor="let base of baseSicossOptions" [value]="base">{{ base === 'TODAS' ? 'Sin base' : (base === 'TOTAL' ? 'TOTAL' : 'Base ' + base) }}</option>
+            </select>
+          </label>
+          <label class="full-span field-block">
+            <span>Clasificación funcional</span>
+            <select class="field-select" [(ngModel)]="conceptoConfiguracionDraft.clasificacion">
+              <option *ngFor="let clasif of clasificacionOptions" [value]="clasif">{{ clasif }}</option>
+            </select>
+          </label>
+          <div class="empty-note full-span">
+            Rem. 10 no se tilda por concepto. El motor la calcula como Rem. 2 − importe a detraer.
+          </div>
+          <label class="checkbox-row">
+            <input type="checkbox" [(ngModel)]="conceptoConfiguracionDraft.afectaDetraer" />
+            <span>Afecta importe a detraer</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="subpanel mt-3">
+        <div class="subpanel-head">
+          <div>
+            <div class="subpanel-title"><i class="bi bi-diagram-3-fill"></i> <strong>Relación LSD</strong></div>
+            <div class="subpanel-subtitle">Vinculación con subsistemas y base afectada</div>
+          </div>
+          <button type="button" class="icon-btn save-btn" (click)="agregarLsdRow()" [disabled]="!selectedConceptoId || !puedeEditarLsd || !newLsdRow.subsistema_id || savingLsd" title="Agregar relación" aria-label="Agregar relación">
+            <i class="bi" [ngClass]="savingLsd ? 'bi-arrow-repeat spin' : 'bi-plus-lg'"></i>
+          </button>
+        </div>
+        <div class="form-grid">
+          <label class="full-span field-block">
+            <span>Subsistema</span>
+            <select class="field-select" [(ngModel)]="newLsdRow.subsistema_id">
+              <option [ngValue]="0">Seleccionar...</option>
+              <option *ngFor="let sub of subsistemas" [ngValue]="sub.subsistema_id">{{ sub.codigo }} — {{ sub.nombre }}</option>
+            </select>
+          </label>
+        </div>
+        <div class="options-box">
+          <label class="checkbox-row"><input type="checkbox" [(ngModel)]="newLsdRow.afecta_base" /><span>Afecta base</span></label>
+          <label class="checkbox-row"><input type="checkbox" [(ngModel)]="newLsdRow.es_aporte" /><span>Aporte</span></label>
+          <label class="checkbox-row"><input type="checkbox" [(ngModel)]="newLsdRow.es_contribucion" /><span>Contribución</span></label>
+        </div>
+        <div class="table-wrap mt-3" *ngIf="lsdRows.length > 0">
+          <table class="sicoss-table">
+            <thead>
+              <tr>
+                <th>Subsistema</th>
+                <th class="text-center">Base</th>
+                <th class="text-center">Aporte</th>
+                <th class="text-center">Contrib.</th>
+                <th class="text-end">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of lsdRows">
+                <td>{{ row.subsistema_codigo || row.subsistema_nombre || ('#' + row.subsistema_id) }}</td>
+                <td class="text-center"><input class="form-check-input" type="checkbox" [(ngModel)]="row.afecta_base" /></td>
+                <td class="text-center"><input class="form-check-input" type="checkbox" [(ngModel)]="row.es_aporte" /></td>
+                <td class="text-center"><input class="form-check-input" type="checkbox" [(ngModel)]="row.es_contribucion" /></td>
+                <td class="text-end">
+                  <div class="row-actions">
+                    <button type="button" class="icon-btn" (click)="guardarLsdRow(row)" [disabled]="!puedeEditarLsd" title="Guardar relación" aria-label="Guardar relación"><i class="bi bi-check2"></i></button>
+                    <button type="button" class="icon-btn danger" (click)="quitarLsdRow(row)" [disabled]="!puedeEditarLsd" title="Quitar relación" aria-label="Quitar relación"><i class="bi bi-trash"></i></button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </app-modal-alerta>
+</section>

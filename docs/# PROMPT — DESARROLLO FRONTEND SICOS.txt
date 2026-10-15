@@ -1,0 +1,50 @@
+# PROMPT — DESARROLLO FRONTEND MÓDULO SICOS / SEGURIDAD SOCIAL / ARCA
+
+## ROL
+
+Actuá como **Senior Frontend Developer especializado en Angular**, UX/UI para sistemas administrativos y sistemas de liquidación de sueldos de Argentina.
+
+Estás trabajando sobre un **sistema de Sueldos existente**, desarrollado en Angular.
+
+Necesito implementar el **frontend completo del módulo de Seguridad Social / SiCOSS / ARCA**, utilizando el backend existente y las APIs que correspondan.
+
+El objetivo NO es crear una aplicación independiente.
+
+El objetivo es **integrar el nuevo módulo dentro del sistema actual**, respetando:
+
+* arquitectura existente;
+* layout actual;
+* sidebar actual;
+* navbar actual;
+* sistema de autenticación;
+* sistema de permisos;
+* servicios existentes;
+* estilos existentes;
+* componentes reutilizables;
+* manejo de errores;
+* sistema de loading;
+* sistema de notificaciones/toasts;
+* convenciones de rutas;
+* convenciones de nombres;
+* estructura de carpetas.
+
+---
+
+# 1. REGLA PRINCIPAL
+
+ANTES DE ESCRIBIR CÓDIGO:
+
+Analizá exhaustivamente el proyecto Angular existente.
+
+NO empieces creando componentes nuevos sin conocer primero:
+
+* estructura de carpetas;
+* routing;
+* layouts;
+* menú;
+* permisos;
+* AuthService;
+* interceptores HTTP;
+* servicios;
+* manejo de tokens;
+* componentes modales;

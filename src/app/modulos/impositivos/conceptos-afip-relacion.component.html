@@ -1,0 +1,281 @@
+<section class="afip-map-page">
+  <app-loading-spinner [visible]="loading || loadingConceptos || saving || importLoading" [centered]="false" text="Procesando..."></app-loading-spinner>
+
+  <div class="hero-card">
+    <div class="module-breadcrumb">
+      <a routerLink="/modulos">Módulos</a>
+      <span>/</span>
+      <a routerLink="/admin/impositivos">Impositivos</a>
+      <span>/</span>
+      <a routerLink="/admin/impositivos/subsistemas">Subsistemas</a>
+      <span>/</span>
+      <span>Relación AFIP</span>
+    </div>
+    <h1>{{ pageTitle }}</h1>
+    <p>{{ pageSubtitle }}</p>
+
+    <div class="context-banner" *ngIf="subsistemaNombre || subsistemaId">
+      <i class="bi bi-info-circle"></i>
+      <span *ngIf="subsistemaNombre">Origen: {{ subsistemaNombre }}</span>
+      <span *ngIf="subsistemaId">ID {{ subsistemaId }}</span>
+      <span *ngIf="!subsistemaNombre && !subsistemaId">Contexto desde subsistemas</span>
+    </div>
+
+    <div class="hero-actions">
+      <button type="button" class="btn-secondary" (click)="irASubsistemas()">
+        <i class="bi bi-arrow-left"></i> Volver a subsistemas
+      </button>
+      <button type="button" class="btn-primary" (click)="nuevo()">
+        <i class="bi bi-plus-lg"></i> Nuevo vínculo
+      </button>
+      <button type="button" class="btn-secondary" (click)="loadAll()">
+        <i class="bi bi-arrow-clockwise"></i> Refrescar
+      </button>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <article class="stat-card">
+      <span>Vínculos</span>
+      <strong>{{ totalMappings }}</strong>
+      <small>registros guardados</small>
+    </article>
+    <article class="stat-card">
+      <span>Visibles</span>
+      <strong>{{ visiblesMappings }}</strong>
+      <small>habilitados para uso</small>
+    </article>
+    <article class="stat-card">
+      <span>Sin AFIP</span>
+      <strong>{{ pendientesAfip }}</strong>
+      <small>pendientes de completar</small>
+    </article>
+  </div>
+
+  <div class="workspace-grid">
+    <section class="panel editor-panel">
+      <div class="panel-head">
+        <div>
+          <p class="panel-kicker">Alta / edición</p>
+          <h2>Crear o ajustar una relación</h2>
+          <p>Buscá el concepto del sistema, completá el equivalente AFIP y guardá el vínculo para la empresa actual.</p>
+        </div>
+        <span class="panel-chip" *ngIf="editingId">Editando #{{ editingId }}</span>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">1. Concepto del sistema</label>
+        <div class="autocomplete-wrap">
+          <input
+            name="sistemaQuery"
+            type="text"
+            [(ngModel)]="sistemaQuery"
+            (input)="onSistemaQueryChange($any($event.target).value)"
+            placeholder="Buscar concepto del sistema por código o nombre..."
+            autocomplete="off" />
+          <button *ngIf="sistemaQuery" type="button" class="clear-btn" (click)="limpiarBuscadorSistema()" aria-label="Limpiar">×</button>
+          <div class="autocomplete-panel" *ngIf="sistemaDropdownOpen && sistemaResultados.length > 0">
+            <button type="button" class="autocomplete-item" *ngFor="let concepto of sistemaResultados" (click)="selectSistema(concepto)">
+              <span class="autocomplete-main">{{ concepto.codigo || concepto.id }} — {{ concepto.nombre || concepto.descripcion }}</span>
+              <span class="autocomplete-secondary" *ngIf="concepto.tipo || concepto.grupo">
+                <ng-container *ngIf="concepto.tipo">{{ concepto.tipo }}</ng-container>
+                <ng-container *ngIf="concepto.tipo && concepto.grupo"> · </ng-container>
+                <ng-container *ngIf="concepto.grupo">{{ concepto.grupo }}</ng-container>
+              </span>
+            </button>
+          </div>
+        </div>
+        <div class="selected-box" *ngIf="selectedSistema">
+          <i class="bi bi-check-circle-fill"></i>
+          <div>
+            <strong>{{ selectedSistemaLabel }}</strong>
+            <span>Seleccionado para la relación actual</span>
+          </div>
+        </div>
+        <div class="grid-2">
+          <label class="field">
+            <span>Código concepto sistema *</span>
+            <input name="conce_codigo_sueldos" type="number" [(ngModel)]="form.conce_codigo_sueldos" placeholder="Ej. 2001" />
+          </label>
+          <label class="field">
+            <span>Descripción concepto sistema</span>
+            <input name="conce_descri_sueldos" type="text" [(ngModel)]="form.conce_descri_sueldos" placeholder="Descripción amigable" />
+          </label>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">2. Concepto AFIP</label>
+        <div class="afip-search-row">
+          <div class="autocomplete-wrap">
+            <input
+              name="afipQuery"
+              type="text"
+              [(ngModel)]="afipQuery"
+              (input)="searchAfip($any($event.target).value)"
+              placeholder="Buscar concepto AFIP (si el catálogo está disponible)..."
+              autocomplete="off" />
+            <button *ngIf="afipQuery" type="button" class="clear-btn" (click)="limpiarBuscadorAfip()" aria-label="Limpiar">×</button>
+            <div class="autocomplete-panel" *ngIf="afipDropdownOpen && afipResultados.length > 0">
+              <button type="button" class="autocomplete-item" *ngFor="let concepto of afipResultados" (click)="selectAfip(concepto)">
+                <span class="autocomplete-main">{{ afipConceptoLabel(concepto) }}</span>
+                <span class="autocomplete-secondary" *ngIf="concepto.descripcion">{{ concepto.descripcion }}</span>
+              </button>
+            </div>
+          </div>
+          <div class="afip-hint">
+            Si no aparece catálogo AFIP, completalo manualmente con código y descripción.
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <label class="field">
+            <span>Código AFIP</span>
+            <input name="conce_codigo_afip" type="number" [(ngModel)]="form.conce_codigo_afip" placeholder="Opcional" />
+          </label>
+          <label class="field">
+            <span>Descripción AFIP</span>
+            <input name="conce_descri_afip" type="text" [(ngModel)]="form.conce_descri_afip" placeholder="Descripción AFIP" />
+          </label>
+        </div>
+      </div>
+
+      <details class="advanced-box" open>
+        <summary>Flags fiscales y opciones avanzadas</summary>
+        <p class="advanced-note">Estas marcas se envían al backend como 0/1 según estén tildadas o no.</p>
+        <div class="flags-grid">
+          <label><input type="checkbox" name="marca_repeticion" [(ngModel)]="form.marca_repeticion" /> Marca repetición</label>
+          <label><input type="checkbox" name="visible" [(ngModel)]="form.visible" /> Visible</label>
+          <label><input type="checkbox" name="sipa_aportes" [(ngModel)]="form.sipa_aportes" /> SIPA aportes</label>
+          <label><input type="checkbox" name="sipa_contribuciones" [(ngModel)]="form.sipa_contribuciones" /> SIPA contribuciones</label>
+          <label><input type="checkbox" name="inss_aportes" [(ngModel)]="form.inss_aportes" /> INSS aportes</label>
+          <label><input type="checkbox" name="inss_contribuciones" [(ngModel)]="form.inss_contribuciones" /> INSS contribuciones</label>
+          <label><input type="checkbox" name="obra_social_aportes" [(ngModel)]="form.obra_social_aportes" /> Obra social aportes</label>
+          <label><input type="checkbox" name="obra_social_contribuciones" [(ngModel)]="form.obra_social_contribuciones" /> Obra social contribuciones</label>
+          <label><input type="checkbox" name="renatre_aportes" [(ngModel)]="form.renatre_aportes" /> RENATRE aportes</label>
+          <label><input type="checkbox" name="renatre_contribuciones" [(ngModel)]="form.renatre_contribuciones" /> RENATRE contribuciones</label>
+          <label><input type="checkbox" name="asig_fam_contribuciones" [(ngModel)]="form.asig_fam_contribuciones" /> Asig. fam. contribuciones</label>
+          <label><input type="checkbox" name="fondo_solidario_aportes" [(ngModel)]="form.fondo_solidario_aportes" /> Fondo solidario aportes</label>
+          <label><input type="checkbox" name="fondo_solidario_contribuciones" [(ngModel)]="form.fondo_solidario_contribuciones" /> Fondo solidario contribuciones</label>
+          <label><input type="checkbox" name="fondo_nac_emp_contribuciones" [(ngModel)]="form.fondo_nac_emp_contribuciones" /> Fondo nac. emp. contribuciones</label>
+          <label><input type="checkbox" name="ley_riesgos_trab_contribuciones" [(ngModel)]="form.ley_riesgos_trab_contribuciones" /> Ley riesgos trabajo</label>
+          <label><input type="checkbox" name="regimen_diferencial" [(ngModel)]="form.regimen_diferencial" /> Régimen diferencial</label>
+          <label><input type="checkbox" name="regimen_especial" [(ngModel)]="form.regimen_especial" /> Régimen especial</label>
+        </div>
+      </details>
+
+      <div class="panel-actions">
+        <button type="button" class="btn-primary" (click)="save()" [disabled]="saving || !canSave">
+          <i class="bi" [ngClass]="saving ? 'bi-arrow-repeat spin' : 'bi-check-lg'"></i>
+          {{ editingId ? 'Actualizar relación' : 'Guardar relación' }}
+        </button>
+        <button type="button" class="btn-secondary" (click)="nuevo()">Limpiar</button>
+      </div>
+    </section>
+
+    <section class="panel list-panel">
+      <div class="panel-head">
+        <div>
+          <p class="panel-kicker">Listado</p>
+          <h2>Relaciones guardadas</h2>
+          <p>Buscá, editá o eliminá vínculos existentes.</p>
+        </div>
+      </div>
+
+      <div class="list-toolbar">
+        <input type="text" [(ngModel)]="mappingSearch" name="mappingSearch" placeholder="Buscar por código o descripción..." />
+      </div>
+
+      <div class="mapping-list" *ngIf="mappingsFiltrados.length > 0; else emptyMappings">
+        <article class="mapping-card" *ngFor="let item of mappingsFiltrados">
+          <div class="mapping-main">
+            <div class="mapping-title">
+              <strong>{{ item.conce_codigo_sueldos || '-' }}</strong>
+              <span>{{ item.conce_descri_sueldos || 'Sin descripción' }}</span>
+            </div>
+            <div class="mapping-sub">
+              <span class="afip-pill" [class.missing]="!item.conce_codigo_afip">AFIP {{ item.conce_codigo_afip || 'pendiente' }}</span>
+              <span>{{ item.conce_descri_afip || 'Sin descripción AFIP' }}</span>
+            </div>
+            <div class="mapping-badges">
+              <span class="status-badge" [class.on]="item.visible" [class.off]="!item.visible">{{ item.visible ? 'Visible' : 'Oculto' }}</span>
+              <span class="mini-flag" *ngIf="item.marca_repeticion">Repetición</span>
+              <span class="mini-flag" *ngIf="item.sipa_aportes">SIPA A</span>
+              <span class="mini-flag" *ngIf="item.sipa_contribuciones">SIPA C</span>
+            </div>
+          </div>
+          <div class="mapping-actions">
+            <button type="button" class="icon-btn" (click)="editar(item)" title="Editar">
+              <i class="bi bi-pencil-square"></i>
+            </button>
+            <button type="button" class="icon-btn danger" (click)="askDelete(item)" title="Eliminar">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </article>
+      </div>
+      <ng-template #emptyMappings>
+        <div class="empty-state">
+          <p>No hay relaciones guardadas todavía.</p>
+        </div>
+      </ng-template>
+    </section>
+  </div>
+
+  <section class="panel import-panel">
+    <div class="panel-head">
+      <div>
+        <p class="panel-kicker">Carga masiva</p>
+        <h2>Importar CSV / JSON</h2>
+        <p>Pegá un CSV con separador <strong>;</strong> o <strong>,</strong>, o un JSON con mappings.</p>
+      </div>
+      <div class="import-actions">
+        <button type="button" class="btn-secondary" (click)="descargarPlantilla()">
+          <i class="bi bi-download"></i> Plantilla CSV
+        </button>
+        <button type="button" class="btn-secondary" (click)="importFileInput.click()">
+          <i class="bi bi-folder2-open"></i> Cargar archivo
+        </button>
+        <input #importFileInput type="file" accept=".csv,.json,.txt" hidden (change)="onImportFileSelected($event)" />
+      </div>
+    </div>
+
+    <div class="import-mode">
+      <label><input type="radio" name="importMode" [(ngModel)]="importMode" value="json" /> JSON</label>
+      <label><input type="radio" name="importMode" [(ngModel)]="importMode" value="csv" /> CSV</label>
+    </div>
+
+    <textarea
+      class="import-textarea"
+      [(ngModel)]="importText"
+      name="importText"
+      rows="6"
+      placeholder="Pegá aquí el CSV o JSON de importación..."></textarea>
+
+    <div class="import-file" *ngIf="importFileName">
+      Archivo cargado: <strong>{{ importFileName }}</strong>
+    </div>
+
+    <div class="import-error" *ngIf="importError">{{ importError }}</div>
+
+    <div class="panel-actions">
+      <button type="button" class="btn-primary" (click)="importar()" [disabled]="importLoading">
+        <i class="bi" [ngClass]="importLoading ? 'bi-arrow-repeat spin' : 'bi-upload'"></i>
+        Importar vínculos
+      </button>
+    </div>
+  </section>
+
+  <app-modal-alerta
+    [visible]="deleteModalVisible"
+    [titulo]="deleteModalTitle"
+    [mensaje]="deleteModalMessage"
+    icono="bi bi-exclamation-triangle-fill"
+    accentColor="#b91c1c"
+    buttonColor="#b91c1c"
+    [esConfirmacion]="true"
+    [mostrarSpinner]="deleteModalSpinner"
+    [bloquearCierre]="deleteModalSpinner"
+    (cerrar)="onDeleteModalClose($event)">
+  </app-modal-alerta>
+</section>

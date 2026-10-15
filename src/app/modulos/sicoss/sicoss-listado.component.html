@@ -1,0 +1,184 @@
+<section class="sicoss-page">
+  <app-loading-spinner [visible]="loading" [centered]="true" text="Cargando generaciones..."></app-loading-spinner>
+
+  <div class="hero-card">
+    <div class="module-breadcrumb">
+      <a routerLink="/modulos">Módulos</a>
+      <span>/</span>
+      <span>Seguridad Social</span>
+    </div>
+    <h1>SICOS / ARCA</h1>
+    <p>Generaciones de Seguridad Social y exportación del archivo ARCA.</p>
+    <div class="hero-acciones">
+      <button type="button" class="btn-primary" (click)="nuevo()" *ngIf="puedeCrear" [disabled]="loading">
+        <i class="bi bi-plus-lg"></i> Nueva generación
+      </button>
+    </div>
+  </div>
+
+  <div class="filters-card">
+    <div class="filters-body">
+      <label>
+        <span>Buscar</span>
+        <input type="text" [(ngModel)]="search" placeholder="Código o nombre" (keyup.enter)="buscar()" />
+      </label>
+      <label>
+        <span>Estado</span>
+        <select [(ngModel)]="filtroEstado">
+          <option value="">Todos</option>
+          <option value="activo">Activas</option>
+          <option value="inactivo">Inactivas</option>
+        </select>
+      </label>
+      <div class="filter-actions">
+        <button type="button" class="btn-primary" (click)="buscar()" [disabled]="loading">
+          <i class="bi bi-search"></i> Buscar
+        </button>
+        <button type="button" class="btn-secondary" (click)="limpiarFiltros()">Limpiar</button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="errorMsg" class="alert-error">{{ errorMsg }}</div>
+
+  <div class="table-wrap" *ngIf="!loading && itemsFiltrados.length > 0">
+    <table class="sicoss-table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Nombre</th>
+          <th class="num">Prioridad</th>
+          <th>Estado</th>
+          <th class="acciones">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of itemsFiltrados">
+          <td class="mono">{{ item.codigo }}</td>
+          <td>{{ item.nombre }}</td>
+          <td class="num">{{ item.prioridad }}</td>
+          <td>
+            <span class="state-badge" [ngClass]="item.activo ? 'activo' : 'inactivo'">
+              {{ item.activo ? 'Activa' : 'Inactiva' }}
+            </span>
+          </td>
+          <td class="acciones">
+            <div class="row-actions">
+              <button type="button" class="icon-btn" (click)="editar(item)" [disabled]="!puedeEditar" title="Editar"
+                aria-label="Editar">
+                <i class="bi bi-pencil-square"></i>
+              </button>
+              <button type="button" class="icon-btn" (click)="pedirExportar(item)" [disabled]="!exportHabilitado"
+                title="Exportar a ARCA" aria-label="Exportar a ARCA">
+                <i class="bi bi-file-earmark-arrow-up"></i>
+              </button>
+              <button type="button" class="icon-btn danger" (click)="pedirEliminar(item)" [disabled]="!puedeEliminar"
+                title="Eliminar" aria-label="Eliminar">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="paginador">
+      <button type="button" class="btn-secondary" (click)="irPagina(-1)" [disabled]="page <= 1">
+        <i class="bi bi-chevron-left"></i> Anterior
+      </button>
+      <span class="resultados">Página {{ page }} de {{ totalPaginas }} · {{ total }} registro(s)</span>
+      <button type="button" class="btn-secondary" (click)="irPagina(1)" [disabled]="page >= totalPaginas">
+        Siguiente <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="empty-state" *ngIf="!loading && itemsFiltrados.length === 0">
+    <p>No hay generaciones SICOS para mostrar.</p>
+    <button type="button" class="btn-primary" (click)="nuevo()" *ngIf="puedeCrear">Crear la primera</button>
+  </div>
+
+  <!-- Modal crear / editar -->
+  <app-modal-alerta [visible]="formVisible"
+    [titulo]="formEditando ? 'Editar generación SICOS' : 'Nueva generación SICOS'" [esConfirmacion]="true"
+    [mostrarSpinner]="guardando" [bloquearCierre]="guardando" (cerrar)="!$event ? cerrarForm() : guardarForm()">
+    <div class="form-grid">
+      <label>
+        <span>Código *</span>
+        <input type="text" [(ngModel)]="formModel.codigo" maxlength="50" [disabled]="guardando" />
+      </label>
+      <label>
+        <span>Nombre *</span>
+        <input type="text" [(ngModel)]="formModel.nombre" maxlength="255" [disabled]="guardando" />
+      </label>
+      <label>
+        <span>Prioridad</span>
+        <input type="number" min="0" [(ngModel)]="formModel.prioridad" [disabled]="guardando" />
+      </label>
+      <label class="check">
+        <span>Activa</span>
+        <input type="checkbox" [(ngModel)]="formModel.activo" [disabled]="guardando" />
+      </label>
+    </div>
+    <div *ngIf="formError" class="alert-error inline">{{ formError }}</div>
+  </app-modal-alerta>
+
+  <!-- Modal eliminar -->
+  <app-modal-alerta [visible]="modalVisible" [titulo]="modalTitle" [mensaje]="modalMessage"
+    icono="bi bi-exclamation-triangle-fill" accentColor="#b91c1c" buttonColor="#b91c1c" [esConfirmacion]="true"
+    [mostrarSpinner]="modalSpinner" [bloquearCierre]="modalSpinner" (cerrar)="onModalEliminar($event)">
+  </app-modal-alerta>
+
+  <!-- Modal exportar -->
+  <app-modal-alerta [visible]="exportVisible" titulo="Exportar a ARCA" [esConfirmacion]="false"
+    [mostrarSpinner]="exportando" [bloquearCierre]="exportando" (cerrar)="cerrarExport()">
+    <div *ngIf="!exportResultado">
+      <p class="export-sub" *ngIf="exportItem">
+        Generación: <strong>{{ exportItem.nombre }}</strong> ({{ exportItem.codigo }})
+      </p>
+      <div class="form-grid">
+        <label>
+          <span>Nombre del archivo *</span>
+          <input type="text" [(ngModel)]="exportNombreArchivo" maxlength="120" [disabled]="exportando" />
+        </label>
+        <label>
+          <span>Versión de layout</span>
+          <input type="text" [(ngModel)]="exportVersionLayout" maxlength="20" [disabled]="exportando" />
+        </label>
+        <label>
+          <span>Codificación</span>
+          <input type="text" [(ngModel)]="exportCodificacion" maxlength="20" [disabled]="exportando" />
+        </label>
+        <label>
+          <span>Archivo ARCA *</span>
+          <input type="file" (change)="onArchivoSeleccionado($event)" [disabled]="exportando" />
+        </label>
+      </div>
+      <div class="export-hint">
+        <i class="bi bi-info-circle"></i>
+        El archivo se envía al backend ya serializado (base64). El sistema no genera el contenido ARCA automáticamente.
+      </div>
+      <div *ngIf="exportContenidoBase64" class="export-ok">
+        <i class="bi bi-check-circle-fill"></i> Archivo cargado ({{ exportContenidoBase64.length }} caracteres en
+        base64).
+      </div>
+      <div *ngIf="exportError" class="alert-error inline">{{ exportError }}</div>
+      <div class="form-actions">
+        <button type="button" class="btn-primary" (click)="confirmarExport()" [disabled]="exportando">
+          <i class="bi" [ngClass]="exportando ? 'bi-arrow-repeat spin' : 'bi-cloud-arrow-up'"></i>
+          Exportar
+        </button>
+        <button type="button" class="btn-secondary" (click)="cerrarExport()" [disabled]="exportando">Cerrar</button>
+      </div>
+    </div>
+
+    <div *ngIf="exportResultado" class="export-resultado">
+      <i class="bi bi-check-circle-fill"></i>
+      <div>
+        <p>Archivo exportado correctamente.</p>
+        <p class="hash-line">Archivo: <strong>{{ exportResultado.nombre_archivo }}</strong></p>
+        <p class="hash-line">Hash SHA-256: <code>{{ exportResultado.hash }}</code></p>
+      </div>
+    </div>
+  </app-modal-alerta>
+</section>

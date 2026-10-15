@@ -53,6 +53,17 @@ export const routes: Routes = [
       { path: 'libros/:id', loadComponent: () => import('./modulos/sueldos/libros-sueldos/libro-detalle.component').then(m => m.LibroDetalleComponent) }
     ]
   },
+  { path: 'admin/impositivos', canActivate: [AuthGuard], loadComponent: () => import('./modulos/impositivos/impositivos-layout.component').then(m => m.ImpositivosLayoutComponent),
+    children: [
+      { path: '', loadComponent: () => import('./modulos/impositivos/impositivos-home.component').then(m => m.ImpositivosHomeComponent) },
+      { path: 'subsistemas', loadComponent: () => import('./modulos/impositivos/subsistemas.component').then(m => m.SubsistemasComponent) },
+      { path: 'conceptos-afip', loadComponent: () => import('./modulos/impositivos/conceptos-afip-relacion.component').then(m => m.ConceptosAfipRelacionComponent) },
+      { path: 'sicoss', loadComponent: () => import('./modulos/impositivos/sicoss/sicoss-listado.component').then(m => m.SicossListadoComponent) },
+      { path: 'sicoss/configuracion', loadComponent: () => import('./modulos/impositivos/sicoss/sicoss-configuracion.component').then(m => m.SicossConfiguracionComponent) },
+      { path: 'sicoss/nueva', loadComponent: () => import('./modulos/impositivos/sicoss/sicoss-generar.component').then(m => m.SicossGenerarComponent) },
+      { path: 'sicoss/generaciones/:id', loadComponent: () => import('./modulos/impositivos/sicoss/sicoss-detalle.component').then(m => m.SicossDetalleComponent) }
+    ]
+  },
   { path: 'admin/usuarios', canActivate: [AuthGuard], loadChildren: () => import('./modulos/usuarios/usuarios.routes').then(m => m.usuariosRoutes) },
   {
     path: 'mi-perfil',
